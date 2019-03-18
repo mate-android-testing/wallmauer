@@ -1,9 +1,9 @@
 # Program Arguments Example:
 
-C:\Users\Michael\com.xabber.androiddev_348\classes.dex
-C:\Users\Michael\com.xabber.androiddev_348\instrumented.dex
-ws.xsoh.etar
-com.android.calendar.AllInOneActivity
+C:\Users\Michael\com.xabber.androiddev_348\classes.dex <br />
+C:\Users\Michael\com.xabber.androiddev_348\instrumented.dex <br />
+ws.xsoh.etar <br />
+com.android.calendar.AllInOneActivity <br />
 
 The first argument describes the classes.dex file inside the APK. We can extract
 it by using apktool as follows: apktool d -s <apk-file>
