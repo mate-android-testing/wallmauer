@@ -87,4 +87,18 @@ public final class Analyzer {
             }
         }
     }
+
+    public static List<RegisterType> analyzeShiftedRegisterTypes(MethodAnalyzer analyzer, List<Integer> registerIDs) {
+
+        List<RegisterType> registerTypes = new ArrayList<>();
+
+        // we want the register type at the method head, that is before the first instruction
+        AnalyzedInstruction instruction = analyzer.getAnalyzedInstructions().get(0);
+
+        for (Integer registerID : registerIDs) {
+            registerTypes.add(instruction.getPreInstructionRegisterType(registerID));
+        }
+
+        return registerTypes;
+    }
 }

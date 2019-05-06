@@ -3,10 +3,7 @@ android.support.v.*
 android.support.*
 android.arch.*
 androidx.*
-com.android.calendarcommon2.*
-com.android.calendar.*
 com.android.common.*
-com.android.*
 com.facebook.android.*
 com.android.calendar.Utils.*
 twitter4j.*

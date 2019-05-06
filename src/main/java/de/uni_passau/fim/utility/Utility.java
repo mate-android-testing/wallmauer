@@ -1,5 +1,6 @@
 package de.uni_passau.fim.utility;
 
+import de.uni_passau.fim.branchcoverage.RegisterInformation;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.builder.BuilderInstruction;
@@ -8,6 +9,7 @@ import org.jf.dexlib2.builder.instruction.BuilderInstruction3rc;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
+import org.jf.dexlib2.iface.MethodImplementation;
 
 import javax.annotation.Nonnull;
 import java.io.*;
@@ -183,6 +185,61 @@ public final class Utility {
         }
     }
 
+    public static MethodImplementation replaceRegisterIDs(MethodImplementation implementation, RegisterInformation information) {
+
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(implementation);
+        int firstUsableRegister = information.getUsableRegisters().get(0);
+        int secondUsableRegister = information.getUsableRegisters().get(1);
+        int firstNewLocalRegister = information.getNewLocalRegisters().get(0);
+        int secondNewLocalRegister = information.getNewLocalRegisters().get(1);
+
+        for (BuilderInstruction instruction : mutableMethodImplementation.getInstructions()) {
+
+            // TODO: can't handle this unfortunately!!!!
+
+            // those invoke range instructions require a special treatment, since they don't have fields containing the registers
+            if (instruction instanceof BuilderInstruction3rc) {
+
+                // those instructions store the number of registers (var registerCount) and the first register of these range (var startRegister)
+                /*
+                int registerStart = ((BuilderInstruction3rc) instruction).getStartRegister();
+                java.lang.reflect.Field f = instruction.getClass().getDeclaredField("startRegister");
+                if (registerStart >= registerNumber) {
+                    f.setAccessible(true);
+                    f.set(instruction, registerStart + shift);
+                }
+                */
+                return mutableMethodImplementation;
+            }
+
+            java.lang.reflect.Field[] fields = instruction.getClass().getDeclaredFields();
+
+            for (java.lang.reflect.Field field : fields) {
+                // all fields are labeled registerA - registerG
+                if (field.getName().startsWith("register") && !field.getName().equals("registerCount")) {
+                    field.setAccessible(true);
+                    try {
+                        int value = field.getInt(instruction);
+
+                        // replace first usable with first local
+                        if (value == firstUsableRegister) {
+                            field.set(instruction, firstNewLocalRegister);
+                        }
+
+                        // replace second usable with second local
+                        if (value == secondUsableRegister) {
+                            field.set(instruction, secondNewLocalRegister);
+                        }
+
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return mutableMethodImplementation;
+    }
+
     /**
      * Increasing the amount of registers for a method requires shifting
      * certain registers back to their original position. In particular, all
@@ -197,7 +254,7 @@ public final class Utility {
      * @throws NoSuchFieldException   Should never happen, constitutes a byproduct of using reflection.
      * @throws IllegalAccessException Should never happen, constitutes a byproduct of using reflection.
      */
-    public static void reOrderRegister(BuilderInstruction instruction, int registerNumber)
+    public static void reOrderRegister(BuilderInstruction instruction, int registerNumber, int shift)
             throws NoSuchFieldException, IllegalAccessException {
 
         // those invoke range instructions require a special treatment, since they don't have fields containing the registers
@@ -208,7 +265,7 @@ public final class Utility {
             java.lang.reflect.Field f = instruction.getClass().getDeclaredField("startRegister");
             if (registerStart >= registerNumber) {
                 f.setAccessible(true);
-                f.set(instruction, registerStart + 1);
+                f.set(instruction, registerStart + shift);
             }
             return;
         }
@@ -224,7 +281,7 @@ public final class Utility {
                     int value = field.getInt(instruction);
 
                     if (value >= registerNumber)
-                        field.set(instruction, value + 1);
+                        field.set(instruction, value + shift);
 
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();

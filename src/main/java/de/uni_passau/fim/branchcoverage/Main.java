@@ -57,7 +57,7 @@ public class Main {
 
             // exclude certain packages/classes from instrumentation, e.g. android.widget.*
             if (exclusionPattern != null && exclusionPattern.matcher(className).matches()) {
-                // System.out.println("Excluding class: " + className + " from instrumentation!");
+                System.out.println("Excluding class: " + className + " from instrumentation!");
                 classes.add(classDef);
                 continue;
             }
@@ -83,6 +83,13 @@ public class Main {
                         || isOnDestroy) {
 
                     System.out.println("Class " + classDef.toString() + " contains method: " + method.getName());
+
+                    // clear register map + reset branches
+                    registerTypeMap.clear();
+                    branches.clear();
+
+                    // save register types of register with ID 14,15 (those are shifted out potentially)
+                    List<RegisterType> registerTypes = new ArrayList<>();
 
                     // each method is identified by its class name and method name
                     String id = className + "->" + method.getName();
@@ -118,7 +125,7 @@ public class Main {
                         } else {
                             // some param registers are shifted out of first 16 register IDs
                             // usableRegs != newLocalRegs
-                            // usableRegs are always ID 16,17 (orginally register IDs 14,15 are shifted out)
+                            // usableRegs are always ID 16,17 (originally register IDs 14,15 are shifted out)
                             List<Integer> usableRegisters = new ArrayList<>(Arrays.asList(new Integer[] {16, 17}));
                             registerInformation = new RegisterInformation(id, newLocalRegisters, usableRegisters);
                         }
@@ -129,20 +136,42 @@ public class Main {
                     System.out.println("The method now has " + totalRegisters + " registers in total.");
 
                     // we need to analyze the register types in case we exceed 16 registers in total
-                    if (totalRegisters >= Instrumenter.MAX_USABLE_REGS) {
-                        registerTypeMap.clear();
-                        branches.clear();
+                    if (totalRegisters > Instrumenter.MAX_USABLE_REGS) {
 
                         try {
                             MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
                                     true, ClassPath.NOT_ART), method, null, false);
+
+                            // analyze the register types at each branch
                             Analyzer.analyzeRegisterTypes(analyzer, method, branches, registerTypeMap);
+
+                            // we need to analyze the register type of the registers with ID 14,15 at the method entry
+                            registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, new ArrayList<>(Arrays.asList(new Integer[] {14, 15})));
                         } catch (UnresolvedClassException e) {
                             e.printStackTrace();
                         }
                     }
 
                     modifiedMethod = true;
+
+                    // instrument branches
+                    MethodImplementation modifiedImplementation =
+                            Instrumenter.modifyMethod(methImpl, id, totalRegisters, branches, registerTypeMap, registerInformation);
+
+                    // whether we already modified onDestroy or not (if branches of it), we need to further modify it to call Tracer.write()
+                    if (isMainActivity && isOnDestroy && !modifiedOnDestroy) {
+                        modifiedImplementation = Instrumenter.modifyOnDestroy(modifiedImplementation, packageName);
+                        modifiedOnDestroy = true;
+                    }
+
+                    // we need to shift the content of the param registers into the new local registers
+                    // then we can use param registers for the branch coverage instructions
+                    // this means we need to replace the register IDs in every instruction
+                    if (totalRegisters > Instrumenter.MAX_USABLE_REGS
+                            && !registerInformation.getNewLocalRegisters().equals(registerInformation.getUsableRegisters())) {
+                        modifiedImplementation = Instrumenter.modifyShiftedRegisters(modifiedImplementation, registerInformation, registerTypes);
+                        modifiedImplementation = Utility.replaceRegisterIDs(modifiedImplementation, registerInformation);
+                    }
                     methods.add(new ImmutableMethod(
                             method.getDefiningClass(),
                             method.getName(),
@@ -150,7 +179,7 @@ public class Main {
                             method.getReturnType(),
                             method.getAccessFlags(),
                             method.getAnnotations(),
-                            Instrumenter.modifyMethod(methImpl, id, totalRegisters, branches, registerTypeMap, registerInformation)));
+                            modifiedImplementation));
                 } else {
                     methods.add(method);
                 }

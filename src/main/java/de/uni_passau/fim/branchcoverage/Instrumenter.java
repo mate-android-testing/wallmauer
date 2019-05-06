@@ -3,6 +3,7 @@ package de.uni_passau.fim.branchcoverage;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.utility.Utility;
 import org.jf.dexlib2.Opcode;
+import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
@@ -86,34 +87,45 @@ public final class Instrumenter {
      * @param coveredInstructions   A set of instructions that should be not re-ordered, i.e. the method
      *                              {@method reOrderRegister} should not be invoked on those instructions.
      */
-    private static void modifyOnDestroy(MutableMethodImplementation mutableImplementation, Set<BuilderInstruction> coveredInstructions) {
+    public static MethodImplementation modifyOnDestroy(MethodImplementation methodImplementation, String packageName) {
 
         System.out.println("Modifying onDestroy method of 'MainActivity'");
-        modifiedOnDestroy = true;
+
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+        List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 
         /*
-         * The onDestroy method of the 'MainActivity' requires
-         * an additional instruction, which in turn calls Tracer.write(packageName).
-         * This instruction should be placed at the last position, since the onDestroy
-         * method may also contain if branches, which should be reported. However,
-         * we have to assume that last statement of onDestroy gets triggered,
-         * otherwise we end up with not calling Tracer.write().
-         * TODO: check for return statement(s) of onDestroy, i.e. return-void
-         * TODO: and place before each the Tracer.write() instruction.
+        * TODO: Verify that we can't corrupt the register type by overwriting v0 before each
+        * return statement. Currently, we assume this, and don't analyze the register types
+        * at this location. If this doesn't hold, we need to apply the same trick as for
+        * the general instrumentation.
          */
 
-        // FIXME: we didn't analyze the type of v0 before each return statement, we should call MethodAnalyzer again here
+        // we need to insert the code before each return statement
+        for (int i=0; i < instructions.size(); i++) {
+            // onDestroy has return type void, which opcodes refers to '0E'
+            if (instructions.get(i).getOpcode().name.equals("RETURN_VOID")) {
 
-        // assuming last statement is return statement and we don't accidentally overwrite the succeeding instructions
-        int index = mutableImplementation.getInstructions().size() - 2;
+                // TODO: check whether index i refers to instruction before/after
+                mutableMethodImplementation.addInstruction(i, new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                        new ImmutableStringReference(packageName)));
 
-        final Map<Integer, RegisterType> registerType = registerTypeMap.getOrDefault(index, null);
-        insertInstrumentationCode(mutableImplementation, registerType, index, packageName, "write", coveredInstructions);
+                //     invoke-static {v0}, Lde/uni_passau/fim/auermich/tracer/Tracer;->write(Ljava/lang/String;)V
+                // invoke-static instruction has format '35c' and opcode '71'
+                mutableMethodImplementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
+                        , 0, 0, 0, 0, 0,
+                        new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "write",
+                                Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            }
+        }
+        return mutableMethodImplementation;
     }
 
     private static Map.Entry<Integer, RegisterType> findSuitableRegister(Map<Integer, RegisterType> registerTypes) {
 
-        Map.Entry<Integer, RegisterType> selectedRegister= new AbstractMap.SimpleEntry<Integer, RegisterType>(-1, RegisterType.LONG_HI_TYPE);
+        Map.Entry<Integer, RegisterType> selectedRegister = registerTypes.entrySet().stream().findFirst().get();
+        // Map.Entry<Integer, RegisterType> selectedRegister= new AbstractMap.SimpleEntry<Integer, RegisterType>(-1, RegisterType.LONG_HI_TYPE);
 
         // find a register type that is not long or double (would require 2 registers)
         for (Map.Entry<Integer, RegisterType> entry : registerTypes.entrySet()) {
@@ -175,15 +187,19 @@ public final class Instrumenter {
      *                              the method {@method reOrderRegister}.
      */
     private static void insertInstrumentationCode(MutableMethodImplementation mutableImplementation, final Map<Integer, RegisterType> registerTypes,
-                                                  int index, final String id, final String method, Set<BuilderInstruction> coveredInstructions) {
+                                                  int index, final String id, final String method,
+                                                  Set<BuilderInstruction> coveredInstructions, RegisterInformation registerInformation) {
 
-        if (localRegisterID <= MAX_LOCAL_USABLE_REG) {
+        int totalRegisterCount = mutableImplementation.getRegisterCount();
+        int usableLocalRegID = registerInformation.getUsableRegisters().get(0);
 
-            BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, localRegisterID,
+        if (totalRegisterCount <= MAX_USABLE_REGS) {
+
+            BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, usableLocalRegID,
                     new ImmutableStringReference(id));
 
             BuilderInstruction35c invokeStatic = new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
-                    , localRegisterID, 0, 0, 0, 0,
+                    , usableLocalRegID, 0, 0, 0, 0,
                     new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", method,
                             Lists.newArrayList("Ljava/lang/String;"), "V"));
 
@@ -224,7 +240,7 @@ public final class Instrumenter {
                     moveBackOpCode = Opcode.MOVE_WIDE_FROM16;
                     break;
                 case 3:
-                    // conflicted/unit -> use arbitrarly
+                    // conflicted/unit -> use arbitrarily one
                     moveOpCode = Opcode.MOVE_OBJECT_16;
                     moveBackOpCode = Opcode.MOVE_OBJECT_FROM16;
                     insertDummyInstruction = true;
@@ -249,7 +265,7 @@ public final class Instrumenter {
                 mutableImplementation.addInstruction(++index, constString);
             }
 
-            BuilderInstruction32x move = new BuilderInstruction32x(moveOpCode, localRegisterID, selectedRegisterID);
+            BuilderInstruction32x move = new BuilderInstruction32x(moveOpCode, usableLocalRegID, selectedRegisterID);
 
             BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, selectedRegisterID,
                     new ImmutableStringReference(id));
@@ -259,7 +275,7 @@ public final class Instrumenter {
                     new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", method,
                             Lists.newArrayList("Ljava/lang/String;"), "V"));
 
-            BuilderInstruction22x moveBack = new BuilderInstruction22x(moveBackOpCode, selectedRegisterID, localRegisterID);
+            BuilderInstruction22x moveBack = new BuilderInstruction22x(moveBackOpCode, selectedRegisterID, usableLocalRegID);
 
             coveredInstructions.add(move);
             coveredInstructions.add(constString);
@@ -315,8 +331,18 @@ public final class Instrumenter {
 
             if (!coveredInstructions.contains(instruction)) {
                 coveredInstructions.add(instruction);
-                // re-order param registers (shift of register number)
-                Utility.reOrderRegister(instruction, localRegisterID);
+                // the ID of the first new local registers refers the original first param register
+                int newLocalRegisterID = registerInformation.getNewLocalRegisters().get(0);
+                // the shift depends on how many new local registers we have added
+                int shift = registerInformation.getNewLocalRegisters().size();
+                // re-order param-registers back to original position
+                try {
+                    Utility.reOrderRegister(instruction, newLocalRegisterID, shift);
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    System.out.println("Couldn't re-order registers back!");
+                    e.printStackTrace();
+                    return mutableImplementation;
+                }
             }
 
             /**
@@ -338,8 +364,8 @@ public final class Instrumenter {
                 int ifBranchIndex = instruction.getLocation().getIndex();
 
                 Map<Integer, RegisterType> registerTypes = registerTypeMap.getOrDefault(branchIndex, null);
-
-                insertInstrumentationCode(mutableImplementation, registerTypes, ifBranchIndex, id, "trace", coveredInstructions);
+                insertInstrumentationCode(mutableImplementation, registerTypes, ifBranchIndex,
+                        id, "trace", coveredInstructions, registerInformation);
 
                 branchCounter++;
                 branchIndex++;
@@ -355,26 +381,21 @@ public final class Instrumenter {
 
                     int elseBranchIndex = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
                     registerTypes = registerTypeMap.getOrDefault(branchIndex, null);
-                    insertInstrumentationCode(mutableImplementation, registerTypes, elseBranchIndex, id, "trace", coveredInstructions);
+                    insertInstrumentationCode(mutableImplementation, registerTypes, elseBranchIndex,
+                            id, "trace", coveredInstructions, registerInformation);
 
-                    if (localRegisterID <= MAX_LOCAL_USABLE_REG) {
+                    // depending on how many instructions we inserted, we need to shift more or less
+                    if (totalRegisters <= MAX_USABLE_REGS) {
+                        // single register, directly usable, no storing/restoring instructions necessary
                         mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
                         mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
                     } else {
                         if (registerTypes != null) {
-                            RegisterType selectedRegisterType = findSuitableRegister(registerTypes).getValue();
-                            if (mapRegisterType(selectedRegisterType) == DUMMY_INSTRUCTION_TYPE) {
-                                mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
-                                mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
-                                mutableImplementation.swapInstructions(elseBranchIndex + 2, elseBranchIndex + 3);
-                                mutableImplementation.swapInstructions(elseBranchIndex + 3, elseBranchIndex + 4);
-                                mutableImplementation.swapInstructions(elseBranchIndex + 4, elseBranchIndex + 5);
-                            } else {
-                                mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
-                                mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
-                                mutableImplementation.swapInstructions(elseBranchIndex + 2, elseBranchIndex + 3);
-                                mutableImplementation.swapInstructions(elseBranchIndex + 3, elseBranchIndex + 4);
-                            }
+                            // we have additionally a move + move-back instruction
+                            mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
+                            mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
+                            mutableImplementation.swapInstructions(elseBranchIndex + 2, elseBranchIndex + 3);
+                            mutableImplementation.swapInstructions(elseBranchIndex + 3, elseBranchIndex + 4);
                         }
                     }
                     branchCounter++;
@@ -383,14 +404,64 @@ public final class Instrumenter {
                 branchIndex++;
             }
         }
-
-        // whether we already modified onDestroy or not (if branches of it), we need to further modify it to call Tracer.write()
-        if (isMainActivity && isOnDestroy && !modifiedOnDestroy) {
-            modifyOnDestroy(mutableImplementation, coveredInstructions);
-        }
         return mutableImplementation;
     }
 
 
+    public static MethodImplementation modifyShiftedRegisters(MethodImplementation implementation,
+                                                            RegisterInformation information, List<RegisterType> registerTypes) {
+
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(implementation);
+
+        // check whether we have a wide type or not, assuming that high half comes first
+        if (registerTypes.get(0) == RegisterType.LONG_HI_TYPE
+                || registerTypes.get(0) == RegisterType.DOUBLE_HI_TYPE) {
+
+            Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
+            // destination register : first new local register
+            int destinationRegisterID  = information.getNewLocalRegisters().get(0);
+            // source register : first usable register
+            int sourceRegisterID = information.getUsableRegisters().get(0);
+            // move wide vNew, vShiftedOut
+            BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
+            // add move as first instruction
+            mutableMethodImplementation.addInstruction(0, move);
+        } else {
+            // either object or primitive -> individual move
+            for (int i=0; i < registerTypes.size(); i++) {
+
+                if (registerTypes.get(i).category == RegisterType.REFERENCE
+                        || registerTypes.get(i).category == RegisterType.NULL) {
+
+                    // object type
+                    Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
+                    // destination register : first new local register
+                    int destinationRegisterID  = information.getNewLocalRegisters().get(i);
+                    // source register : first usable register
+                    int sourceRegisterID = information.getUsableRegisters().get(i);
+                    // move wide vNew, vShiftedOut
+                    BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
+                    // add move as first instruction
+                    mutableMethodImplementation.addInstruction(i, move);
+                } else {
+
+                    // primitive type
+                    Opcode movePrimitive = Opcode.MOVE_FROM16;
+                    // destination register : first new local register
+                    int destinationRegisterID  = information.getNewLocalRegisters().get(i);
+                    // source register : first usable register
+                    int sourceRegisterID = information.getUsableRegisters().get(i);
+                    // move wide vNew, vShiftedOut
+                    BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
+                    // add move as first instruction
+                    mutableMethodImplementation.addInstruction(i, move);
+                }
+            }
+        }
+
+        // we need to finally replace the register IDs (usable with new local)
+
+        return mutableMethodImplementation;
+    }
 
 }
