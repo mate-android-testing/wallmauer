@@ -1,4 +1,4 @@
-package de.uni_passau.fim;
+package de.uni_passau.fim.branchcoverage;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,7 +1,6 @@
 package de.uni_passau.fim.branchcoverage;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.RegisterInformation;
 import de.uni_passau.fim.utility.Utility;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
