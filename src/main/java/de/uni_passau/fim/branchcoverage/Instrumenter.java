@@ -101,10 +101,18 @@ public final class Instrumenter {
         * the general instrumentation.
          */
 
+        Set<BuilderInstruction> coveredInstructions = new HashSet<>();
+
         // we need to insert the code before each return statement
         for (int i=0; i < instructions.size(); i++) {
+            System.out.println(instructions.get(i).getOpcode().name);
             // onDestroy has return type void, which opcodes refers to '0E'
-            if (instructions.get(i).getOpcode().name.equals("RETURN_VOID")) {
+            if (instructions.get(i).getOpcode().name.equals("return-void")
+                    && !coveredInstructions.contains(instructions.get(i))) {
+
+                coveredInstructions.add(instructions.get(i));
+
+                System.out.println("Inserting Trace.write() invocation before return statement!");
 
                 // TODO: check whether index i refers to instruction before/after
                 mutableMethodImplementation.addInstruction(i, new BuilderInstruction21c(Opcode.CONST_STRING, 0,
@@ -112,7 +120,7 @@ public final class Instrumenter {
 
                 //     invoke-static {v0}, Lde/uni_passau/fim/auermich/tracer/Tracer;->write(Ljava/lang/String;)V
                 // invoke-static instruction has format '35c' and opcode '71'
-                mutableMethodImplementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
+                mutableMethodImplementation.addInstruction(++i, new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
                         , 0, 0, 0, 0, 0,
                         new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "write",
                                 Lists.newArrayList("Ljava/lang/String;"), "V")));
