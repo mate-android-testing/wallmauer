@@ -5,6 +5,7 @@ import de.uni_passau.fim.utility.Utility;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.analysis.*;
+import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
@@ -126,8 +127,14 @@ public class Main {
                             // some param registers are shifted out of first 16 register IDs
                             // usableRegs != newLocalRegs
                             // usableRegs are always ID 16,17 (originally register IDs 14,15 are shifted out)
+                            if (method.getName().contains("formatDateRange")) {
+                                System.out.println(newLocalRegisters);
+                            }
                             List<Integer> usableRegisters = new ArrayList<>(Arrays.asList(new Integer[] {16, 17}));
                             registerInformation = new RegisterInformation(id, newLocalRegisters, usableRegisters);
+                            if (method.getName().contains("formatDateRange")) {
+                                System.out.println(usableRegisters);
+                            }
                         }
                         // increase total register count by 2
                         totalRegisters = totalRegisters + 2;
@@ -154,9 +161,14 @@ public class Main {
 
                     modifiedMethod = true;
 
+                    // we need to track the instructions we inserted, these are irrelevant for the later register substituion
+                    Set<BuilderInstruction> insertedInstructions = new HashSet<>();
+
                     // instrument branches
                     MethodImplementation modifiedImplementation =
-                            Instrumenter.modifyMethod(methImpl, id, totalRegisters, branches, registerTypeMap, registerInformation);
+                            Instrumenter.modifyMethod(methImpl, id, totalRegisters, branches, registerTypeMap, registerInformation, insertedInstructions);
+
+                    // TODO: track also inserted instructions inside modifyOnDestroy!!!
 
                     // whether we already modified onDestroy or not (if branches of it), we need to further modify it to call Tracer.write()
                     if (isMainActivity && isOnDestroy && !modifiedOnDestroy) {
@@ -169,8 +181,23 @@ public class Main {
                     // this means we need to replace the register IDs in every instruction
                     if (totalRegisters > Instrumenter.MAX_USABLE_REGS
                             && !registerInformation.getNewLocalRegisters().equals(registerInformation.getUsableRegisters())) {
+
+                        System.out.println("Tracked Instructions: " + insertedInstructions.size());
+
+                        for (BuilderInstruction instruction : insertedInstructions) {
+                            System.out.println(instruction.getLocation().getIndex());
+                            System.out.println(instruction.getLocation().getCodeAddress());
+                            System.out.println(instruction.getCodeUnits());
+                            System.out.println(instruction.getFormat());
+                            System.out.println(instruction.getOpcode());
+                            System.out.println(System.lineSeparator());
+                        }
+
+                        // replace usable with local regs
+                        modifiedImplementation = Utility.replaceRegisterIDs(modifiedImplementation, registerInformation, insertedInstructions);
+
+                        // insert move instruction at method head for making usable registers free
                         modifiedImplementation = Instrumenter.modifyShiftedRegisters(modifiedImplementation, registerInformation, registerTypes);
-                        modifiedImplementation = Utility.replaceRegisterIDs(modifiedImplementation, registerInformation);
                     }
                     methods.add(new ImmutableMethod(
                             method.getDefiningClass(),

@@ -135,6 +135,8 @@ public final class Instrumenter {
         Map.Entry<Integer, RegisterType> selectedRegister = registerTypes.entrySet().stream().findFirst().get();
         // Map.Entry<Integer, RegisterType> selectedRegister= new AbstractMap.SimpleEntry<Integer, RegisterType>(-1, RegisterType.LONG_HI_TYPE);
 
+        // TODO: we can't select 'newLocalRegisters' as they contain the original content of v14,v15 respectively v16,v17
+        /*
         // find a register type that is not long or double (would require 2 registers)
         for (Map.Entry<Integer, RegisterType> entry : registerTypes.entrySet()) {
             if (entry.getValue().category == RegisterType.LONG_HI || entry.getValue().category== RegisterType.LONG_LO
@@ -148,6 +150,7 @@ public final class Instrumenter {
                 break;
             }
         }
+        */
         System.out.println("Selected Register: v" + selectedRegister.getKey() + ", " + selectedRegister.getValue());
         return selectedRegister;
     }
@@ -196,10 +199,12 @@ public final class Instrumenter {
      */
     private static void insertInstrumentationCode(MutableMethodImplementation mutableImplementation, final Map<Integer, RegisterType> registerTypes,
                                                   int index, final String id, final String method,
-                                                  Set<BuilderInstruction> coveredInstructions, RegisterInformation registerInformation) {
+                                                  Set<BuilderInstruction> coveredInstructions, RegisterInformation registerInformation,
+                                                  Set<BuilderInstruction> insertedInstructions) {
 
         int totalRegisterCount = mutableImplementation.getRegisterCount();
         int usableLocalRegID = registerInformation.getUsableRegisters().get(0);
+        System.out.println("Using register: " + usableLocalRegID);
 
         if (totalRegisterCount <= MAX_USABLE_REGS) {
 
@@ -211,8 +216,13 @@ public final class Instrumenter {
                     new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", method,
                             Lists.newArrayList("Ljava/lang/String;"), "V"));
 
+            // track already instrumented instructions
             coveredInstructions.add(constString);
             coveredInstructions.add(invokeStatic);
+
+            // track instructions that we inserted
+            insertedInstructions.add(constString);
+            insertedInstructions.add(invokeStatic);
 
             mutableImplementation.addInstruction(++index, constString);
             mutableImplementation.addInstruction(++index, invokeStatic);
@@ -270,6 +280,7 @@ public final class Instrumenter {
                 BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, selectedRegisterID,
                         new ImmutableStringReference("dummy init"));
                 coveredInstructions.add(constString);
+                insertedInstructions.add(constString);
                 mutableImplementation.addInstruction(++index, constString);
             }
 
@@ -290,6 +301,11 @@ public final class Instrumenter {
             coveredInstructions.add(invokeStatic);
             coveredInstructions.add(moveBack);
 
+            insertedInstructions.add(move);
+            insertedInstructions.add(constString);
+            insertedInstructions.add(invokeStatic);
+            insertedInstructions.add(moveBack);
+
             mutableImplementation.addInstruction(++index, move);
             mutableImplementation.addInstruction(++index, constString);
             mutableImplementation.addInstruction(++index, invokeStatic);
@@ -309,7 +325,8 @@ public final class Instrumenter {
      */
     public static MethodImplementation modifyMethod(MethodImplementation implementation, String identifier,
                                                     int totalRegisters, Map<Integer,Branch> branches, Map<Integer,
-                                                    Map<Integer,RegisterType>> registerTypeMap, RegisterInformation registerInformation) {
+                                                    Map<Integer,RegisterType>> registerTypeMap, RegisterInformation registerInformation,
+                                                    Set<BuilderInstruction> insertedInstructions) {
 
         int branchIndex = 0;
         int branchCounter = 0;
@@ -373,7 +390,7 @@ public final class Instrumenter {
 
                 Map<Integer, RegisterType> registerTypes = registerTypeMap.getOrDefault(branchIndex, null);
                 insertInstrumentationCode(mutableImplementation, registerTypes, ifBranchIndex,
-                        id, "trace", coveredInstructions, registerInformation);
+                        id, "trace", coveredInstructions, registerInformation, insertedInstructions);
 
                 branchCounter++;
                 branchIndex++;
@@ -390,7 +407,7 @@ public final class Instrumenter {
                     int elseBranchIndex = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
                     registerTypes = registerTypeMap.getOrDefault(branchIndex, null);
                     insertInstrumentationCode(mutableImplementation, registerTypes, elseBranchIndex,
-                            id, "trace", coveredInstructions, registerInformation);
+                            id, "trace", coveredInstructions, registerInformation, insertedInstructions);
 
                     // depending on how many instructions we inserted, we need to shift more or less
                     if (totalRegisters <= MAX_USABLE_REGS) {
@@ -428,8 +445,10 @@ public final class Instrumenter {
             Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
             // destination register : first new local register
             int destinationRegisterID  = information.getNewLocalRegisters().get(0);
+            System.out.println("Destination reg: " + destinationRegisterID);
             // source register : first usable register
             int sourceRegisterID = information.getUsableRegisters().get(0);
+            System.out.println("Source reg: " + sourceRegisterID);
             // move wide vNew, vShiftedOut
             BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
             // add move as first instruction
