@@ -100,79 +100,67 @@ public class Main {
                     int paramRegisters = MethodUtil.getParameterRegisterCount(method);
                     int localRegisters = totalRegisters - paramRegisters;
 
-                    RegisterInformation registerInformation;
+                    /*
+                    * Due to the fact that invoke-range instructions can define
+                    * a range of registers as parameters, even over the
+                    * param register border, e.g. from v12 to p4, newly inserted
+                    * local registers would corrupt those instructions. That's why
+                    * we need to create for every param register a new local register
+                    * or at least two additional registers if less than two param registers
+                    * are present, and shift individually the content of the param
+                    * register to the corresponding newly created local register.
+                    * This ensures, we don't corrupt any invoke-range instruction as our
+                    * registers for the instrumentation reside at the location of the param registers.
+                     */
+                    int additionalRegisters = Math.max(paramRegisters,2);
 
-                    if (totalRegisters + 1 <= Instrumenter.MAX_USABLE_REGS) {
-                        // we only need a single additional registers, which is directly usable
-                        // the ID of the new local register is the old number of local registers
-                        // Example: v0-v12 -> 13 local registers -> new local register v13 -> ID 13
-                        registerInformation = new RegisterInformation(id,
-                                new ArrayList<>(Arrays.asList(new Integer[] {localRegisters})),
-                                new ArrayList<>(Arrays.asList(new Integer[] {localRegisters})));
+                    // compute both usable and new local register IDs
+                    List<Integer> newLocalRegisters = new ArrayList<>();
+                    List<Integer> usableRegisters = new ArrayList<>();
 
-                        // increase total register count by 1
-                        totalRegisters++;
-                    } else {
-                        // we need two additional registers, which are not directly usable
-
-                        // new local registers IDs start at original number of local registers
-                        List<Integer> newLocalRegisters = new ArrayList<>(Arrays.asList(new Integer[] {localRegisters, localRegisters+1}));
-
-                        if (localRegisters >= Instrumenter.MAX_USABLE_REGS) {
-                            // the new local registers are somewhere in the range v16,v17,...
-                            // no param registers are shifted out of the first 16 register IDs
-                            List<Integer> usableRegisters = newLocalRegisters;
-                            registerInformation = new RegisterInformation(id,newLocalRegisters, usableRegisters);
-                        } else {
-                            // some param registers are shifted out of first 16 register IDs
-                            // usableRegs != newLocalRegs
-                            // usableRegs are always ID 16,17 (originally register IDs 14,15 are shifted out)
-                            if (method.getName().contains("formatDateRange")) {
-                                System.out.println(newLocalRegisters);
-                            }
-                            List<Integer> usableRegisters = new ArrayList<>(Arrays.asList(new Integer[] {16, 17}));
-                            registerInformation = new RegisterInformation(id, newLocalRegisters, usableRegisters);
-                            if (method.getName().contains("formatDateRange")) {
-                                System.out.println(usableRegisters);
-                            }
-                        }
-                        // increase total register count by 2
-                        totalRegisters = totalRegisters + 2;
+                    // list the new local register IDs which start at #localRegisters
+                    // list the usable registers IDs which got shifted to the right due to new local registers
+                    for (int reg=0; reg < additionalRegisters; reg++) {
+                        newLocalRegisters.add(localRegisters+reg);
+                        usableRegisters.add(totalRegisters-paramRegisters+reg);
                     }
+
+                    totalRegisters = totalRegisters + additionalRegisters;
+
+                    RegisterInformation registerInformation = new RegisterInformation(id,
+                            newLocalRegisters, usableRegisters);
 
                     System.out.println("The method now has " + totalRegisters + " registers in total.");
 
                     // we need to analyze the register types in case we exceed 16 registers in total
-                    if (totalRegisters > Instrumenter.MAX_USABLE_REGS) {
+                    try {
+                        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                                true, ClassPath.NOT_ART), method, null, false);
 
-                        try {
-                            MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                                    true, ClassPath.NOT_ART), method, null, false);
+                        // analyze all register types at each branch
+                        Analyzer.analyzeRegisterTypes(analyzer, method, branches, registerTypeMap);
 
-                            // analyze the register types at each branch
-                            Analyzer.analyzeRegisterTypes(analyzer, method, branches, registerTypeMap);
-
-                            // we need to analyze the register type of the registers with ID 14,15 at the method entry
-                            registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, new ArrayList<>(Arrays.asList(new Integer[] {14, 15})));
-                        } catch (UnresolvedClassException e) {
-                            e.printStackTrace();
+                        // we need to analyze the register type of all param registers (at their original location) at the method entry
+                        if (!usableRegisters.equals(newLocalRegisters)) {
+                            // this is only the case when #p-regs > 0 -> usableRegs != newLocalRegs
+                            registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, newLocalRegisters);
                         }
+                    } catch (UnresolvedClassException e) {
+                        e.printStackTrace();
                     }
 
                     modifiedMethod = true;
 
-                    // we need to track the instructions we inserted, these are irrelevant for the later register substituion
+                    // we need to track the instructions we inserted, these are irrelevant for the later register substitution
                     Set<BuilderInstruction> insertedInstructions = new HashSet<>();
 
                     // instrument branches
                     MethodImplementation modifiedImplementation =
                             Instrumenter.modifyMethod(methImpl, id, totalRegisters, branches, registerTypeMap, registerInformation, insertedInstructions);
 
-                    // TODO: track also inserted instructions inside modifyOnDestroy!!!
-
                     // whether we already modified onDestroy or not (if branches of it), we need to further modify it to call Tracer.write()
                     if (isMainActivity && isOnDestroy && !modifiedOnDestroy) {
-                        modifiedImplementation = Instrumenter.modifyOnDestroy(modifiedImplementation, packageName);
+                        modifiedImplementation = Instrumenter.modifyOnDestroy(modifiedImplementation, packageName, insertedInstructions);
                         modifiedOnDestroy = true;
                     }
 
@@ -194,10 +182,11 @@ public class Main {
                         }
 
                         // replace usable with local regs
-                        modifiedImplementation = Utility.replaceRegisterIDs(modifiedImplementation, registerInformation, insertedInstructions);
+                        // TODO: this should be already done since reOrderRegisters ist not called
+                        // modifiedImplementation = Utility.replaceRegisterIDs(modifiedImplementation, registerInformation, insertedInstructions);
 
                         // insert move instruction at method head for making usable registers free
-                        modifiedImplementation = Instrumenter.modifyShiftedRegisters(modifiedImplementation, registerInformation, registerTypes);
+                        modifiedImplementation = Instrumenter.insertMoveInstructionsAtMethodEntry(modifiedImplementation, registerInformation, registerTypes);
                     }
                     methods.add(new ImmutableMethod(
                             method.getDefiningClass(),

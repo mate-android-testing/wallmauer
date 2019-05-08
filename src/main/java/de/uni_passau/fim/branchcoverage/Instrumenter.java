@@ -87,7 +87,8 @@ public final class Instrumenter {
      * @param coveredInstructions   A set of instructions that should be not re-ordered, i.e. the method
      *                              {@method reOrderRegister} should not be invoked on those instructions.
      */
-    public static MethodImplementation modifyOnDestroy(MethodImplementation methodImplementation, String packageName) {
+    public static MethodImplementation modifyOnDestroy(MethodImplementation methodImplementation, String packageName,
+                                                       Set<BuilderInstruction> insertedInstructions) {
 
         System.out.println("Modifying onDestroy method of 'MainActivity'");
 
@@ -114,17 +115,23 @@ public final class Instrumenter {
 
                 System.out.println("Inserting Trace.write() invocation before return statement!");
 
+                BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                        new ImmutableStringReference(packageName));
+
                 // TODO: check whether index i refers to instruction before/after
-                mutableMethodImplementation.addInstruction(i, new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                        new ImmutableStringReference(packageName)));
+                mutableMethodImplementation.addInstruction(i, constString);
+
+                BuilderInstruction35c invokeStatic = new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
+                        , 0, 0, 0, 0, 0,
+                        new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "write",
+                                Lists.newArrayList("Ljava/lang/String;"), "V"));
 
                 //     invoke-static {v0}, Lde/uni_passau/fim/auermich/tracer/Tracer;->write(Ljava/lang/String;)V
                 // invoke-static instruction has format '35c' and opcode '71'
-                mutableMethodImplementation.addInstruction(++i, new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
-                        , 0, 0, 0, 0, 0,
-                        new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "write",
-                                Lists.newArrayList("Ljava/lang/String;"), "V")));
+                mutableMethodImplementation.addInstruction(++i,invokeStatic);
 
+                insertedInstructions.add(constString);
+                insertedInstructions.add(invokeStatic);
             }
         }
         return mutableMethodImplementation;
@@ -354,6 +361,10 @@ public final class Instrumenter {
 
             BuilderInstruction instruction = instructions.get(i);
 
+            /*
+             * No shift necessary any more.
+             */
+            /*
             if (!coveredInstructions.contains(instruction)) {
                 coveredInstructions.add(instruction);
                 // the ID of the first new local registers refers the original first param register
@@ -369,6 +380,8 @@ public final class Instrumenter {
                     return mutableImplementation;
                 }
             }
+            */
+
 
             /**
              * Branching instructions are either identified by their opcode,
@@ -415,8 +428,19 @@ public final class Instrumenter {
                         mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
                         mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
                     } else {
-                        if (registerTypes != null) {
-                            // we have additionally a move + move-back instruction
+                        // we have additionally a move + move-back instruction
+
+                        // we need to check if we inserted a dummy instruction, this is the case when the type is uninit/conflicted
+                        // we always select the first local register v0 -> findSuitableRegister has no side effects
+                        RegisterType selectedRegisterType = findSuitableRegister(registerTypes).getValue();
+                        if (selectedRegisterType == RegisterType.UNINIT_TYPE || selectedRegisterType == RegisterType.CONFLICTED_TYPE) {
+                            // we have additionally inserted a dummy init instruction
+                            mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
+                            mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
+                            mutableImplementation.swapInstructions(elseBranchIndex + 2, elseBranchIndex + 3);
+                            mutableImplementation.swapInstructions(elseBranchIndex + 3, elseBranchIndex + 4);
+                            mutableImplementation.swapInstructions(elseBranchIndex + 4, elseBranchIndex + 5);
+                        } else {
                             mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
                             mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
                             mutableImplementation.swapInstructions(elseBranchIndex + 2, elseBranchIndex + 3);
@@ -430,6 +454,70 @@ public final class Instrumenter {
             }
         }
         return mutableImplementation;
+    }
+
+    /**
+     *
+     * @param implementation
+     * @param information
+     * @param registerTypes Contains the register types of the param registers (usable registers).
+     * @return
+     */
+    public static MethodImplementation insertMoveInstructionsAtMethodEntry(MethodImplementation implementation,
+                                                              RegisterInformation information, List<RegisterType> registerTypes) {
+
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(implementation);
+
+        for (int index=0; index < registerTypes.size(); index++) {
+
+            // check whether we have a wide type or not, assuming that high half comes first
+            if (registerTypes.get(index) == RegisterType.LONG_HI_TYPE
+                    || registerTypes.get(index) == RegisterType.DOUBLE_HI_TYPE) {
+
+                Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
+                // destination register : first new local register
+                int destinationRegisterID  = information.getNewLocalRegisters().get(index);
+                System.out.println("Destination reg: " + destinationRegisterID);
+                // source register : first usable register
+                int sourceRegisterID = information.getUsableRegisters().get(index);
+                System.out.println("Source reg: " + sourceRegisterID);
+                // move wide vNew, vShiftedOut
+                BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
+                // add move as first instruction
+                mutableMethodImplementation.addInstruction(index, move);
+            } else if (registerTypes.get(index) == RegisterType.LONG_LO_TYPE
+                    || registerTypes.get(index) == RegisterType.DOUBLE_LO_TYPE) {
+
+                // we reached the lower half of a wide-type, no additional move instruction necessary
+                continue;
+            } else if (registerTypes.get(index).category == RegisterType.REFERENCE
+                    || registerTypes.get(index).category == RegisterType.NULL) {
+
+                // object type
+                Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
+                // destination register : first new local register
+                int destinationRegisterID  = information.getNewLocalRegisters().get(index);
+                // source register : first usable register
+                int sourceRegisterID = information.getUsableRegisters().get(index);
+                // move wide vNew, vShiftedOut
+                BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
+                // add move as first instruction
+                mutableMethodImplementation.addInstruction(index, move);
+            } else {
+
+                // primitive type
+                Opcode movePrimitive = Opcode.MOVE_FROM16;
+                // destination register : first new local register
+                int destinationRegisterID  = information.getNewLocalRegisters().get(index);
+                // source register : first usable register
+                int sourceRegisterID = information.getUsableRegisters().get(index);
+                // move wide vNew, vShiftedOut
+                BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
+                // add move as first instruction
+                mutableMethodImplementation.addInstruction(index, move);
+            }
+        }
+        return mutableMethodImplementation;
     }
 
 
