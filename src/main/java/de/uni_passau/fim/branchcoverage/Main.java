@@ -122,7 +122,22 @@ public class Main {
                     // list the usable registers IDs which got shifted to the right due to new local registers
                     for (int reg=0; reg < additionalRegisters; reg++) {
                         newLocalRegisters.add(localRegisters+reg);
-                        usableRegisters.add(totalRegisters-paramRegisters+reg);
+                    }
+
+                    if (paramRegisters == 0) {
+                        usableRegisters = newLocalRegisters;
+                    } else {
+                        for (int reg = 0; reg < paramRegisters; reg++) {
+                            usableRegisters.add(totalRegisters + additionalRegisters - paramRegisters + reg);
+                        }
+                    }
+
+                    if (method.getName().contains("buildSnoozeDelayEntries") || method.getName().contains("cancelOperation")) {
+                        System.out.println(totalRegisters);
+                        System.out.println(localRegisters);
+                        System.out.println(paramRegisters);
+                        System.out.println(newLocalRegisters);
+                        System.out.println(usableRegisters);
                     }
 
                     totalRegisters = totalRegisters + additionalRegisters;
@@ -142,8 +157,16 @@ public class Main {
 
                         // we need to analyze the register type of all param registers (at their original location) at the method entry
                         if (!usableRegisters.equals(newLocalRegisters)) {
-                            // this is only the case when #p-regs > 0 -> usableRegs != newLocalRegs
-                            registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, newLocalRegisters);
+
+                            // special treatment when only single param register present, only pick first parameter
+                            if (usableRegisters.size() == 1) {
+                                List <Integer> registers = Arrays.asList(newLocalRegisters.get(0));
+                                // this is only the case when #p-regs > 0 -> usableRegs != newLocalRegs
+                                registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, registers);
+                            } else {
+                                // this is only the case when #p-regs > 0 -> usableRegs != newLocalRegs
+                                registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, newLocalRegisters);
+                            }
                         }
                     } catch (UnresolvedClassException e) {
                         e.printStackTrace();
@@ -167,8 +190,7 @@ public class Main {
                     // we need to shift the content of the param registers into the new local registers
                     // then we can use param registers for the branch coverage instructions
                     // this means we need to replace the register IDs in every instruction
-                    if (totalRegisters > Instrumenter.MAX_USABLE_REGS
-                            && !registerInformation.getNewLocalRegisters().equals(registerInformation.getUsableRegisters())) {
+                    if (!registerInformation.getNewLocalRegisters().equals(registerInformation.getUsableRegisters())) {
 
                         System.out.println("Tracked Instructions: " + insertedInstructions.size());
 
