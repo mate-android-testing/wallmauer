@@ -172,6 +172,12 @@ public class Main {
                         e.printStackTrace();
                     }
 
+                    if(method.getName().contains("formatDateRange")) {
+                        for (int index=0; index < registerTypes.size(); index++){
+                            System.out.println("Register Type: " + registerTypes.get(index));
+                        }
+                    }
+
                     modifiedMethod = true;
 
                     // we need to track the instructions we inserted, these are irrelevant for the later register substitution
@@ -191,17 +197,6 @@ public class Main {
                     // then we can use param registers for the branch coverage instructions
                     // this means we need to replace the register IDs in every instruction
                     if (!registerInformation.getNewLocalRegisters().equals(registerInformation.getUsableRegisters())) {
-
-                        System.out.println("Tracked Instructions: " + insertedInstructions.size());
-
-                        for (BuilderInstruction instruction : insertedInstructions) {
-                            System.out.println(instruction.getLocation().getIndex());
-                            System.out.println(instruction.getLocation().getCodeAddress());
-                            System.out.println(instruction.getCodeUnits());
-                            System.out.println(instruction.getFormat());
-                            System.out.println(instruction.getOpcode());
-                            System.out.println(System.lineSeparator());
-                        }
 
                         // replace usable with local regs
                         // TODO: this should be already done since reOrderRegisters ist not called

@@ -211,7 +211,7 @@ public final class Instrumenter {
 
         int totalRegisterCount = mutableImplementation.getRegisterCount();
         int usableLocalRegID = registerInformation.getUsableRegisters().get(0);
-        System.out.println("Using register: " + usableLocalRegID);
+        // System.out.println("Using register: " + usableLocalRegID);
 
         if (totalRegisterCount <= MAX_USABLE_REGS) {
 
@@ -468,11 +468,13 @@ public final class Instrumenter {
 
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(implementation);
 
+        // we need an additional counter for the
+
         for (int index=0; index < registerTypes.size(); index++) {
 
-            // check whether we have a wide type or not, assuming that high half comes first
-            if (registerTypes.get(index) == RegisterType.LONG_HI_TYPE
-                    || registerTypes.get(index) == RegisterType.DOUBLE_HI_TYPE) {
+            // check whether we have a wide type or not, note that first comes low half, then high half
+            if (registerTypes.get(index) == RegisterType.LONG_LO_TYPE
+                    || registerTypes.get(index) == RegisterType.DOUBLE_LO_TYPE) {
 
                 Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
                 // destination register : first new local register
@@ -485,10 +487,10 @@ public final class Instrumenter {
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
                 // add move as first instruction
                 mutableMethodImplementation.addInstruction(0, move);
-            } else if (registerTypes.get(index) == RegisterType.LONG_LO_TYPE
-                    || registerTypes.get(index) == RegisterType.DOUBLE_LO_TYPE) {
+            } else if (registerTypes.get(index) == RegisterType.LONG_HI_TYPE
+                    || registerTypes.get(index) == RegisterType.DOUBLE_HI_TYPE) {
 
-                // we reached the lower half of a wide-type, no additional move instruction necessary
+                // we reached the upper half of a wide-type, no additional move instruction necessary
                 continue;
             } else if (registerTypes.get(index).category == RegisterType.REFERENCE
                     || registerTypes.get(index).category == RegisterType.NULL) {
