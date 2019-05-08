@@ -502,7 +502,9 @@ public final class Instrumenter {
                 // we reached the upper half of a wide-type, no additional move instruction necessary
                 continue;
             } else if (registerTypes.get(index).category == RegisterType.REFERENCE
-                    || registerTypes.get(index).category == RegisterType.NULL) {
+                    || registerTypes.get(index).category == RegisterType.NULL
+                    || registerTypes.get(index).category == RegisterType.UNINIT_THIS
+                    || registerTypes.get(index).category == RegisterType.UNINIT_REF) {
 
                 // object type
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
