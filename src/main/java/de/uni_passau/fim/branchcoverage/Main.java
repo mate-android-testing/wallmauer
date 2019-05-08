@@ -126,13 +126,20 @@ public class Main {
 
                     if (paramRegisters == 0) {
                         usableRegisters = newLocalRegisters;
-                    } else {
+                    } /* else if (paramRegisters == 1) {
+                        // if we have only a single param register, we have only two local registers
+                        // thus we need to use the 2nd new local as the first usable for wide types)
+                        usableRegisters.add(newLocalRegisters.get(1));
+                        for (int reg = 0; reg < paramRegisters; reg++) {
+                            usableRegisters.add(totalRegisters + additionalRegisters - paramRegisters + reg);
+                        }
+                    }*/ else {
                         for (int reg = 0; reg < paramRegisters; reg++) {
                             usableRegisters.add(totalRegisters + additionalRegisters - paramRegisters + reg);
                         }
                     }
 
-                    if (method.getName().contains("buildSnoozeDelayEntries") || method.getName().contains("cancelOperation")) {
+                    if (method.getName().contains("onResume") || method.getName().contains("cancelOperation")) {
                         System.out.println(totalRegisters);
                         System.out.println(localRegisters);
                         System.out.println(paramRegisters);
@@ -159,12 +166,13 @@ public class Main {
                         if (!usableRegisters.equals(newLocalRegisters)) {
 
                             // special treatment when only single param register present, only pick first parameter
-                            if (usableRegisters.size() == 1) {
+                            if (paramRegisters == 1) {
                                 List <Integer> registers = Arrays.asList(newLocalRegisters.get(0));
                                 // this is only the case when #p-regs > 0 -> usableRegs != newLocalRegs
                                 registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, registers);
                             } else {
                                 // this is only the case when #p-regs > 0 -> usableRegs != newLocalRegs
+                                // newLocalRegisters take over the register IDs of the original param registers
                                 registerTypes = Analyzer.analyzeShiftedRegisterTypes(analyzer, newLocalRegisters);
                             }
                         }
@@ -172,7 +180,7 @@ public class Main {
                         e.printStackTrace();
                     }
 
-                    if(method.getName().contains("formatDateRange")) {
+                    if(method.getName().contains("onResume")) {
                         for (int index=0; index < registerTypes.size(); index++){
                             System.out.println("Register Type: " + registerTypes.get(index));
                         }

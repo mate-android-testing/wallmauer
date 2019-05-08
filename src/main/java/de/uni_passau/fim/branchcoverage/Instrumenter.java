@@ -178,7 +178,9 @@ public final class Instrumenter {
             return 0;
         } else if (registerType.category == RegisterType.BOOLEAN || registerType.category == RegisterType.CHAR
                 || registerType.category == RegisterType.INTEGER || registerType.category == RegisterType.BYTE
-                || registerType.category == RegisterType.SHORT || registerType.category == RegisterType.FLOAT) {
+                || registerType.category == RegisterType.SHORT || registerType.category == RegisterType.FLOAT
+                || registerType.category == RegisterType.ONE || registerType.category == RegisterType.POS_BYTE
+                || registerType.category == RegisterType.POS_SHORT) {
             return 1;
         } else if (registerType.category == RegisterType.LONG_HI || registerType.category == RegisterType.LONG_LO
                 || registerType.category == RegisterType.DOUBLE_HI || registerType.category == RegisterType.DOUBLE_LO) {
@@ -289,6 +291,13 @@ public final class Instrumenter {
                 coveredInstructions.add(constString);
                 insertedInstructions.add(constString);
                 mutableImplementation.addInstruction(++index, constString);
+            }
+
+
+            // if we only have one param register, we need to use the 2nd new local register for wide types
+            if (registerInformation.getUsableRegisters().size() == 1) {
+                // 1 param register implies two local registers
+                usableLocalRegID = registerInformation.getNewLocalRegisters().get(1);
             }
 
             BuilderInstruction32x move = new BuilderInstruction32x(moveOpCode, usableLocalRegID, selectedRegisterID);
