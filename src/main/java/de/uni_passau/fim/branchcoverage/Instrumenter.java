@@ -484,7 +484,7 @@ public final class Instrumenter {
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
                 // add move as first instruction
-                mutableMethodImplementation.addInstruction(index, move);
+                mutableMethodImplementation.addInstruction(0, move);
             } else if (registerTypes.get(index) == RegisterType.LONG_LO_TYPE
                     || registerTypes.get(index) == RegisterType.DOUBLE_LO_TYPE) {
 
@@ -502,7 +502,7 @@ public final class Instrumenter {
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
                 // add move as first instruction
-                mutableMethodImplementation.addInstruction(index, move);
+                mutableMethodImplementation.addInstruction(0, move);
             } else {
 
                 // primitive type
@@ -514,7 +514,7 @@ public final class Instrumenter {
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
                 // add move as first instruction
-                mutableMethodImplementation.addInstruction(index, move);
+                mutableMethodImplementation.addInstruction(0, move);
             }
         }
         return mutableMethodImplementation;
