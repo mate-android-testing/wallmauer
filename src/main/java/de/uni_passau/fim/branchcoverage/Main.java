@@ -180,7 +180,7 @@ public class Main {
                         e.printStackTrace();
                     }
 
-                    if(method.getName().contains("onResume")) {
+                    if(method.getName().contains("onCreate")) {
                         for (int index=0; index < registerTypes.size(); index++){
                             System.out.println("Register Type: " + registerTypes.get(index));
                         }

@@ -59,6 +59,12 @@ public final class Instrumenter {
 
         MutableMethodImplementation implementation = new MutableMethodImplementation(2);
 
+        // call super.onDestroy() first, AppCompatActivity seems to be the current API standard for activity classes
+        implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1,
+                1, 0, 0, 0, 0,
+                new ImmutableMethodReference("Landroid/support/v7/app/AppCompatActivity;", "onDestroy",
+                        Lists.newArrayList(), "V")));
+
         // TODO: verify that addInstruction inserts the instruction at the end!
         // const-string instruction has format '21c' and opcode '1a', registerA defines local register starting from v0,v1,...
         implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
@@ -442,6 +448,7 @@ public final class Instrumenter {
                         // we need to check if we inserted a dummy instruction, this is the case when the type is uninit/conflicted
                         // we always select the first local register v0 -> findSuitableRegister has no side effects
                         RegisterType selectedRegisterType = findSuitableRegister(registerTypes).getValue();
+                        System.out.println("Selected Register Type: " + selectedRegisterType);
                         if (selectedRegisterType == RegisterType.UNINIT_TYPE || selectedRegisterType == RegisterType.CONFLICTED_TYPE) {
                             // we have additionally inserted a dummy init instruction
                             mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
