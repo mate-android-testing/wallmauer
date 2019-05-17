@@ -238,7 +238,7 @@ public class Main {
                         "V",
                         4,
                         null,
-                        Instrumenter.insertOnDestroy(packageName)));
+                        Instrumenter.insertOnDestroy(packageName,classDef.getSuperclass())));
             }
 
             if (!modifiedMethod) {

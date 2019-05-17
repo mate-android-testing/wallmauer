@@ -53,16 +53,20 @@ public final class Instrumenter {
      *
      * @return Returns the implementation of the onDestroy method.
      */
-    public static MethodImplementation insertOnDestroy(String packageName) {
+    public static MethodImplementation insertOnDestroy(String packageName, String superClass) {
 
         System.out.println("Inserting onDestroy method into 'MainActivity'");
+        System.out.println(superClass);
 
         MutableMethodImplementation implementation = new MutableMethodImplementation(2);
+
+        // TODO: check which super class (activity class) is used for the mainActivity, this is not necessarily
+        // TODO: the super class of the mainActivity, newer apps should use: "Landroid/support/v7/app/AppCompatActivity;"
 
         // call super.onDestroy() first, AppCompatActivity seems to be the current API standard for activity classes
         implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1,
                 1, 0, 0, 0, 0,
-                new ImmutableMethodReference("Landroid/support/v7/app/AppCompatActivity;", "onDestroy",
+                new ImmutableMethodReference(superClass, "onDestroy",
                         Lists.newArrayList(), "V")));
 
         // TODO: verify that addInstruction inserts the instruction at the end!
