@@ -56,7 +56,7 @@ public final class Instrumenter {
     public static MethodImplementation insertOnDestroy(String packageName, String superClass) {
 
         System.out.println("Inserting onDestroy method into 'MainActivity'");
-        System.out.println(superClass);
+        System.out.println("Super class: " + superClass);
 
         MutableMethodImplementation implementation = new MutableMethodImplementation(2);
 

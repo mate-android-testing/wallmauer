@@ -51,6 +51,8 @@ public class Main {
 
         Map<Integer, Map<Integer,RegisterType>> registerTypeMap = new HashMap<>();
         Map<Integer, Branch> branches = new HashMap<>();
+        // activity super class, e.g. AppCompatActivity, Activity or ...
+        String superClass = null;
 
         for (ClassDef classDef : dexFile.getClasses()) {
 
@@ -231,6 +233,23 @@ public class Main {
                 modifiedMethod = true;
                 modifiedOnDestroy = true;
 
+                superClass = classDef.getSuperclass();
+                System.out.println("Super class of MainActivity: " + superClass);
+
+                // we need to determine the activity super class
+                while (superClass != null && !superClass.equals("Landroid/app/Activity;")
+                    && !superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
+                    && !superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
+                    && !superClass.equals("Landroid.support.v4.app.FragmentActivity;")) {
+                    // iterate over classDef and follow link of superClass until we reach a suitable one
+                    for (ClassDef classesDef : classes) {
+                        if (classesDef.toString().equals(superClass)) {
+                            superClass = classesDef.getSuperclass();
+                            break;
+                        }
+                    }
+                }
+
                 methods.add(new ImmutableMethod(
                         classDef.toString(),
                         "onDestroy",
@@ -238,7 +257,7 @@ public class Main {
                         "V",
                         4,
                         null,
-                        Instrumenter.insertOnDestroy(packageName,classDef.getSuperclass())));
+                        Instrumenter.insertOnDestroy(packageName,superClass)));
             }
 
             if (!modifiedMethod) {
