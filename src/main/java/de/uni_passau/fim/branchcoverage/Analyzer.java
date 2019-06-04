@@ -86,9 +86,6 @@ public final class Analyzer {
                 branchID++;
             }
         }
-        if (method.getName().contains("onResume")) {
-            System.out.println(registerTypeMap);
-        }
     }
 
     public static List<RegisterType> analyzeShiftedRegisterTypes(MethodAnalyzer analyzer, List<Integer> registerIDs) {
