@@ -146,6 +146,9 @@ public class BranchCoverage {
                 continue;
             }
 
+            // reset flag
+            isMainActivity = false;
+
             // check whether given class is MainActivity
             if (Utility.isMainActivity(classDef, mainActivityDex)) {
                 isMainActivity = true;
