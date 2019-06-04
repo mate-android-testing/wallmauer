@@ -126,7 +126,6 @@ public class BranchCoverage {
         // track if we found MainActivity and its onDestroy method
         boolean foundMainActivity = false;
         boolean foundOnDestroy = false;
-        boolean isMainActivity = false;
 
         // collect locations of branches
         Map<Integer, Branch> branches = new HashMap<>();
@@ -147,7 +146,7 @@ public class BranchCoverage {
             }
 
             // reset flag
-            isMainActivity = false;
+            boolean isMainActivity = false;
 
             // check whether given class is MainActivity
             if (Utility.isMainActivity(classDef, mainActivityDex)) {
@@ -208,7 +207,7 @@ public class BranchCoverage {
                     }
 
                     /*
-                    * We need to shift param registers by one position to the left,
+                    * We need to shift param registers by two positions to the left,
                     * e.g. move p1, p2, such that the last param register is free
                     * for use.
                      */
