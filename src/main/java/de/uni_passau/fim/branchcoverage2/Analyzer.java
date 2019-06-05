@@ -17,16 +17,13 @@ public final class Analyzer {
 
 
     /**
-     * We like to derive the register types at each branching instruction. For the family of if-instructions
-     * we need to collect the type after the instruction, while for else-branches (which are labels and
-     * can be only accessed by the instruction after the label) we need to collect the type before the
-     * instruction.
+     * Traverses and collects the branches for the given method. This yields
+     * the number of branches per method, whereas duplicates are removed inherently.
      *
-     * @param analyzer A method analyzer instance.
-     * @param method The method we want to analyze.
-     * @param branches A map for collecting the branch id and a reference to the actual branch.
+     * @param methodInformation Stores all relevant information about a method.
+     * @return Returns a set of branches (duplicates eliminated) for the given method.
      */
-    public static void trackBranchLocations(MethodInformation methodInformation) {
+    public static Set<Branch> trackBranches(MethodInformation methodInformation) {
 
         Method method = methodInformation.getMethod();
 
@@ -65,6 +62,7 @@ public final class Analyzer {
             }
         }
         methodInformation.setBranches(branches);
+        return branches;
     }
 
     /**

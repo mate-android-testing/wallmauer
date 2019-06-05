@@ -127,8 +127,8 @@ public class BranchCoverage {
         boolean foundMainActivity = false;
         boolean foundOnDestroy = false;
 
-        // collect locations of branches
-        Map<Integer, Branch> branches = new HashMap<>();
+        // count total number of branches per each class
+        List<Branch> branches = new LinkedList<>();
 
         // activity super class, e.g. AppCompatActivity, Activity or ...
         String superClass = null;
@@ -160,6 +160,9 @@ public class BranchCoverage {
             // track whether we modified the method or not
             boolean modifiedMethod = false;
 
+            // reset number of branches per class
+            branches.clear();
+
             for (Method method : classDef.getMethods()) {
 
                 // each method is identified by its class name and method name
@@ -184,8 +187,8 @@ public class BranchCoverage {
                     // determine the new local registers and free register IDS
                     Instrumenter.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
-                    // determine the location of the branch instructions (if,else)
-                    Analyzer.trackBranchLocations(methodInformation);
+                    // determine the number of branches per method
+                    branches.addAll(Analyzer.trackBranches(methodInformation));
 
                     // determine the register type of the param registers if the method has param registers
                     if (methodInformation.getParamRegisterCount() > 0) {
@@ -257,7 +260,7 @@ public class BranchCoverage {
                         "V",
                         4,
                         null,
-                        InstrumenterFinal.insertOnDestroy(packageName, superClass)));
+                        Instrumenter.insertOnDestroy(packageName, superClass)));
             }
 
             if (!modifiedMethod) {
