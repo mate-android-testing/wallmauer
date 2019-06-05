@@ -164,55 +164,42 @@ public final class Instrumenter {
      * into it instead of creating an own onDestroy method. In general, we need to place before each 'return' statement
      * instructions that call our tracer.
      *
-     * @param mutableImplementation The implementation of the onDestroy method.
-     * @param coveredInstructions   A set of instructions that should be not re-ordered, i.e. the method
-     *                              {@method reOrderRegister} should not be invoked on those instructions.
+     * @param methodInformation Stores all relevant information about a method.
+     * @param packageName The package name declared in the AndroidManifest.xml file.
      */
-    public static MethodImplementation modifyOnDestroy(MethodImplementation methodImplementation, String packageName,
-                                                       Set<BuilderInstruction> insertedInstructions) {
+    public static MethodImplementation modifyOnDestroy(MethodInformation methodInformation, String packageName) {
 
-        System.out.println("Modifying onDestroy method of 'MainActivity'");
+        assert methodInformation.getImplementation().isPresent();
 
+        LOGGER.info("Modifying onDestroy method of 'MainActivity'");
+
+        MethodImplementation methodImplementation = methodInformation.getImplementation().get();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
         List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 
-        /*
-        * TODO: Verify that we can't corrupt the register type by overwriting v0 before each
-        * return statement. Currently, we assume this, and don't analyze the register types
-        * at this location. If this doesn't hold, we need to apply the same trick as for
-        * the general instrumentation.
-         */
-
-        Set<BuilderInstruction> coveredInstructions = new HashSet<>();
-
         // we need to insert the code before each return statement
         for (int i=0; i < instructions.size(); i++) {
-            System.out.println(instructions.get(i).getOpcode().name);
+
             // onDestroy has return type void, which opcodes refers to '0E'
-            if (instructions.get(i).getOpcode().name.equals("return-void")
-                    && !coveredInstructions.contains(instructions.get(i))) {
+            if (instructions.get(i).getOpcode().name.equals("return-void")) {
 
-                coveredInstructions.add(instructions.get(i));
+                LOGGER.info("Inserting Tracer.write(packageName) invocation before return statement!");
 
-                System.out.println("Inserting Trace.write() invocation before return statement!");
+                // we require one parameter containing the unique branch id
+                int freeRegisterID = methodInformation.getFreeRegisters().get(0);
 
-                BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                // const-string pN, "packageName" (pN refers to the free register at the end)
+                BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
                         new ImmutableStringReference(packageName));
 
-                // TODO: check whether index i refers to instruction before/after
-                mutableMethodImplementation.addInstruction(i, constString);
-
-                BuilderInstruction35c invokeStatic = new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
-                        , 0, 0, 0, 0, 0,
+                // invoke-static-range
+                BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                        freeRegisterID, 1,
                         new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "write",
                                 Lists.newArrayList("Ljava/lang/String;"), "V"));
 
-                //     invoke-static {v0}, Lde/uni_passau/fim/auermich/tracer/Tracer;->write(Ljava/lang/String;)V
-                // invoke-static instruction has format '35c' and opcode '71'
-                mutableMethodImplementation.addInstruction(++i,invokeStatic);
-
-                insertedInstructions.add(constString);
-                insertedInstructions.add(invokeStatic);
+                mutableMethodImplementation.addInstruction(i, constString);
+                mutableMethodImplementation.addInstruction(++i,invokeStaticRange);
             }
         }
         return mutableMethodImplementation;

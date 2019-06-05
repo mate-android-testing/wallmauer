@@ -184,7 +184,7 @@ public class BranchCoverage {
 
                     LOGGER.info("Instrumenting method " + method.getName() + " of class " + classDef.toString());
 
-                    // determine the new local registers and free register IDS
+                    // determine the new local registers and free register IDs
                     Instrumenter.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
                     // determine the number of branches per method
@@ -195,8 +195,6 @@ public class BranchCoverage {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
                     }
 
-                    // we need to track the instructions we inserted, these are irrelevant for the later register substitution
-                    Set<BuilderInstruction> insertedInstructions = new HashSet<>();
 
                     // instrument branches
                     MethodImplementation modifiedImplementation =
@@ -206,7 +204,7 @@ public class BranchCoverage {
 
                     // onDestroy need to call Tracer.write() to write branch traces to file
                     if (methodInformation.isMainActivity() && methodInformation.isOnDestroy()) {
-                        modifiedImplementation = Instrumenter.modifyOnDestroy(modifiedImplementation, packageName, insertedInstructions);
+                        modifiedImplementation = Instrumenter.modifyOnDestroy(methodInformation, packageName);
                     }
 
                     /*
