@@ -14,6 +14,7 @@ import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.instruction.Instruction;
+import org.jf.dexlib2.immutable.ImmutableMethod;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 import org.jf.dexlib2.util.MethodUtil;
@@ -124,12 +125,14 @@ public final class Instrumenter {
      * into the app-internal storage. The onDestroy method should be always called
      * upon the (normal) termination of the app.
      *
-     * @return Returns the implementation of the onDestroy method.
      */
-    public static MethodImplementation insertOnDestroy(String packageName, String superClass) {
+    public static void insertOnDestroy(List<Method> methods, ClassDef classDef, String packageName) {
 
-        System.out.println("Inserting onDestroy method into 'MainActivity'");
-        System.out.println("Super class: " + superClass);
+        LOGGER.info("Inserting onDestroy method into 'MainActivity'");
+
+        // onDestroy needs to call super()
+        String superClass = classDef.getSuperclass();
+        LOGGER.info("Super class: " + superClass);
 
         MutableMethodImplementation implementation = new MutableMethodImplementation(2);
 
@@ -158,16 +161,28 @@ public final class Instrumenter {
         // we have to add return-statement as well, though void!
         implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
 
-        return implementation;
+        // add method to final instrumented dex file
+        methods.add(new ImmutableMethod(
+                classDef.toString(),
+                "onDestroy",
+                null,
+                "V",
+                4,
+                null,
+                implementation));
     }
 
-    public static void insertOnDestroyForSuperClasses(List<ClassDef> classes, List<Method> methods, String superClass) {
+    public static void insertOnDestroyForSuperClasses(List<ClassDef> classes, List<Method> methods, ClassDef classDef) {
 
-        // we need to determine the activity super class
+        // super class of MainActivity
+        String superClass = classDef.getSuperclass();
+
+        // we need to insert a custom onDestroy method until we reach the activity super class
         while (superClass != null && !superClass.equals("Landroid/app/Activity;")
                 && !superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
                 && !superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
                 && !superClass.equals("Landroid.support.v4.app.FragmentActivity;")) {
+
             // iterate over classDef and follow link of superClass until we reach a suitable one
             for (ClassDef classesDef : classes) {
                 if (classesDef.toString().equals(superClass)) {
@@ -186,7 +201,7 @@ public final class Instrumenter {
      * @param methodInformation Stores all relevant information about a method.
      * @param packageName The package name declared in the AndroidManifest.xml file.
      */
-    public static MethodImplementation modifyOnDestroy(MethodInformation methodInformation, String packageName) {
+    public static void modifyOnDestroy(MethodInformation methodInformation, String packageName) {
 
         assert methodInformation.getImplementation().isPresent();
 
@@ -221,7 +236,6 @@ public final class Instrumenter {
                 mutableMethodImplementation.addInstruction(++i,invokeStaticRange);
             }
         }
-        return mutableMethodImplementation;
     }
 
     private static Map.Entry<Integer, RegisterType> findSuitableRegister(Map<Integer, RegisterType> registerTypes) {
@@ -315,7 +329,7 @@ public final class Instrumenter {
      *
      * @return Return the instrumented {@code MethodImplementation}.
      */
-    public static MethodImplementation modifyMethod(MethodInformation methodInformation) {
+    public static void modifyMethod(MethodInformation methodInformation) {
 
         assert methodInformation.getImplementation().isPresent();
 
@@ -384,7 +398,6 @@ public final class Instrumenter {
                 branchIndex++;
             }
         }
-        return mutableImplementation;
     }
 
 
@@ -396,9 +409,8 @@ public final class Instrumenter {
      * additional registers, since p0 may have type wide in static methods.
      *
      * @param methodInformation Stores all relevant information about a method.
-     * @return Returns the adapted implementation including the move instructions.
      */
-    public static MethodImplementation shiftParamRegisters(MethodInformation methodInformation) {
+    public static void shiftParamRegisters(MethodInformation methodInformation) {
 
         assert methodInformation.getImplementation().isPresent();
         assert methodInformation.getParamRegisterTypeMap().isPresent();
@@ -469,7 +481,6 @@ public final class Instrumenter {
                 mutableMethodImplementation.addInstruction(0, move);
             }
         }
-        return mutableMethodImplementation;
     }
 
 

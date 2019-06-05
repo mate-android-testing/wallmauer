@@ -130,9 +130,6 @@ public class BranchCoverage {
         // count total number of branches per each class
         List<Branch> branches = new LinkedList<>();
 
-        // activity super class, e.g. AppCompatActivity, Activity or ...
-        String superClass = null;
-
         for (ClassDef classDef : dexFile.getClasses()) {
 
             // the class name is part of the method id
@@ -196,14 +193,12 @@ public class BranchCoverage {
                     }
 
                     // instrument branches
-                    MethodImplementation modifiedImplementation =
-                            Instrumenter.modifyMethod(methodInformation);
-
+                    Instrumenter.modifyMethod(methodInformation);
                     modifiedMethod = true;
 
                     // onDestroy need to call Tracer.write() to write branch traces to file
                     if (methodInformation.isMainActivity() && methodInformation.isOnDestroy()) {
-                        modifiedImplementation = Instrumenter.modifyOnDestroy(methodInformation, packageName);
+                        Instrumenter.modifyOnDestroy(methodInformation, packageName);
                     }
 
                     /*
@@ -212,17 +207,12 @@ public class BranchCoverage {
                     * for use.
                      */
                     if (methodInformation.getParamRegisterCount() > 0) {
-                        modifiedImplementation = Instrumenter.shiftParamRegisters(methodInformation);
+                        Instrumenter.shiftParamRegisters(methodInformation);
                     }
 
-                    methods.add(new ImmutableMethod(
-                            method.getDefiningClass(),
-                            method.getName(),
-                            method.getParameters(),
-                            method.getReturnType(),
-                            method.getAccessFlags(),
-                            method.getAnnotations(),
-                            modifiedImplementation));
+                    // add instrumented method implementation
+                    Utility.addInstrumentedMethod(methods, methodInformation);
+
                 } else {
                     // no modification necessary
                     methods.add(method);
@@ -233,18 +223,7 @@ public class BranchCoverage {
             if (isMainActivity && !foundOnDestroy) {
                 modifiedMethod = true;
 
-                // TODO: add methods.add(..) inside  Instrumenter.insertOnDestroy()
-                superClass = classDef.getSuperclass();
-                LOGGER.info("Super class of MainActivity: " + superClass);
-
-                methods.add(new ImmutableMethod(
-                        classDef.toString(),
-                        "onDestroy",
-                        null,
-                        "V",
-                        4,
-                        null,
-                        Instrumenter.insertOnDestroy(packageName, superClass)));
+                Instrumenter.insertOnDestroy(methods, classDef, packageName);
 
                 /*
                 * Calling onDestroy() requires to call super() unless it is not
@@ -253,21 +232,14 @@ public class BranchCoverage {
                 * class of the current activity doesn't define
                 * any onDestroy() method already.
                  */
-                Instrumenter.insertOnDestroyForSuperClasses(classes, methods, superClass);
+                Instrumenter.insertOnDestroyForSuperClasses(classes, methods, classDef);
             }
 
             if (!modifiedMethod) {
                 classes.add(classDef);
             } else {
-                classes.add(new ImmutableClassDef(
-                        classDef.getType(),
-                        classDef.getAccessFlags(),
-                        classDef.getSuperclass(),
-                        classDef.getInterfaces(),
-                        classDef.getSourceFile(),
-                        classDef.getAnnotations(),
-                        classDef.getFields(),
-                        methods));
+                // add modified class including its method to the list of classes
+                Utility.addInstrumentedClass(classes, methods, classDef);
             }
 
             // write out the number of branches per class

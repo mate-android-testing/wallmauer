@@ -1,6 +1,7 @@
 package de.uni_passau.fim.utility;
 
 import de.uni_passau.fim.branchcoverage.RegisterInformation;
+import de.uni_passau.fim.branchcoverage2.MethodInformation;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.builder.BuilderInstruction;
@@ -10,6 +11,8 @@ import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.immutable.ImmutableClassDef;
+import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import javax.annotation.Nonnull;
 import java.io.*;
@@ -183,6 +186,51 @@ public final class Utility {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Adds the modified method implementation to the list of methods that are written to
+     * the instrumented dex file.
+     *
+     * @param methods The list of methods included in the final dex file.
+     * @param methodInformation Stores all relevant information about a method.
+     */
+    public static void addInstrumentedMethod(List<Method> methods, MethodInformation methodInformation) {
+
+        assert methodInformation.getImplementation().isPresent();
+
+        Method method = methodInformation.getMethod();
+        MethodImplementation modifiedImplementation = methodInformation.getImplementation().get();
+
+        methods.add(new ImmutableMethod(
+                method.getDefiningClass(),
+                method.getName(),
+                method.getParameters(),
+                method.getReturnType(),
+                method.getAccessFlags(),
+                method.getAnnotations(),
+                modifiedImplementation));
+    }
+
+    /**
+     * Adds the given class (#param classDef} including its method to the list of classes
+     * that are part of the final dex file.
+     *
+     * @param classes The list of classes part of the final dex file.
+     * @param methods The list of methods belonging to the given class.
+     * @param classDef The class we want to add.
+     */
+    public static void addInstrumentedClass(List<ClassDef> classes, List<Method> methods, ClassDef classDef) {
+
+        classes.add(new ImmutableClassDef(
+                classDef.getType(),
+                classDef.getAccessFlags(),
+                classDef.getSuperclass(),
+                classDef.getInterfaces(),
+                classDef.getSourceFile(),
+                classDef.getAnnotations(),
+                classDef.getFields(),
+                methods));
     }
 
     public static MethodImplementation replaceRegisterIDs(MethodImplementation implementation, RegisterInformation information,
