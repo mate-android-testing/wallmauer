@@ -10,6 +10,8 @@ import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
+import org.jf.dexlib2.iface.ClassDef;
+import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
@@ -157,6 +159,23 @@ public final class Instrumenter {
         implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
 
         return implementation;
+    }
+
+    public static void insertOnDestroyForSuperClasses(List<ClassDef> classes, List<Method> methods, String superClass) {
+
+        // we need to determine the activity super class
+        while (superClass != null && !superClass.equals("Landroid/app/Activity;")
+                && !superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
+                && !superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
+                && !superClass.equals("Landroid.support.v4.app.FragmentActivity;")) {
+            // iterate over classDef and follow link of superClass until we reach a suitable one
+            for (ClassDef classesDef : classes) {
+                if (classesDef.toString().equals(superClass)) {
+                    superClass = classesDef.getSuperclass();
+                    break;
+                }
+            }
+        }
     }
 
     /**

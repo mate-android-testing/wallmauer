@@ -195,7 +195,6 @@ public class BranchCoverage {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
                     }
 
-
                     // instrument branches
                     MethodImplementation modifiedImplementation =
                             Instrumenter.modifyMethod(methodInformation);
@@ -234,22 +233,9 @@ public class BranchCoverage {
             if (isMainActivity && !foundOnDestroy) {
                 modifiedMethod = true;
 
+                // TODO: add methods.add(..) inside  Instrumenter.insertOnDestroy()
                 superClass = classDef.getSuperclass();
                 LOGGER.info("Super class of MainActivity: " + superClass);
-
-                // we need to determine the activity super class
-                while (superClass != null && !superClass.equals("Landroid/app/Activity;")
-                        && !superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
-                        && !superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
-                        && !superClass.equals("Landroid.support.v4.app.FragmentActivity;")) {
-                    // iterate over classDef and follow link of superClass until we reach a suitable one
-                    for (ClassDef classesDef : classes) {
-                        if (classesDef.toString().equals(superClass)) {
-                            superClass = classesDef.getSuperclass();
-                            break;
-                        }
-                    }
-                }
 
                 methods.add(new ImmutableMethod(
                         classDef.toString(),
@@ -259,6 +245,15 @@ public class BranchCoverage {
                         4,
                         null,
                         Instrumenter.insertOnDestroy(packageName, superClass)));
+
+                /*
+                * Calling onDestroy() requires to call super() unless it is not
+                * the activity super class. Thus, we need to insert
+                * a custom onDestroy() in the activity hierarchy if the super
+                * class of the current activity doesn't define
+                * any onDestroy() method already.
+                 */
+                Instrumenter.insertOnDestroyForSuperClasses(classes, methods, superClass);
             }
 
             if (!modifiedMethod) {
