@@ -109,7 +109,7 @@ public class BranchCoverage {
         }
     }
 
-    public static void instrument(DexFile dexFile, Pattern exclusionPattern) throws  IOException {
+    private static void instrument(DexFile dexFile, Pattern exclusionPattern) throws  IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
 
