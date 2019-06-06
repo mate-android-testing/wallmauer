@@ -1,25 +1,18 @@
 package de.uni_passau.fim.branchcoverage2;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.branchcoverage.*;
 import de.uni_passau.fim.utility.Utility;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
-import org.jf.dexlib2.analysis.*;
-import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.ImmutableClassDef;
-import org.jf.dexlib2.immutable.ImmutableMethod;
-import org.jf.dexlib2.util.MethodUtil;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -203,8 +196,8 @@ public class BranchCoverage {
 
                     /*
                     * We need to shift param registers by two positions to the left,
-                    * e.g. move p1, p2, such that the last param register is free
-                    * for use.
+                    * e.g. move p1, p2, such that the last (two) param register(s) is/are
+                    * free for use. We need two regs for wide types which span over 2 regs.
                      */
                     if (methodInformation.getParamRegisterCount() > 0) {
                         Instrumenter.shiftParamRegisters(methodInformation);

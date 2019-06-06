@@ -1,6 +1,5 @@
 package de.uni_passau.fim.branchcoverage2;
 
-import de.uni_passau.fim.branchcoverage2.Branch;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.Method;

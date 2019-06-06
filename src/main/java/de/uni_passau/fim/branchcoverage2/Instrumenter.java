@@ -1,7 +1,6 @@
 package de.uni_passau.fim.branchcoverage2;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.branchcoverage.Branch;
 import de.uni_passau.fim.branchcoverage.RegisterInformation;
 import de.uni_passau.fim.utility.Utility;
 import org.jf.dexlib2.Opcode;
@@ -135,9 +134,6 @@ public final class Instrumenter {
         LOGGER.info("Super class: " + superClass);
 
         MutableMethodImplementation implementation = new MutableMethodImplementation(2);
-
-        // TODO: check which super class (activity class) is used for the mainActivity, this is not necessarily
-        // TODO: the super class of the mainActivity, newer apps should use: "Landroid/support/v7/app/AppCompatActivity;"
 
         // call super.onDestroy() first, AppCompatActivity seems to be the current API standard for activity classes
         implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1,
