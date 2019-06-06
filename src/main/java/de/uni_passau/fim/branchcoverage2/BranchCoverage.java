@@ -66,9 +66,9 @@ public class BranchCoverage {
      *
      * @param args The command line arguments.
      */
-    public static void handleArguments(String[] args) {
+    private static void handleArguments(String[] args) {
 
-        assert args.length == 5;
+        assert args.length == 4;
 
         dexInputPath = Objects.requireNonNull(args[0]);
         dexOutputPath = Objects.requireNonNull(args[1]);
@@ -91,13 +91,16 @@ public class BranchCoverage {
 
         LOGGER.setLevel(Level.ALL);
 
-        if (args.length < 5) {
+        if (args.length < 4) {
             LOGGER.severe("You have specified not enough arguments!");
             LOGGER.info("1. argument: path to classes.dex file");
             LOGGER.info("2. argument: path to instrumented classes.dex file");
             LOGGER.info("3. argument: package name of app declared in AndroidManifest file");
-            LOGGER.info("4. argument: name of MainActivity declared in AndroidManifest file (full path)");
+            LOGGER.info("4. argument: name of MainActivity declared in AndroidManifest file (FQN)");
         } else {
+
+            // process command line arguments
+            handleArguments(args);
 
             // describes class names we want to exclude from instrumentation
             Pattern exclusionPattern = Utility.readExcludePatterns();
