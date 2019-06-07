@@ -366,12 +366,16 @@ public final class Instrumenter {
 
                 int ifBranchIndex = instruction.getLocation().getIndex();
 
+                LOGGER.info("If-Branch-Index: " + ifBranchIndex);
+
                 insertInstrumentationCode(methodInformation, ifBranchIndex, id);
 
                 branchIndex++;
 
                 int elseBranchIndex = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
                 BuilderInstruction elseBranch = instructions.get(elseBranchIndex);
+
+                LOGGER.info("Else-Branch-Index: " + elseBranchIndex);
 
                 if (!coveredBranches.contains(elseBranch)) {
 
@@ -389,9 +393,9 @@ public final class Instrumenter {
                      */
                     mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
                     mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
+
+                    branchIndex++;
                 }
-                // we have to update the branchIndex in any way
-                branchIndex++;
             }
         }
     }
@@ -415,6 +419,8 @@ public final class Instrumenter {
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
         Map<Integer,RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
 
+        LOGGER.fine(paramRegisterMap.toString());
+
         /*
         * The union of both lists represent basically the destination registers for
         * the move instructions, apart the last two registers which are getting
@@ -429,9 +435,12 @@ public final class Instrumenter {
         // use correct move instruction depend on type of source register
         for (int index=0; index < paramRegisterMap.size() - 2; index++) {
 
+            // id corresponds to actual register ID of param register
+            RegisterType registerType = paramRegisterMap.get(paramRegisters.get(index));
+
             // check whether we have a wide type or not, note that first comes low half, then high half
-            if (paramRegisterMap.get(index) == RegisterType.LONG_LO_TYPE
-                    || paramRegisterMap.get(index) == RegisterType.DOUBLE_LO_TYPE) {
+            if (registerType == RegisterType.LONG_LO_TYPE
+                    || registerType == RegisterType.DOUBLE_LO_TYPE) {
 
                 Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
 
@@ -447,15 +456,15 @@ public final class Instrumenter {
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
                 // add move as first instruction
                 mutableMethodImplementation.addInstruction(0, move);
-            } else if (paramRegisterMap.get(index) == RegisterType.LONG_HI_TYPE
-                    || paramRegisterMap.get(index) == RegisterType.DOUBLE_HI_TYPE) {
+            } else if (registerType == RegisterType.LONG_HI_TYPE
+                    || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
                 // we reached the upper half of a wide-type, no additional move instruction necessary
                 continue;
-            } else if (paramRegisterMap.get(index).category == RegisterType.REFERENCE
-                    || paramRegisterMap.get(index).category == RegisterType.NULL
-                    || paramRegisterMap.get(index).category == RegisterType.UNINIT_THIS
-                    || paramRegisterMap.get(index).category == RegisterType.UNINIT_REF) {
+            } else if (registerType.category == RegisterType.REFERENCE
+                    || registerType.category == RegisterType.NULL
+                    || registerType.category == RegisterType.UNINIT_THIS
+                    || registerType.category == RegisterType.UNINIT_REF) {
 
                 // object type
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;

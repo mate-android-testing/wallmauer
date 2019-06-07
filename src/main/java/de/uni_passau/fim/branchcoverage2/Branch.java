@@ -1,6 +1,6 @@
 package de.uni_passau.fim.branchcoverage2;
 
-public abstract class Branch {
+public abstract class Branch implements Comparable<Branch> {
 
     private int index;
     private int codeAddress;
@@ -28,6 +28,14 @@ public abstract class Branch {
         this.codeAddress = codeAddress;
     }
 
+    /**
+     * Two branches are identical, if they share the
+     * same position in the code/method.
+     *
+     * @param other The branch to compare against.
+     * @return Returns {@code true} if the branches are identical,
+     *      otherwise {@code false}.
+     */
     @Override
     public boolean equals(Object other) {
 
@@ -43,14 +51,28 @@ public abstract class Branch {
         return this.index == o.index;
     }
 
+    /**
+     * If two branches are equal, i.e. equals() returned true,
+     * then additionally the hashCode must be identical.
+     * That is, the index must be the same.
+     *
+     * @return Returns the index (position of instruction) as hashCode.
+     */
     @Override
     public int hashCode() {
-        /*
-        * If two branches are equal, i.e. equals() returned true, then additionally
-        * the hashCode must be identical. Thus, we simply return 0 to conform
-        * with the contract between equals() and hashCode().
-        */
         return index;
+    }
+
+    /**
+     * Compares two branches by their position (index)
+     * in the code.
+     *
+     * @param other The branch to compare with.
+     * @return Returns a value indicating the numerical order.
+     */
+    @Override
+    public int compareTo(Branch other) {
+        return Integer.compare(this.index, other.index);
     }
 
 }

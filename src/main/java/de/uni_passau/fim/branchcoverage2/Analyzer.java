@@ -85,5 +85,7 @@ public final class Analyzer {
         for (int registerID : methodInformation.getParamRegisters()) {
             registerTypes.put(registerID,instruction.getPreInstructionRegisterType(registerID));
         }
+
+        methodInformation.setParamRegisterTypeMap(Optional.of(registerTypes));
     }
 }
