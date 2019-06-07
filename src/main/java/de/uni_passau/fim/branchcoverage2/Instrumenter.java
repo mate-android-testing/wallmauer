@@ -6,7 +6,6 @@ import de.uni_passau.fim.utility.Utility;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.BuilderOffsetInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
 import org.jf.dexlib2.iface.ClassDef;
@@ -331,72 +330,55 @@ public final class Instrumenter {
 
         LOGGER.info("Instrumenting branches now...");
 
-        int branchIndex = 0;
-
         Set<BuilderInstruction> coveredBranches = new HashSet<>();
 
         MutableMethodImplementation mutableImplementation =
                 new MutableMethodImplementation(methodInformation.getImplementation().get());
 
-        List<BuilderInstruction> instructions = mutableImplementation.getInstructions();
-
         // increase the register count of the method, i.e. the .register directive at each method's head
         Utility.increaseMethodRegisterCount(mutableImplementation, methodInformation.getTotalRegisterCount());
 
+        // sort the branches by their position/location within the method
+        Set<Branch> sortedBranches = new TreeSet<>(methodInformation.getBranches());
 
-        for (int i = 0; i < instructions.size(); i++) {
+        LOGGER.info(sortedBranches.toString());
 
-            BuilderInstruction instruction = instructions.get(i);
+        /*
+        * Traverse the branches backwards, i.e. the last branch comes first, in order
+        * to avoid inherent index/position updates of other branches while instrumenting.
+        * This resolves the issue of branches that share the same position, e.g. two
+        * if branches refer to the same else branch. Since branches are only comparable
+        * by their position, an intermediate index change would make branches incomparable,
+        * thus leading to a multiple instrumentation of the same branch.
+         */
+        Iterator<Branch> iterator = ((TreeSet<Branch>) sortedBranches).descendingIterator();
 
-            /**
-             * Branching instructions are either identified by their opcode,
-             * the prefix they share (i.e. IF_) or the format, which
-             * is either '21t' (e.g. IF_EQZ) or '22t' (e.g. IF_EQ).
-             */
-            if ((instruction instanceof BuilderInstruction21t
-                    || instruction instanceof BuilderInstruction22t)
-                    && !coveredBranches.contains(instruction)) {
+        int branchIndex = sortedBranches.size() -1;
 
-                // do not instrument the same branch multiple times
-                coveredBranches.add(instruction);
+        while (iterator.hasNext()) {
 
-                // unique branch id
-                String id = methodInformation.getMethodID();
-                id += "->" + branchIndex;
+            Branch branch = iterator.next();
 
-                int ifBranchIndex = instruction.getLocation().getIndex();
+            // unique branch id
+            String id = methodInformation.getMethodID();
+            id += "->" + branchIndex;
+            int branchPosition = branch.getIndex();
 
-                LOGGER.info("If-Branch-Index: " + ifBranchIndex);
+            // instrument branch
+            insertInstrumentationCode(methodInformation, branchPosition, id);
 
-                insertInstrumentationCode(methodInformation, ifBranchIndex, id);
+            // swap instructions to right position when dealing with a else branch
+            if (branch instanceof ElseBranch) {
 
-                branchIndex++;
-
-                int elseBranchIndex = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
-                BuilderInstruction elseBranch = instructions.get(elseBranchIndex);
-
-                LOGGER.info("Else-Branch-Index: " + elseBranchIndex);
-
-                if (!coveredBranches.contains(elseBranch)) {
-
-                    coveredBranches.add(elseBranch);
-
-                    id = methodInformation.getMethodID();
-                    id += "->" + branchIndex;
-
-                    insertInstrumentationCode(methodInformation, elseBranchIndex, id);
-
-                    /*
-                    * We cannot directly insert our instructions after the else-branch label (those instructions
-                    * would fall between the goto and else-branch label). Instead we need to insert our
-                    * instructions after the first instructions there, and swap them back afterwards.
-                     */
-                    mutableImplementation.swapInstructions(elseBranchIndex, elseBranchIndex + 1);
-                    mutableImplementation.swapInstructions(elseBranchIndex + 1, elseBranchIndex + 2);
-
-                    branchIndex++;
-                }
+                /*
+                 * We cannot directly insert our instructions after the else-branch label (those instructions
+                 * would fall between the goto and else-branch label). Instead we need to insert our
+                 * instructions after the first instructions there, and swap them back afterwards.
+                 */
+                mutableImplementation.swapInstructions(branchPosition, branchPosition + 1);
+                mutableImplementation.swapInstructions(branchPosition + 1, branchPosition + 2);
             }
+            branchIndex--;
         }
     }
 
