@@ -1,6 +1,5 @@
 package de.uni_passau.fim.utility;
 
-import de.uni_passau.fim.branchcoverage.RegisterInformation;
 import de.uni_passau.fim.branchcoverage2.MethodInformation;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
@@ -197,10 +196,8 @@ public final class Utility {
      */
     public static void addInstrumentedMethod(List<Method> methods, MethodInformation methodInformation) {
 
-        assert methodInformation.getImplementation().isPresent();
-
         Method method = methodInformation.getMethod();
-        MethodImplementation modifiedImplementation = methodInformation.getImplementation().get();
+        MethodImplementation modifiedImplementation = methodInformation.getMethodImplementation();
 
         methods.add(new ImmutableMethod(
                 method.getDefiningClass(),
@@ -231,92 +228,6 @@ public final class Utility {
                 classDef.getAnnotations(),
                 classDef.getFields(),
                 methods));
-    }
-
-    public static MethodImplementation replaceRegisterIDs(MethodImplementation implementation, RegisterInformation information,
-                                                          Set<BuilderInstruction> insertedInstructions) {
-
-        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(implementation);
-        int firstUsableRegister = information.getUsableRegisters().get(0);
-        int secondUsableRegister = information.getUsableRegisters().get(1);
-        int firstNewLocalRegister = information.getNewLocalRegisters().get(0);
-        int secondNewLocalRegister = information.getNewLocalRegisters().get(1);
-
-        for (BuilderInstruction instruction : mutableMethodImplementation.getInstructions()) {
-
-            // TODO: can't handle this unfortunately!!!!
-            // TODO: reserve for all param-registers one additional local reg + if needed local regs for traces
-            // TODO: then mv all param regs to the new local regs at method head, replace each param reg id with new local reg id
-
-            System.out.println(instruction.getLocation().getIndex());
-            System.out.println(instruction.getLocation().getCodeAddress());
-            System.out.println(instruction.getCodeUnits());
-            System.out.println(instruction.getFormat());
-            System.out.println(instruction.getOpcode());
-            System.out.println(System.lineSeparator());
-
-
-            // instructions that we inserted shouldn't be modified again!
-            boolean contained = false;
-
-            // TODO: implement some working contains method, i.e. implement hashCode + equals for class BuilderInstruction
-            for (BuilderInstruction builderInstruction : insertedInstructions) {
-                if (instruction.getLocation().getIndex() == builderInstruction.getLocation().getIndex()
-                        && instruction.getLocation().getCodeAddress() == builderInstruction.getLocation().getCodeAddress()
-                        && instruction.getCodeUnits() == builderInstruction.getCodeUnits()
-                        && instruction.getFormat().equals(builderInstruction.getFormat())
-                        && instruction.getOpcode().equals(builderInstruction.getOpcode())) {
-                    contained = true;
-                    break;
-                }
-
-            }
-            if (contained) {
-                System.out.println("Skipping instruction: " + instruction.getOpcode());
-                continue;
-            }
-
-            // those invoke range instructions require a special treatment, since they don't have fields containing the registers
-            if (instruction instanceof BuilderInstruction3rc) {
-
-                // those instructions store the number of registers (var registerCount) and the first register of these range (var startRegister)
-                /*
-                int registerStart = ((BuilderInstruction3rc) instruction).getStartRegister();
-                java.lang.reflect.Field f = instruction.getClass().getDeclaredField("startRegister");
-                if (registerStart >= registerNumber) {
-                    f.setAccessible(true);
-                    f.set(instruction, registerStart + shift);
-                }
-                */
-                return mutableMethodImplementation;
-            }
-
-            java.lang.reflect.Field[] fields = instruction.getClass().getDeclaredFields();
-
-            for (java.lang.reflect.Field field : fields) {
-                // all fields are labeled registerA - registerG
-                if (field.getName().startsWith("register") && !field.getName().equals("registerCount")) {
-                    field.setAccessible(true);
-                    try {
-                        int value = field.getInt(instruction);
-
-                        // replace first usable with first local
-                        if (value == firstUsableRegister) {
-                            field.set(instruction, firstNewLocalRegister);
-                        }
-
-                        // replace second usable with second local
-                        if (value == secondUsableRegister) {
-                            field.set(instruction, secondNewLocalRegister);
-                        }
-
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-        return mutableMethodImplementation;
     }
 
     /**

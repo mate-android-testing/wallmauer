@@ -7,4 +7,9 @@ public class IfBranch extends Branch {
         super(index, codeAddress,id);
     }
 
+    @Override
+    public String toString() {
+        return "IF-Branch Position: " + getIndex();
+    }
+
 }

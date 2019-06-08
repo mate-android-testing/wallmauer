@@ -75,4 +75,9 @@ public abstract class Branch implements Comparable<Branch> {
         return Integer.compare(this.index, other.index);
     }
 
+    @Override
+    public String toString() {
+        return "Branch Position: " + this.index;
+    }
+
 }

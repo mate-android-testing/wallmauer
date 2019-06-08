@@ -25,9 +25,8 @@ public final class Analyzer {
      */
     public static Set<Branch> trackBranches(MethodInformation methodInformation) {
 
-        Method method = methodInformation.getMethod();
-
-        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(method.getImplementation());
+        MutableMethodImplementation mutableMethodImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
 
         List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 

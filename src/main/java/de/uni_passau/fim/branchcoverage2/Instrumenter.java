@@ -1,7 +1,6 @@
 package de.uni_passau.fim.branchcoverage2;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.branchcoverage.RegisterInformation;
 import de.uni_passau.fim.utility.Utility;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.RegisterType;
@@ -63,9 +62,7 @@ public final class Instrumenter {
      */
     public static void computeRegisterStates(MethodInformation methodInformation, int additionalRegisters) {
 
-        assert methodInformation.getImplementation().isPresent();
-
-        MethodImplementation methodImplementation = methodInformation.getImplementation().get();
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
 
         int totalRegisters = methodImplementation.getRegisterCount();
         int paramRegisters = MethodUtil.getParameterRegisterCount(methodInformation.getMethod());
@@ -198,11 +195,9 @@ public final class Instrumenter {
      */
     public static void modifyOnDestroy(MethodInformation methodInformation, String packageName) {
 
-        assert methodInformation.getImplementation().isPresent();
-
         LOGGER.info("Modifying onDestroy method of 'MainActivity'");
 
-        MethodImplementation methodImplementation = methodInformation.getImplementation().get();
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
         List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 
@@ -231,6 +226,8 @@ public final class Instrumenter {
                 mutableMethodImplementation.addInstruction(++i,invokeStaticRange);
             }
         }
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
     private static Map.Entry<Integer, RegisterType> findSuitableRegister(Map<Integer, RegisterType> registerTypes) {
@@ -292,12 +289,11 @@ public final class Instrumenter {
      * @param methodInformation Stores all relevant information about the given method.
      * @param index The position where we insert our instrumented code.
      * @param id    The id which identifies the given branch, i.e. packageName->className->method->branchID.
+     * @return Returns the instrumented method implementation.
      */
-    private static void insertInstrumentationCode(MethodInformation methodInformation, int index, final String id) {
+    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index, final String id) {
 
-        assert methodInformation.getImplementation().isPresent();
-
-        MethodImplementation methodImplementation = methodInformation.getImplementation().get();
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
         // we require one parameter containing the unique branch id
@@ -315,6 +311,10 @@ public final class Instrumenter {
 
         mutableMethodImplementation.addInstruction(++index, constString);
         mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
+        return mutableMethodImplementation;
     }
 
     /**
@@ -326,14 +326,10 @@ public final class Instrumenter {
      */
     public static void modifyMethod(MethodInformation methodInformation) {
 
-        assert methodInformation.getImplementation().isPresent();
-
         LOGGER.info("Instrumenting branches now...");
 
-        Set<BuilderInstruction> coveredBranches = new HashSet<>();
-
         MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getImplementation().get());
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
         Utility.increaseMethodRegisterCount(mutableImplementation, methodInformation.getTotalRegisterCount());
@@ -342,6 +338,12 @@ public final class Instrumenter {
         Set<Branch> sortedBranches = new TreeSet<>(methodInformation.getBranches());
 
         LOGGER.info(sortedBranches.toString());
+        LOGGER.info("Number of Instructions: " + mutableImplementation.getInstructions().size());
+
+        mutableImplementation.getInstructions().stream().forEach(
+                instruction -> {
+                        LOGGER.info(instruction.getOpcode().toString());
+                });
 
         /*
         * Traverse the branches backwards, i.e. the last branch comes first, in order
@@ -364,10 +366,14 @@ public final class Instrumenter {
             id += "->" + branchIndex;
             int branchPosition = branch.getIndex();
 
-            // instrument branch
-            insertInstrumentationCode(methodInformation, branchPosition, id);
+            LOGGER.info(branch.toString());
 
-            // swap instructions to right position when dealing with a else branch
+            // instrument branch
+            mutableImplementation = insertInstrumentationCode(methodInformation, branchPosition, id);
+
+            LOGGER.info("Number of Instructions after Instrumentation: " + mutableImplementation.getInstructions().size());
+
+            // swap instructions to right position when dealing with an else branch
             if (branch instanceof ElseBranch) {
 
                 /*
@@ -380,6 +386,8 @@ public final class Instrumenter {
             }
             branchIndex--;
         }
+        // update implementation
+        methodInformation.setMethodImplementation(mutableImplementation);
     }
 
 
@@ -394,10 +402,9 @@ public final class Instrumenter {
      */
     public static void shiftParamRegisters(MethodInformation methodInformation) {
 
-        assert methodInformation.getImplementation().isPresent();
         assert methodInformation.getParamRegisterTypeMap().isPresent();
 
-        MethodImplementation methodImplementation = methodInformation.getImplementation().get();
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
         Map<Integer,RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
 
@@ -468,9 +475,12 @@ public final class Instrumenter {
                 mutableMethodImplementation.addInstruction(0, move);
             }
         }
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
 
+    /*
     public static MethodImplementation modifyShiftedRegisters(MethodImplementation implementation,
                                                             RegisterInformation information, List<RegisterType> registerTypes) {
 
@@ -528,5 +538,6 @@ public final class Instrumenter {
 
         return mutableMethodImplementation;
     }
+    */
 
 }

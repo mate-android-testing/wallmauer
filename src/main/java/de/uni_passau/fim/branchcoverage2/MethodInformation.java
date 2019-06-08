@@ -52,12 +52,17 @@ public class MethodInformation {
     // map of param register IDs and its register type if present
     private Optional<Map<Integer,RegisterType>> paramRegisterTypeMap = Optional.empty();
 
+    // a reference to the method implementation
+    private MethodImplementation methodImplementation;
+
     public MethodInformation(String methodID, ClassDef classDef, Method method, boolean isMainActivity) {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
         this.isMainActivity = isMainActivity;
+        methodImplementation = method.getImplementation();
     }
+
 
     public String getMethodID() {
         return methodID;
@@ -87,6 +92,15 @@ public class MethodInformation {
         return isMainActivity;
     }
 
+    public MethodImplementation getMethodImplementation() {
+        return methodImplementation;
+    }
+
+    public void setMethodImplementation(MethodImplementation methodImplementation) {
+        this.methodImplementation = methodImplementation;
+    }
+
+    /*
     public Optional<MethodImplementation> getImplementation() {
         if (method.getImplementation() == null) {
             return Optional.empty();
@@ -94,6 +108,7 @@ public class MethodInformation {
             return Optional.of(method.getImplementation());
         }
     }
+    */
 
     public int getTotalRegisterCount() {
         return totalRegisterCount;

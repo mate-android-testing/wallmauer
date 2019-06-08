@@ -21,4 +21,9 @@ public class ElseBranch extends Branch {
         this.labels = labels;
     }
 
+    @Override
+    public String toString() {
+        return "ELSE-Branch Position: " + getIndex();
+    }
+
 }

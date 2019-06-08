@@ -169,11 +169,11 @@ public class BranchCoverage {
                     foundOnDestroy = true;
                 }
 
-                Optional<MethodImplementation> methImpl = methodInformation.getImplementation();
+                MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
                 // check whether we can and need to instrument given method
-                if (methImpl.isPresent() && Instrumenter.methodNeedsModification(methImpl.get())
-                        || methodInformation.isOnDestroy() && methImpl.get().getRegisterCount() < MAX_TOTAL_REGISTERS) {
+                if (methImpl != null && Instrumenter.methodNeedsModification(methImpl)
+                        || methodInformation.isOnDestroy() && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
                     LOGGER.info("Instrumenting method " + method.getName() + " of class " + classDef.toString());
 
