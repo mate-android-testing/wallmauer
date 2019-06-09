@@ -52,7 +52,7 @@ public class MethodInformation {
     // map of param register IDs and its register type if present
     private Optional<Map<Integer,RegisterType>> paramRegisterTypeMap = Optional.empty();
 
-    // a reference to the method implementation
+    // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
 
     public MethodInformation(String methodID, ClassDef classDef, Method method, boolean isMainActivity) {

@@ -19,6 +19,7 @@ import org.jf.dexlib2.util.MethodUtil;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public final class Instrumenter {
@@ -346,7 +347,7 @@ public final class Instrumenter {
 
         mutableImplementation.getInstructions().stream().forEach(
                 instruction -> {
-                        LOGGER.info(instruction.getOpcode().toString());
+                        LOGGER.fine(instruction.getOpcode().toString());
                 });
 
         /*
@@ -375,7 +376,7 @@ public final class Instrumenter {
             // instrument branch
             mutableImplementation = insertInstrumentationCode(methodInformation, branchPosition, id);
 
-            LOGGER.info("Number of Instructions after Instrumentation: " + mutableImplementation.getInstructions().size());
+            LOGGER.fine("Number of Instructions after Instrumentation: " + mutableImplementation.getInstructions().size());
 
             // swap instructions to right position when dealing with an else branch
             if (branch instanceof ElseBranch) {
@@ -410,27 +411,30 @@ public final class Instrumenter {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
-        Map<Integer,RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
 
+        Map<Integer,RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
         LOGGER.fine(paramRegisterMap.toString());
 
-        /*
-        * The union of both lists represent basically the destination registers for
-        * the move instructions, apart the last two registers which are getting
-        * free registers.
-         */
         List<Integer> newRegisters = methodInformation.getNewRegisters();
         List<Integer> paramRegisters = methodInformation.getParamRegisters();
 
-        List<Integer> destinationRegisters = Stream.concat(newRegisters.stream(), paramRegisters.stream())
-                .collect(Collectors.toList());
+        // compute the list of destination registers, which ranges from newReg(0)...newReg(0) + #params - 1
+        int firstDestinationRegister = newRegisters.get(0);
+        int lastDestinationRegister = newRegisters.get(0) + paramRegisters.size();
+        List<Integer> destinationRegisters = IntStream.
+                range(firstDestinationRegister, lastDestinationRegister).boxed().collect(Collectors.toList());
+
+        // compute the list of source registers, which is the param registers shifted by #additionalRegs
+        List<Integer> sourceRegisters =
+                paramRegisters.stream().map(elem -> elem + BranchCoverage.ADDITIONAL_REGISTERS).collect(Collectors.toList());
 
         LOGGER.info("New Registers: " + newRegisters);
         LOGGER.info("Parameter Registers: " + paramRegisters);
         LOGGER.info("Destination Registers: " + destinationRegisters);
+        LOGGER.info("Source Registers: " + sourceRegisters);
 
         // use correct move instruction depend on type of source register
-        for (int index=0; index < paramRegisterMap.size() - 2; index++) {
+        for (int index=0; index < sourceRegisters.size(); index++) {
 
             // id corresponds to actual register ID of param register
             RegisterType registerType = paramRegisterMap.get(paramRegisters.get(index));
@@ -445,14 +449,14 @@ public final class Instrumenter {
                 int destinationRegisterID  = destinationRegisters.get(index);
                 LOGGER.info("Destination reg: " + destinationRegisterID);
 
-                // source register : the next param register
-                int sourceRegisterID = paramRegisters.get(index);
+                // source register : p0...pN
+                int sourceRegisterID = sourceRegisters.get(index);
                 LOGGER.info("Source reg: " + sourceRegisterID);
 
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
                 // add move as first instruction
-                mutableMethodImplementation.addInstruction(0, move);
+                mutableMethodImplementation.addInstruction(index, move);
             } else if (registerType == RegisterType.LONG_HI_TYPE
                     || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
@@ -467,20 +471,20 @@ public final class Instrumenter {
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
 
                 int destinationRegisterID  = destinationRegisters.get(index);
-                int sourceRegisterID = paramRegisters.get(index);
+                int sourceRegisterID = sourceRegisters.get(index);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
-                mutableMethodImplementation.addInstruction(0, move);
+                mutableMethodImplementation.addInstruction(index, move);
             } else {
 
                 // primitive type
                 Opcode movePrimitive = Opcode.MOVE_FROM16;
 
                 int destinationRegisterID  = destinationRegisters.get(index);
-                int sourceRegisterID = paramRegisters.get(index);
+                int sourceRegisterID = sourceRegisters.get(index);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
-                mutableMethodImplementation.addInstruction(0, move);
+                mutableMethodImplementation.addInstruction(index, move);
             }
         }
         // update implementation
