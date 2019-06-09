@@ -171,12 +171,15 @@ public final class Utility {
      * Increases the register directive of the method, i.e. the .register statement at the method head
      * according to the number specified by {@param newRegisterCount}.
      *
-     * @param mutableImplementation The implementation representing the method.
+     * @param methodInformation Stores all relevant information about a method.
      * @param newRegisterCount      The new amount of registers the method should have.
      * @throws NoSuchFieldException   Should never happen - a byproduct of reflection.
      * @throws IllegalAccessException Should never happen - a byproduct of reflection.
      */
-    public static void increaseMethodRegisterCount(MutableMethodImplementation mutableImplementation, int newRegisterCount) {
+    public static void increaseMethodRegisterCount(MethodInformation methodInformation, int newRegisterCount) {
+
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableImplementation = new MutableMethodImplementation(methodImplementation);
 
         try {
             java.lang.reflect.Field f = mutableImplementation.getClass().getDeclaredField("registerCount");
@@ -185,6 +188,9 @@ public final class Utility {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             e.printStackTrace();
         }
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableImplementation);
     }
 
     /**

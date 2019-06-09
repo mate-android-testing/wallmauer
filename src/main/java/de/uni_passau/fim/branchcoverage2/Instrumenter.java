@@ -331,8 +331,12 @@ public final class Instrumenter {
         MutableMethodImplementation mutableImplementation =
                 new MutableMethodImplementation(methodInformation.getMethodImplementation());
 
+        LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+
         // increase the register count of the method, i.e. the .register directive at each method's head
-        Utility.increaseMethodRegisterCount(mutableImplementation, methodInformation.getTotalRegisterCount());
+        Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
+
+        LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // sort the branches by their position/location within the method
         Set<Branch> sortedBranches = new TreeSet<>(methodInformation.getBranches());
@@ -420,6 +424,10 @@ public final class Instrumenter {
 
         List<Integer> destinationRegisters = Stream.concat(newRegisters.stream(), paramRegisters.stream())
                 .collect(Collectors.toList());
+
+        LOGGER.info("New Registers: " + newRegisters);
+        LOGGER.info("Parameter Registers: " + paramRegisters);
+        LOGGER.info("Destination Registers: " + destinationRegisters);
 
         // use correct move instruction depend on type of source register
         for (int index=0; index < paramRegisterMap.size() - 2; index++) {
