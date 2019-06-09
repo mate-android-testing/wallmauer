@@ -11,6 +11,7 @@ import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.instruction.Instruction;
+import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
@@ -165,10 +166,19 @@ public final class Instrumenter {
                 implementation));
     }
 
-    public static void insertOnDestroyForSuperClasses(List<ClassDef> classes, List<Method> methods, ClassDef classDef) {
+    /**
+     * Adds a custom onDestroy method in the super classes of the MainActivity class
+     * if not present yet.
+     *
+     * @param classes The set of classes part of the instrumented classes.dex file.
+     * @param mainActivity The class describing the MainActivity.
+     */
+    public static List<ClassDef> insertOnDestroyForSuperClasses(List<ClassDef> classes, ClassDef mainActivity) {
+
+        List<ClassDef> finalClasses = new ArrayList<>();
 
         // super class of MainActivity
-        String superClass = classDef.getSuperclass();
+        String superClass = mainActivity.getSuperclass();
 
         // we need to insert a custom onDestroy method until we reach the activity super class
         while (superClass != null && !superClass.equals("Landroid/app/Activity;")
@@ -176,14 +186,77 @@ public final class Instrumenter {
                 && !superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
                 && !superClass.equals("Landroid.support.v4.app.FragmentActivity;")) {
 
-            // iterate over classDef and follow link of superClass until we reach a suitable one
-            for (ClassDef classesDef : classes) {
-                if (classesDef.toString().equals(superClass)) {
-                    superClass = classesDef.getSuperclass();
+            // find classDef of super class
+            for (ClassDef classDef : classes) {
+                if (classDef.toString().equals(superClass)) {
+                    // we found classDef of super class
+
+                    // check whether class contains onDestroy method
+                    List<Method> methods = Lists.newArrayList(classDef.getMethods());
+                    boolean containsOnDestroy = false;
+
+                    for (Method method : methods) {
+                        if (Utility.isOnDestroy(method)) {
+                            containsOnDestroy = true;
+                        }
+                    }
+
+                    if (!containsOnDestroy) {
+
+                        // insert custom onDestroy method
+                        insertBasicOnDestroy(methods, classDef);
+
+                        finalClasses.add(new ImmutableClassDef(
+                                classDef.getType(),
+                                classDef.getAccessFlags(),
+                                classDef.getSuperclass(),
+                                classDef.getInterfaces(),
+                                classDef.getSourceFile(),
+                                classDef.getAnnotations(),
+                                classDef.getFields(),
+                                methods));
+
+                        // step up in activity hierarchy
+                        superClass = classDef.getSuperclass();
+                    } else {
+                        finalClasses.add(classDef);
+                        LOGGER.fine("Class " + classDef + " contains already onDestroy");
+                    }
                     break;
                 }
             }
         }
+        return finalClasses;
+    }
+
+    private static void insertBasicOnDestroy(List<Method> methods, ClassDef classDef) {
+
+        LOGGER.info("Inserting basic onDestroy into class " + classDef);
+
+        // onDestroy needs to call super()
+        String superClass = classDef.getSuperclass();
+        LOGGER.info("Super class: " + superClass);
+
+        MutableMethodImplementation implementation = new MutableMethodImplementation(1);
+
+        // call super.onDestroy() first, AppCompatActivity seems to be the current API standard for activity classes
+        implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1,
+                0, 0, 0, 0, 0,
+                new ImmutableMethodReference(superClass, "onDestroy",
+                        Lists.newArrayList(), "V")));
+
+        // we have to add return-statement as well, though void!
+        implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
+
+        // add method to final instrumented dex file
+        methods.add(new ImmutableMethod(
+                classDef.toString(),
+                "onDestroy",
+                null,
+                "V",
+                4,
+                null,
+                implementation));
     }
 
     /**
@@ -202,11 +275,23 @@ public final class Instrumenter {
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
         List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 
+        /*
+        * Since we iterate over the instructions and insert before each return statement our code,
+        * the insertion causes to re-iterate over the same return statement infinitely often.
+        * Thus, we need to track the covered return statements.
+         */
+        Set<BuilderInstruction> coveredReturnStatements = new HashSet<>();
+
         // we need to insert the code before each return statement
         for (int i=0; i < instructions.size(); i++) {
 
+            BuilderInstruction instruction = instructions.get(i);
+
             // onDestroy has return type void, which opcodes refers to '0E'
-            if (instructions.get(i).getOpcode().name.equals("return-void")) {
+            if (instructions.get(i).getOpcode().name.equals("return-void")
+                    && !coveredReturnStatements.contains(instruction)) {
+
+                coveredReturnStatements.add(instruction);
 
                 LOGGER.info("Inserting Tracer.write(packageName) invocation before return statement!");
 

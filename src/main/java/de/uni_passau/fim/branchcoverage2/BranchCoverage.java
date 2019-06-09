@@ -117,11 +117,13 @@ public class BranchCoverage {
         LOGGER.info("Starting Instrumentation of App!");
 
         // the set of classes we write into the instrumented classes.dex file
-        final List<ClassDef> classes = Lists.newArrayList();
+        List<ClassDef> classes = Lists.newArrayList();
 
         // track if we found MainActivity and its onDestroy method
         boolean foundMainActivity = false;
         boolean foundOnDestroy = false;
+
+        ClassDef mainActivity = null;
 
         // count total number of branches per each class
         List<Branch> branches = new LinkedList<>();
@@ -145,6 +147,7 @@ public class BranchCoverage {
             if (Utility.isMainActivity(classDef, mainActivityDex)) {
                 isMainActivity = true;
                 foundMainActivity = true;
+                mainActivity = classDef;
             }
 
             // the set of methods included in the instrumented classes.dex
@@ -218,17 +221,7 @@ public class BranchCoverage {
             // check whether we need to insert own onDestroy method
             if (isMainActivity && !foundOnDestroy) {
                 modifiedMethod = true;
-
                 Instrumenter.insertOnDestroy(methods, classDef, packageName);
-
-                /*
-                * Calling onDestroy() requires to call super() unless it is not
-                * the activity super class. Thus, we need to insert
-                * a custom onDestroy() in the activity hierarchy if the super
-                * class of the current activity doesn't define
-                * any onDestroy() method already.
-                 */
-                Instrumenter.insertOnDestroyForSuperClasses(classes, methods, classDef);
             }
 
             if (!modifiedMethod) {
@@ -240,6 +233,18 @@ public class BranchCoverage {
 
             // write out the number of branches per class
             Utility.writeBranches(className, branches.size());
+        }
+
+
+        /*
+         * Calling onDestroy() requires to call super() unless it is not
+         * the activity super class. Thus, we need to insert
+         * a custom onDestroy() in the activity hierarchy if the super
+         * class of the current activity doesn't define
+         * any onDestroy() method already.
+         */
+        if (foundMainActivity && !foundOnDestroy) {
+            classes = Instrumenter.insertOnDestroyForSuperClasses(classes, mainActivity);
         }
 
         LOGGER.info("Found 'MainActivity': " + foundMainActivity);
