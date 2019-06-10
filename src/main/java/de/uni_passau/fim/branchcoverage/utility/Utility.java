@@ -1,4 +1,4 @@
-package de.uni_passau.fim.utility;
+package de.uni_passau.fim.branchcoverage.utility;
 
 import de.uni_passau.fim.branchcoverage.dto.MethodInformation;
 import org.jf.dexlib2.DexFileFactory;

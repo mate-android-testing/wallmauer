@@ -5,7 +5,7 @@ import de.uni_passau.fim.branchcoverage.BranchCoverage;
 import de.uni_passau.fim.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.branchcoverage.branch.Branch;
 import de.uni_passau.fim.branchcoverage.branch.ElseBranch;
-import de.uni_passau.fim.utility.Utility;
+import de.uni_passau.fim.branchcoverage.utility.Utility;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;

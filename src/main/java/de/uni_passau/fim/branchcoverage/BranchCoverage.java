@@ -5,7 +5,7 @@ import de.uni_passau.fim.branchcoverage.analysis.Analyzer;
 import de.uni_passau.fim.branchcoverage.branch.Branch;
 import de.uni_passau.fim.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.branchcoverage.instrumentation.Instrumenter;
-import de.uni_passau.fim.utility.Utility;
+import de.uni_passau.fim.branchcoverage.utility.Utility;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.iface.ClassDef;
