@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage;
+package de.uni_passau.fim.branchcoverage.evaluation;
 
 import java.io.*;
 import java.util.HashMap;

@@ -1,7 +1,11 @@
-package de.uni_passau.fim.branchcoverage;
+package de.uni_passau.fim.branchcoverage.analysis;
 
 
 import com.google.common.collect.Lists;
+import de.uni_passau.fim.branchcoverage.dto.MethodInformation;
+import de.uni_passau.fim.branchcoverage.branch.Branch;
+import de.uni_passau.fim.branchcoverage.branch.ElseBranch;
+import de.uni_passau.fim.branchcoverage.branch.IfBranch;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;

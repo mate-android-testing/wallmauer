@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage;
+package de.uni_passau.fim.branchcoverage.branch;
 
 
 public class IfBranch extends Branch {

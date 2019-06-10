@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage;
+package de.uni_passau.fim.branchcoverage.branch;
 
 public abstract class Branch implements Comparable<Branch> {
 
@@ -6,13 +6,13 @@ public abstract class Branch implements Comparable<Branch> {
     private int codeAddress;
     private String id;
 
-    protected Branch(int index, int codeAddress, String id) {
+    public Branch(int index, int codeAddress, String id) {
         this.index = index;
         this.codeAddress = codeAddress;
         this.id = id;
     }
 
-    protected int getIndex() {
+    public int getIndex() {
         return index;
     }
 
