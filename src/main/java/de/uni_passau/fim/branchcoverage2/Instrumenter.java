@@ -175,7 +175,8 @@ public final class Instrumenter {
      */
     public static List<ClassDef> insertOnDestroyForSuperClasses(List<ClassDef> classes, ClassDef mainActivity) {
 
-        List<ClassDef> finalClasses = new ArrayList<>();
+        // track the classes which we gonna modify
+        List<ClassDef> modifiedClasses = new ArrayList<>();
 
         // super class of MainActivity
         String superClass = mainActivity.getSuperclass();
@@ -206,7 +207,7 @@ public final class Instrumenter {
                         // insert custom onDestroy method
                         insertBasicOnDestroy(methods, classDef);
 
-                        finalClasses.add(new ImmutableClassDef(
+                        modifiedClasses.add(new ImmutableClassDef(
                                 classDef.getType(),
                                 classDef.getAccessFlags(),
                                 classDef.getSuperclass(),
@@ -218,14 +219,37 @@ public final class Instrumenter {
 
                         // step up in activity hierarchy
                         superClass = classDef.getSuperclass();
-                    } else {
-                        finalClasses.add(classDef);
-                        LOGGER.fine("Class " + classDef + " contains already onDestroy");
                     }
+
+                    // speed up, don' need to consider other classes than super class
                     break;
                 }
             }
         }
+
+        // replace original classes with modified ones (including a custom onDestroy)
+        List<ClassDef> finalClasses = new ArrayList<>();
+
+        for (ClassDef classDef : classes) {
+
+            boolean contained = false;
+
+            for (ClassDef modifiedClassDef : modifiedClasses) {
+                if (classDef.toString().equals(modifiedClassDef.toString())) {
+                    // replace classDef with modifiedClassDef
+                    finalClasses.add(modifiedClassDef);
+                    contained = true;
+                    break;
+                }
+            }
+
+            if (!contained) {
+                // add original classDef
+                finalClasses.add(classDef);
+            }
+        }
+
+        LOGGER.info("Number of classes: " + finalClasses.size());
         return finalClasses;
     }
 
