@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage2;
+package de.uni_passau.fim.branchcoverage;
 
 
 import com.google.common.collect.Lists;
@@ -9,7 +9,6 @@ import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction21t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction22t;
 import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
 
 import java.util.*;
 

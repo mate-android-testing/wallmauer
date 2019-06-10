@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage2;
+package de.uni_passau.fim.branchcoverage;
 
 public abstract class Branch implements Comparable<Branch> {
 

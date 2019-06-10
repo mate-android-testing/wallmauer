@@ -1,6 +1,6 @@
 package de.uni_passau.fim.utility;
 
-import de.uni_passau.fim.branchcoverage2.MethodInformation;
+import de.uni_passau.fim.branchcoverage.MethodInformation;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.builder.BuilderInstruction;

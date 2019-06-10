@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage2;
+package de.uni_passau.fim.branchcoverage;
 
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.utility.Utility;
