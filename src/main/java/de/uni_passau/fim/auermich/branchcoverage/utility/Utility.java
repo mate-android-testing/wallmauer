@@ -1,6 +1,6 @@
-package de.uni_passau.fim.branchcoverage.utility;
+package de.uni_passau.fim.auermich.branchcoverage.utility;
 
-import de.uni_passau.fim.branchcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.builder.BuilderInstruction;

@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage.tracer;
+package de.uni_passau.fim.auermich.branchcoverage.tracer;
 
 import java.io.File;
 import java.io.FileWriter;

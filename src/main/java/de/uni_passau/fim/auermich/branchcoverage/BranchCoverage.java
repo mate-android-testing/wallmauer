@@ -1,11 +1,11 @@
-package de.uni_passau.fim.branchcoverage;
+package de.uni_passau.fim.auermich.branchcoverage;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.branchcoverage.analysis.Analyzer;
-import de.uni_passau.fim.branchcoverage.branch.Branch;
-import de.uni_passau.fim.branchcoverage.dto.MethodInformation;
-import de.uni_passau.fim.branchcoverage.instrumentation.Instrumenter;
-import de.uni_passau.fim.branchcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.branchcoverage.analysis.Analyzer;
+import de.uni_passau.fim.auermich.branchcoverage.branch.Branch;
+import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.branchcoverage.instrumentation.Instrumenter;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.iface.ClassDef;

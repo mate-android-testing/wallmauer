@@ -1,4 +1,4 @@
-package de.uni_passau.fim.branchcoverage.branch;
+package de.uni_passau.fim.auermich.branchcoverage.branch;
 
 import org.jf.dexlib2.builder.Label;
 

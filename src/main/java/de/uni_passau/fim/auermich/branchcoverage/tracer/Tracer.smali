@@ -1,4 +1,4 @@
-.class public Lde/uni_passau/fim/branchcoverage/tracer/Tracer;
+.class public Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;
 .super Ljava/lang/Object;
 .source "Tracer.java"
 
@@ -30,10 +30,10 @@
 
     invoke-direct {v0}, Ljava/util/HashSet;-><init>()V
 
-    sput-object v0, Lde/uni_passau/fim/branchcoverage/tracer/Tracer;->visitedBranches:Ljava/util/Set;
+    sput-object v0, Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;->visitedBranches:Ljava/util/Set;
 
     .line 23
-    const-class v0, Lde/uni_passau/fim/branchcoverage/tracer/Tracer;
+    const-class v0, Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;
 
     .line 24
     invoke-virtual {v0}, Ljava/lang/Class;->getName()Ljava/lang/String;
@@ -45,7 +45,7 @@
 
     move-result-object v0
 
-    sput-object v0, Lde/uni_passau/fim/branchcoverage/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
+    sput-object v0, Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     return-void
 .end method
@@ -66,7 +66,7 @@
 
     .prologue
     .line 33
-    sget-object v0, Lde/uni_passau/fim/branchcoverage/tracer/Tracer;->visitedBranches:Ljava/util/Set;
+    sget-object v0, Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;->visitedBranches:Ljava/util/Set;
 
     invoke-interface {v0, p0}, Ljava/util/Set;->add(Ljava/lang/Object;)Z
 
@@ -100,7 +100,7 @@
 
     .line 48
     .local v3, "filePath":Ljava/lang/String;
-    sget-object v5, Lde/uni_passau/fim/branchcoverage/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
+    sget-object v5, Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     invoke-virtual {v5, v3}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
@@ -120,7 +120,7 @@
 
     .line 56
     .local v4, "writer":Ljava/io/FileWriter;
-    sget-object v5, Lde/uni_passau/fim/branchcoverage/tracer/Tracer;->visitedBranches:Ljava/util/Set;
+    sget-object v5, Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;->visitedBranches:Ljava/util/Set;
 
     invoke-interface {v5}, Ljava/util/Set;->iterator()Ljava/util/Iterator;
 
@@ -162,7 +162,7 @@
 
     .line 65
     .local v1, "e":Ljava/io/IOException;
-    sget-object v5, Lde/uni_passau/fim/branchcoverage/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
+    sget-object v5, Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v6, "Writing to internal storage failed."
 
