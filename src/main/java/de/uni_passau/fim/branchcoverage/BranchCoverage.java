@@ -239,7 +239,6 @@ public class BranchCoverage {
             Utility.writeBranches(className, branches.size());
         }
 
-
         /*
          * Calling onDestroy() requires to call super() unless it is not
          * the activity super class. Thus, we need to insert
