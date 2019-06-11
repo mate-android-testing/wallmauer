@@ -178,22 +178,28 @@ public final class Instrumenter {
      */
     public static List<ClassDef> insertOnDestroyForSuperClasses(List<ClassDef> classes, ClassDef mainActivity) {
 
+        LOGGER.info("Inserting onDestroy into super classes!");
+
         // track the classes which we gonna modify
         List<ClassDef> modifiedClasses = new ArrayList<>();
 
         // super class of MainActivity
         String superClass = mainActivity.getSuperclass();
 
+        // when we found an onDestroy method in some super class, we can abort
+        boolean abort = false;
+
         // we need to insert a custom onDestroy method until we reach the activity super class
-        while (superClass != null && !superClass.equals("Landroid/app/Activity;")
+        while (!abort && !superClass.equals("Landroid/app/Activity;")
                 && !superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
                 && !superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
-                && !superClass.equals("Landroid.support.v4.app.FragmentActivity;")) {
-
+                && !superClass.equals("Landroid/support/v4/app/FragmentActivity;")) {
             // find classDef of super class
             for (ClassDef classDef : classes) {
                 if (classDef.toString().equals(superClass)) {
                     // we found classDef of super class
+
+                    LOGGER.info("Super class of " + classDef.toString() + " is " + superClass);
 
                     // check whether class contains onDestroy method
                     List<Method> methods = Lists.newArrayList(classDef.getMethods());
@@ -222,6 +228,10 @@ public final class Instrumenter {
 
                         // step up in activity hierarchy
                         superClass = classDef.getSuperclass();
+
+                    } else {
+                        // we are done
+                        abort = true;
                     }
 
                     // speed up, don' need to consider other classes than super class
