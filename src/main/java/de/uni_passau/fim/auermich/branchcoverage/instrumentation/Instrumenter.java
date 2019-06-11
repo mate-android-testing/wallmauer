@@ -262,7 +262,7 @@ public final class Instrumenter {
             }
         }
 
-        LOGGER.info("Number of classes: " + finalClasses.size());
+        LOGGER.info("New number of classes: " + finalClasses.size());
         return finalClasses;
     }
 

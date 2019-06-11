@@ -250,6 +250,8 @@ public class BranchCoverage {
             classes = Instrumenter.insertOnDestroyForSuperClasses(classes, mainActivity);
         }
 
+        LOGGER.info("Original number of classes: " + dexFile.getClasses().size());
+
         LOGGER.info("Found 'MainActivity': " + foundMainActivity);
         LOGGER.info("Does 'MainActivity contains onDestroy method per default: " + foundOnDestroy);
 
