@@ -540,6 +540,7 @@ public final class Instrumenter {
         List<Integer> paramRegisters = methodInformation.getParamRegisters();
 
         // compute the list of destination registers, which ranges from newReg(0)...newReg(0) + #params - 1
+        // TODO: should be simple the place of the original param regs, i.e. destRegs = paramRegs
         int firstDestinationRegister = newRegisters.get(0);
         int lastDestinationRegister = newRegisters.get(0) + paramRegisters.size();
         List<Integer> destinationRegisters = IntStream.
@@ -554,6 +555,9 @@ public final class Instrumenter {
         LOGGER.info("Destination Registers: " + destinationRegisters);
         LOGGER.info("Source Registers: " + sourceRegisters);
 
+        // we need a seperate counter for the insertion location of the instructions, since we skip indices when facing wide tpyes
+        int pos = 0;
+
         // use correct move instruction depend on type of source register
         for (int index=0; index < sourceRegisters.size(); index++) {
 
@@ -566,22 +570,30 @@ public final class Instrumenter {
 
                 Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
 
+                LOGGER.info("Wide type LOW_HALF!");
+
                 // destination register : {vnew0,vnew1,p0...pn}\{pn-1,pn}
                 int destinationRegisterID  = destinationRegisters.get(index);
-                LOGGER.info("Destination reg: " + destinationRegisterID);
 
                 // source register : p0...pN
                 int sourceRegisterID = sourceRegisters.get(index);
+
+                LOGGER.info("Destination reg: " + destinationRegisterID);
                 LOGGER.info("Source reg: " + sourceRegisterID);
 
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
                 // add move as first instruction
-                mutableMethodImplementation.addInstruction(index, move);
+                mutableMethodImplementation.addInstruction(pos, move);
+                pos++;
             } else if (registerType == RegisterType.LONG_HI_TYPE
                     || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
+                LOGGER.info("Wide type HIGH_HALF!");
+
                 // we reached the upper half of a wide-type, no additional move instruction necessary
+                LOGGER.info("(Skipping) source reg:" + sourceRegisters.get(index));
+                LOGGER.info("(Skipping) destination reg: " + destinationRegisters.get(index));
                 continue;
             } else if (registerType.category == RegisterType.REFERENCE
                     || registerType.category == RegisterType.NULL
@@ -591,21 +603,33 @@ public final class Instrumenter {
                 // object type
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
 
+                LOGGER.info("Object type!");
+
                 int destinationRegisterID  = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
+                LOGGER.info("Destination reg: " + destinationRegisterID);
+                LOGGER.info("Source reg: " + sourceRegisterID);
+
                 BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
-                mutableMethodImplementation.addInstruction(index, move);
+                mutableMethodImplementation.addInstruction(pos, move);
+                pos++;
             } else {
 
                 // primitive type
                 Opcode movePrimitive = Opcode.MOVE_FROM16;
 
+                LOGGER.info("Primitive type!");
+
                 int destinationRegisterID  = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
+                LOGGER.info("Destination reg: " + destinationRegisterID);
+                LOGGER.info("Source reg: " + sourceRegisterID);
+
                 BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
-                mutableMethodImplementation.addInstruction(index, move);
+                mutableMethodImplementation.addInstruction(pos, move);
+                pos++;
             }
         }
         // update implementation
