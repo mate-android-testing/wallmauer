@@ -456,7 +456,8 @@ public final class Instrumenter {
         LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
-        Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
+        mutableImplementation = new MutableMethodImplementation(
+                Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount()));
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 

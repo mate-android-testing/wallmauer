@@ -175,8 +175,10 @@ public final class Utility {
      * @param newRegisterCount      The new amount of registers the method should have.
      * @throws NoSuchFieldException   Should never happen - a byproduct of reflection.
      * @throws IllegalAccessException Should never happen - a byproduct of reflection.
+     * @return Returns the modified implementation.
+     *
      */
-    public static void increaseMethodRegisterCount(MethodInformation methodInformation, int newRegisterCount) {
+    public static MethodImplementation increaseMethodRegisterCount(MethodInformation methodInformation, int newRegisterCount) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableImplementation = new MutableMethodImplementation(methodImplementation);
@@ -191,6 +193,7 @@ public final class Utility {
 
         // update implementation
         methodInformation.setMethodImplementation(mutableImplementation);
+        return mutableImplementation;
     }
 
     /**
