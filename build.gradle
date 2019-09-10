@@ -12,7 +12,7 @@ repositories {
 
 jar {
     manifest {
-        attributes "Main-Class": "de.uni_passau.fim.branchcoverage.BranchCoverage"
+        attributes "Main-Class": "de.uni_passau.fim.auermich.branchcoverage.BranchCoverage"
     }
 
     from {
