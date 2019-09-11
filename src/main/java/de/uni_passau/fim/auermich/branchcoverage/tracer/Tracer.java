@@ -3,8 +3,9 @@ package de.uni_passau.fim.auermich.branchcoverage.tracer;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -12,6 +13,9 @@ import java.util.logging.Logger;
  * a given application.
  */
 public class Tracer {
+
+    // tracks the execution paths ordered based on a timestamp (LinkedHashMap maintains insertion order)
+    private static Map<String, String> executionPaths = new LinkedHashMap<>();
 
     // collects visited branches, where a branch consists of class->method->branchID
     private static Set<String> visitedBranches = new HashSet<>();
@@ -24,13 +28,24 @@ public class Tracer {
             .getName());
 
     /**
+     * Gets the current system time formatted as string.
+     *
+     * @return Returns a string representation of the current system time.
+     */
+    private static String getCurrentTimeStamp() {
+        return LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
+    }
+
+    /**
      * Adds a new branch to the set of covered branches. The set
      * ensures that we don't track duplicate branches.
      *
      * @param identifier Uniquely identifies the given branch.
      */
     public static void trace(String identifier) {
-        visitedBranches.add(identifier);
+        // visitedBranches.add(identifier);
+        executionPaths.put(getCurrentTimeStamp(), identifier);
     }
 
     /**
@@ -53,10 +68,25 @@ public class Tracer {
 
             FileWriter writer = new FileWriter(file);
 
+            // record when new traces file was generated
+            writer.append(getCurrentTimeStamp() + ": NEW TRACE");
+            writer.append(System.lineSeparator());
+
+            for (Map.Entry<String, String > entry : executionPaths.entrySet()) {
+                writer.append(entry.getKey() + ": " + entry.getValue());
+                writer.append(System.lineSeparator());
+            }
+
+            /*
             for(String branch: visitedBranches) {
                 writer.append(branch);
                 writer.append(System.lineSeparator());
             }
+            */
+
+            // reset traces, executionPaths
+            // visitedBranches.clear();
+            executionPaths.clear();
 
             writer.flush();
             writer.close();
