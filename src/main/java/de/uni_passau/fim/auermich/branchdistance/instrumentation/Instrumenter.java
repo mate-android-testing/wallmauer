@@ -152,7 +152,7 @@ public final class Instrumenter {
         // invoke-static instruction has format '35c' and opcode '71'
         implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_STATIC, 1
                 , 0, 0, 0, 0, 0,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;", "write",
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "write",
                         Lists.newArrayList("Ljava/lang/String;"), "V")));
 
         // we have to add return-statement as well, though void!
@@ -342,7 +342,7 @@ public final class Instrumenter {
                 // invoke-static-range
                 BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                         freeRegisterID, 1,
-                        new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;", "write",
+                        new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "write",
                                 Lists.newArrayList("Ljava/lang/String;"), "V"));
 
                 mutableMethodImplementation.addInstruction(i, constString);
@@ -429,7 +429,7 @@ public final class Instrumenter {
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 freeRegisterID, 1,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;", "trace",
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
         mutableMethodImplementation.addInstruction(++index, constString);
