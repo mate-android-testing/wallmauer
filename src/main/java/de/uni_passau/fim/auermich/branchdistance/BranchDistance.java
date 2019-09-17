@@ -168,7 +168,7 @@ public class BranchDistance {
             for (Method method : classDef.getMethods()) {
 
                 // each method is identified by its class name and method name
-                String id = className + "->" + method.getName();
+                String id = method.toString();
 
                 MethodInformation methodInformation = new MethodInformation(id, classDef, method, isMainActivity);
 
