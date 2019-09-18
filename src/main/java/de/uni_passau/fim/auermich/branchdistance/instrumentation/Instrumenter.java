@@ -515,6 +515,39 @@ public final class Instrumenter {
         }
         // update implementation
         methodInformation.setMethodImplementation(mutableImplementation);
+
+        // we need to instrument the method entry (do this after branches, otherwise branch ids are corrupted)
+        mutableImplementation = insertInstrumentationCode(methodInformation, -1,
+                methodInformation.getMethodID() + "->entry");
+
+        methodInformation.setMethodImplementation(mutableImplementation);
+
+        // finally we need to instrument the method exit
+        List<Integer> returnStmtIndices = new ArrayList<>();
+
+        // collect the indices of the return statements
+        for (BuilderInstruction instruction : mutableImplementation.getInstructions()) {
+            // search for return instructions
+            if (instruction.getOpcode() == Opcode.RETURN
+                || instruction.getOpcode() == Opcode.RETURN_VOID
+                || instruction.getOpcode() == Opcode.RETURN_OBJECT
+                || instruction.getOpcode() == Opcode.RETURN_WIDE
+                || instruction.getOpcode() == Opcode.RETURN_VOID_BARRIER
+                || instruction.getOpcode() == Opcode.RETURN_VOID_NO_BARRIER) {
+                returnStmtIndices.add(instruction.getLocation().getIndex());
+            }
+        }
+
+        // backwards traverse the return instructions -> no shifting issue
+        Collections.reverse(returnStmtIndices);
+
+        for (Integer returnStmtIndex : returnStmtIndices) {
+            // insert the tracer functionality prior to each return statement
+            mutableImplementation = insertInstrumentationCode(methodInformation, returnStmtIndex-1,
+                    methodInformation.getMethodID() + "->exit");
+            // update implementation
+            methodInformation.setMethodImplementation(mutableImplementation);
+        }
     }
 
 

@@ -233,9 +233,8 @@ public class BranchDistance {
 
                 MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
-                // check whether we can and need to instrument given method
-                if (methImpl != null && Instrumenter.methodNeedsModification(methImpl)
-                        || methodInformation.isOnDestroy() && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
+                // check whether we can instrument given method
+                if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
                     LOGGER.info("Instrumenting method " + method.getName() + " of class " + classDef.toString());
 
@@ -250,7 +249,7 @@ public class BranchDistance {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
                     }
 
-                    // instrument branches
+                    // instrument branches + method entry and exit
                     Instrumenter.modifyMethod(methodInformation);
                     modifiedMethod = true;
 
@@ -304,8 +303,6 @@ public class BranchDistance {
         if (foundMainActivity && !foundOnDestroy) {
             classes = Instrumenter.insertOnDestroyForSuperClasses(classes, mainActivity);
         }
-
-        LOGGER.info("Original number of classes: " + dexFile.getClasses().size());
 
         LOGGER.info("Found 'MainActivity': " + foundMainActivity);
         LOGGER.info("Does 'MainActivity contains onDestroy method per default: " + foundOnDestroy);
