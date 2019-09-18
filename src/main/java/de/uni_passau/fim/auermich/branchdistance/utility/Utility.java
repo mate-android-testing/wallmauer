@@ -193,18 +193,20 @@ public final class Utility {
 
     /**
      * Builds a given APK using apktool.
+     *
+     * @param decodedAPKPath The root directory of the decoded APK.
+     * @param outputFile The file path of the resulting APK. If {@code null}
+     *                   is specified, the default location ('dist' directory)
+     *                   and the original APK name is used.
      */
-    public static void buildAPK(String decodingOutputPath) {
+    public static void buildAPK(String decodedAPKPath, File outputFile) {
 
         ApkOptions apkOptions = new ApkOptions();
         // apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
 
         try {
-            // when building the APK, it can be found typically in the 'dist' folder
-            File apk = new File(decodingOutputPath + File.separator + "dist", "final.apk");
-            // outFile specifies the path and name of the resulting APK, if null -> default location (dist dir) is used
-            new Androlib(apkOptions).build(new ExtFile(new File(decodingOutputPath)), null);
+            new Androlib(apkOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
         } catch (BrutException e) {
             LOGGER.warning("Failed to build APK file!");
             LOGGER.warning(e.getMessage());

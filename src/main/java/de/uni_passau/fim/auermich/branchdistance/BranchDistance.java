@@ -155,15 +155,19 @@ public class BranchDistance {
             File tracerFile = new File(tracerFolder, "Tracer.smali");
             FileUtils.copyInputStreamToFile(inputStream, tracerFile);
 
-            // FileUtils.copyDirectoryToDirectory(tracerFileDir, smaliFolder);
-            //FileUtils.forceMkdir();
-
             // smali a out -o classes.dex
             SmaliOptions smaliOptions = new SmaliOptions();
             smaliOptions.outputDexFile = lastDexFile;
             Smali.assemble(smaliOptions, smaliFolder.getAbsolutePath());
 
-            Utility.buildAPK(decodedAPKPath);
+            // the output name of the APK
+            File outputAPKFile = new File(apkPath.replace(".apk", "-instrumented.apk"));
+
+            // build the APK to the
+            Utility.buildAPK(decodedAPKPath, outputAPKFile);
+
+            // remove the decoded APK files
+            FileUtils.deleteDirectory(new File(decodedAPKPath));
         }
     }
 
