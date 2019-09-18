@@ -6,15 +6,20 @@ import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.instrumentation.Instrumenter;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
+import org.apache.commons.io.FileUtils;
+import org.jf.baksmali.Baksmali;
+import org.jf.baksmali.BaksmaliOptions;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.dexbacked.DexBackedDexFile;
+import org.jf.dexlib2.iface.*;
+import org.jf.smali.Smali;
+import org.jf.smali.SmaliOptions;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -32,11 +37,11 @@ public class BranchDistance {
     // the name of the mainActivity declared in the AndroidManifest file
     public static String mainActivity;
 
-    // the path to the classes.dex file
-    public static String dexInputPath;
+    // the path to the APK file
+    public static String apkPath;
 
-    // the path where the instrumented dex file should reside
-    public static String dexOutputPath;
+    // the output path of the decoded APK
+    public static String decodedAPKPath;
 
     /* PARAMS SECTION END */
 
@@ -74,15 +79,13 @@ public class BranchDistance {
      */
     private static void handleArguments(String[] args) {
 
-        assert args.length == 4;
+        assert args.length == 3;
 
-        dexInputPath = Objects.requireNonNull(args[0]);
-        dexOutputPath = Objects.requireNonNull(args[1]);
-        packageName = Objects.requireNonNull(args[2]);
-        mainActivity = Objects.requireNonNull(args[3]);
+        apkPath = Objects.requireNonNull(args[0]);
+        packageName = Objects.requireNonNull(args[1]);
+        mainActivity = Objects.requireNonNull(args[2]);
 
-        LOGGER.info("The input path of the classes.dex file is: " + dexInputPath);
-        LOGGER.info("The output path of the instrumented classes.dex file is: " + dexOutputPath);
+        LOGGER.info("The path to the APK file is: " + apkPath);
         LOGGER.info("The package name of the application is: " + packageName);
         LOGGER.info("The name of the MainActivity is: " + mainActivity);
 
@@ -97,12 +100,11 @@ public class BranchDistance {
 
         LOGGER.setLevel(Level.ALL);
 
-        if (args.length < 4) {
-            LOGGER.severe("You have specified not enough arguments!");
-            LOGGER.info("1. argument: path to classes.dex file");
-            LOGGER.info("2. argument: path to instrumented classes.dex file");
-            LOGGER.info("3. argument: package name of app declared in AndroidManifest file");
-            LOGGER.info("4. argument: name of MainActivity declared in AndroidManifest file (FQN)");
+        if (args.length < 3) {
+            LOGGER.severe("You have not specified enough arguments!");
+            LOGGER.info("1. argument: path to the APK file");
+            LOGGER.info("2. argument: package name of app declared in AndroidManifest file");
+            LOGGER.info("3. argument: name of MainActivity declared in AndroidManifest file (FQN)");
         } else {
 
             // process command line arguments
@@ -111,14 +113,61 @@ public class BranchDistance {
             // describes class names we want to exclude from instrumentation
             Pattern exclusionPattern = Utility.readExcludePatterns();
 
-            // loads the classes.dex file
-            DexFile dexFile = DexFileFactory.loadDexFile(dexInputPath, Opcodes.forApi(OPCODE_API));
+            // the APK file
+            File apkFile = new File(apkPath);
 
-            instrument(dexFile, exclusionPattern);
+            // process directly apk file (support for multi-dex)
+            MultiDexContainer<? extends DexBackedDexFile> apk
+                    = DexFileFactory.loadDexContainer(apkFile, Opcodes.forApi(OPCODE_API));
+
+            // decode the APK file
+            decodedAPKPath = Utility.decodeAPK(apkFile);
+
+            // instrument all the dex files included in the APK file
+            apk.getDexEntryNames().forEach(dexFile -> {
+                try {
+                    instrument(apk.getEntry(dexFile), dexFile, exclusionPattern);
+                } catch (IOException e) {
+                    LOGGER.warning("Failure loading dexFile");
+                    LOGGER.warning(e.getMessage());
+                }
+            });
+
+            // the path to the last dex file, e.g. classes3.dex
+            String lastDexFile = decodedAPKPath + File.separator
+                    + apk.getDexEntryNames().get(apk.getDexEntryNames().size()-1);
+
+            // the output directory for baksmali d
+            File smaliFolder = new File(decodedAPKPath + File.separator + "out");
+
+            // baksmali d classes.dex -o out
+            Baksmali.disassembleDexFile(DexFileFactory.loadDexFile(lastDexFile,
+                    Opcodes.forApi(OPCODE_API)),smaliFolder, 1, new BaksmaliOptions());
+
+            // the location of the tracer directory
+            File tracerFolder = Paths.get(smaliFolder.getAbsolutePath(), "de", "uni_passau",
+                    "fim", "auermich", "branchdistance", "tracer").toFile();
+            // TODO: verify that mkdirs doesn't overwrite pre-existing sub-directories/files
+            tracerFolder.mkdirs();
+
+            // copy from resource folder Tracer.smali to smali folder
+            InputStream inputStream = BranchDistance.class.getClassLoader().getResourceAsStream("Tracer.smali");
+            File tracerFile = new File(tracerFolder, "Tracer.smali");
+            FileUtils.copyInputStreamToFile(inputStream, tracerFile);
+
+            // FileUtils.copyDirectoryToDirectory(tracerFileDir, smaliFolder);
+            //FileUtils.forceMkdir();
+
+            // smali a out -o classes.dex
+            SmaliOptions smaliOptions = new SmaliOptions();
+            smaliOptions.outputDexFile = lastDexFile;
+            Smali.assemble(smaliOptions, smaliFolder.getAbsolutePath());
+
+            Utility.buildAPK(decodedAPKPath);
         }
     }
 
-    private static void instrument(DexFile dexFile, Pattern exclusionPattern) throws  IOException {
+    private static void instrument(DexFile dexFile, String dexFileName, Pattern exclusionPattern) throws  IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
 
@@ -257,8 +306,7 @@ public class BranchDistance {
         LOGGER.info("Found 'MainActivity': " + foundMainActivity);
         LOGGER.info("Does 'MainActivity contains onDestroy method per default: " + foundOnDestroy);
 
-        // we want to create a new DexFile containing the modified code
-        Utility.writeToDexFile(dexOutputPath, classes, OPCODE_API);
+        Utility.writeToDexFile(decodedAPKPath + File.separator + dexFileName, classes, OPCODE_API);
     }
 
 }

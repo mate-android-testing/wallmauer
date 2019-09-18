@@ -1,6 +1,13 @@
 package de.uni_passau.fim.auermich.branchdistance.utility;
 
+import brut.androlib.Androlib;
+import brut.androlib.ApkDecoder;
+import brut.androlib.ApkOptions;
+import brut.common.BrutException;
+import brut.directory.ExtFile;
+import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
+import org.apache.commons.io.FileUtils;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.builder.BuilderInstruction;
@@ -13,19 +20,28 @@ import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
 
+
 import javax.annotation.Nonnull;
 import java.io.*;
+import java.net.JarURLConnection;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
+
+    // the logger instance
+    private static final Logger LOGGER = Logger.getLogger(Utility.class
+            .getName());
 
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
@@ -137,6 +153,62 @@ public final class Utility {
         }
         reader.close();
         return Pattern.compile(builder.toString());
+    }
+
+    /**
+     * Decodes a given APK using apktool.
+     */
+    public static String decodeAPK(File apkPath) {
+
+        try {
+            // ApkDecoder decoder = new ApkDecoder(new Androlib());
+            ApkDecoder decoder = new ApkDecoder(apkPath);
+
+            // path where we want to decode the APK
+            String parentDir = apkPath.getParent();
+            String outputDir = parentDir + File.separator + "decodedAPK";
+
+            LOGGER.info("Decoding Output Dir: " + outputDir);
+            decoder.setOutDir(new File(outputDir));
+
+            // whether to decode classes.dex into smali files: -s
+            decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
+
+            // whether to decode resources: -r
+            decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
+
+            // overwrites existing dir: -f
+            decoder.setForceDelete(true);
+
+            decoder.decode();
+
+            // the dir where the decoded content can be found
+            return outputDir;
+        } catch (BrutException | IOException e) {
+            LOGGER.warning("Failed to decode APK file!");
+            LOGGER.warning(e.getMessage());
+            throw new IllegalStateException("Decoding APK failed");
+        }
+    }
+
+    /**
+     * Builds a given APK using apktool.
+     */
+    public static void buildAPK(String decodingOutputPath) {
+
+        ApkOptions apkOptions = new ApkOptions();
+        // apkOptions.useAapt2 = true;
+        apkOptions.verbose = true;
+
+        try {
+            // when building the APK, it can be found typically in the 'dist' folder
+            File apk = new File(decodingOutputPath + File.separator + "dist", "final.apk");
+            // outFile specifies the path and name of the resulting APK, if null -> default location (dist dir) is used
+            new Androlib(apkOptions).build(new ExtFile(new File(decodingOutputPath)), null);
+        } catch (BrutException e) {
+            LOGGER.warning("Failed to build APK file!");
+            LOGGER.warning(e.getMessage());
+        }
     }
 
     public static void writeToDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
