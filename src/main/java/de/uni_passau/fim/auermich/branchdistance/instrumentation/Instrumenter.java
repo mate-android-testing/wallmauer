@@ -488,9 +488,10 @@ public final class Instrumenter {
 
             Branch branch = iterator.next();
 
-            // unique branch id
+            // unique branch id: full-qualified method name + id of first instruction at branch
             String id = methodInformation.getMethodID();
-            id += "->" + branchIndex;
+            // TODO: may need to use instruction id after if-statement (increase +1 when branch is ifbranch)
+            id += "->" + branch.getIndex();
             int branchPosition = branch.getIndex();
 
             LOGGER.info(branch.toString());
