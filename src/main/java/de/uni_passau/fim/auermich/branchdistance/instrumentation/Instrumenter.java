@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
 import de.uni_passau.fim.auermich.branchdistance.branch.ElseBranch;
+import de.uni_passau.fim.auermich.branchdistance.branch.IfBranch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.jf.dexlib2.Opcode;
@@ -490,9 +491,14 @@ public final class Instrumenter {
 
             // unique branch id: full-qualified method name + id of first instruction at branch
             String id = methodInformation.getMethodID();
-            // TODO: may need to use instruction id after if-statement (increase +1 when branch is ifbranch)
+
             id += "->" + branch.getIndex();
             int branchPosition = branch.getIndex();
+
+            // we need to insert our code before the first instruction residing at the if branch
+            if (branch instanceof IfBranch) {
+                branchPosition--;
+            }
 
             LOGGER.info(branch.toString());
 
