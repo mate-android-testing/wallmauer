@@ -50,8 +50,8 @@ public final class Analyzer {
 
                 String id = methodInformation.getMethodID() + "->" + branchID;
 
-                // if branch location
-                Branch ifBranch = new IfBranch(instruction,id);
+                // if branch location (uses the instruction/instruction id following the if-instruction)
+                Branch ifBranch = new IfBranch(instructions.get(i+1),id);
                 branches.add(ifBranch);
                 branchID++;
 
