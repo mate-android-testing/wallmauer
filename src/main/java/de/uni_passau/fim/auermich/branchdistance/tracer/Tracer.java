@@ -5,10 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -17,11 +14,8 @@ import java.util.logging.Logger;
  */
 public class Tracer {
 
-    // tracks the execution paths ordered based on a timestamp (LinkedHashMap maintains insertion order)
-    private static Map<String, String> executionPaths = new LinkedHashMap<>();
-
-    // collects visited branches, where a branch consists of class->method->branchID
-    private static Set<String> visitedBranches = new HashSet<>();
+    // tracks the execution path (prefer List to MultiMap since no external dependencies are required)
+    private static List<String> executionPath = new LinkedList<>();
 
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
@@ -47,8 +41,7 @@ public class Tracer {
      * @param identifier Uniquely identifies the given branch.
      */
     public static void trace(String identifier) {
-        // visitedBranches.add(identifier);
-        executionPaths.put(getCurrentTimeStamp(), identifier);
+        executionPath.add(identifier);
     }
 
     /**
@@ -75,21 +68,13 @@ public class Tracer {
             writer.append(getCurrentTimeStamp() + ": NEW TRACE");
             writer.append(System.lineSeparator());
 
-            for (Map.Entry<String, String > entry : executionPaths.entrySet()) {
-                writer.append(entry.getKey() + ": " + entry.getValue());
+            for (String pathNode : executionPath) {
+                writer.append(pathNode);
                 writer.append(System.lineSeparator());
             }
 
-            /*
-            for(String branch: visitedBranches) {
-                writer.append(branch);
-                writer.append(System.lineSeparator());
-            }
-            */
-
-            // reset traces, executionPaths
-            // visitedBranches.clear();
-            executionPaths.clear();
+            // reset executionPath
+            executionPath.clear();
 
             writer.flush();
             writer.close();

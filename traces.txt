@@ -1,130 +1,86 @@
-2019-09-19 14:24:41.091: NEW TRACE
-2019-09-19 14:23:55.940: Lcom/zola/bmi/BMIMain;-><init>()V->entry
-2019-09-19 14:23:55.942: Lcom/zola/bmi/BMIMain;-><init>()V->exit
-2019-09-19 14:23:55.945: Lcom/zola/bmi/BMIMain;->onCreate(Landroid/os/Bundle;)V->entry
-2019-09-19 14:23:55.962: Lcom/zola/bmi/BMIMain;->onCreate(Landroid/os/Bundle;)V->4
-2019-09-19 14:23:55.963: Lcom/zola/bmi/BMIMain;->onCreate(Landroid/os/Bundle;)V->exit
-2019-09-19 14:23:55.966: Lcom/zola/bmi/BMIMain$PlaceholderFragment;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;->entry
-2019-09-19 14:23:55.974: Lcom/zola/bmi/BMIMain$PlaceholderFragment;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;->exit
-2019-09-19 14:24:10.235: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->100
-2019-09-19 14:24:10.236: Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->10
-2019-09-19 14:24:10.237: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
-2019-09-19 14:24:16.627: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->79
-2019-09-19 14:24:16.628: Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->13
-2019-09-19 14:24:16.629: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
-2019-09-19 14:24:20.467: Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->exit
-2019-09-19 14:24:20.468: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
-2019-09-19 14:24:24.817: Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->5
-2019-09-19 14:24:24.818: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
-2019-09-19 14:24:29.622: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->63
-2019-09-19 14:24:29.623: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
-2019-09-19 14:24:34.889: Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->exit
-2019-09-19 14:24:34.890: Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
-
-2019-09-19 14:11:56.385: NEW TRACE
-2019-09-19 14:11:36.269: Lat/linuxtage/companion/GLTApplication;-><init>()V->entry
-2019-09-19 14:11:36.270: Lat/linuxtage/companion/providers/BookmarksExportProvider;-><init>()V->exit
-2019-09-19 14:11:36.271: Lat/linuxtage/companion/providers/BookmarksExportProvider;->onCreate()Z->exit
-2019-09-19 14:11:36.273: Lat/linuxtage/companion/f/a;-><init>()V->entry
-2019-09-19 14:11:36.274: Lat/linuxtage/companion/d/b;->a(Landroid/content/Context;)V->exit
-2019-09-19 14:11:36.275: Lat/linuxtage/companion/b/a;->a(Landroid/content/Context;)V->2
-2019-09-19 14:11:36.276: Lat/linuxtage/companion/b/a$2;-><init>(Lat/linuxtage/companion/b/a;)V->exit
-2019-09-19 14:11:36.277: Lat/linuxtage/companion/GLTApplication;->onCreate()V->exit
-2019-09-19 14:11:36.282: Lat/linuxtage/companion/activities/MainActivity;-><init>()V->entry
-2019-09-19 14:11:36.283: Lat/linuxtage/companion/activities/MainActivity$6;-><init>(Lat/linuxtage/companion/activities/MainActivity;)V->exit
-2019-09-19 14:11:36.284: Lat/linuxtage/companion/activities/MainActivity;-><init>()V->exit
-2019-09-19 14:11:36.286: Lat/linuxtage/companion/activities/MainActivity;->onCreate(Landroid/os/Bundle;)V->entry
-2019-09-19 14:11:36.336: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;)V->entry
-2019-09-19 14:11:36.337: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;)V->exit
-2019-09-19 14:11:36.341: Lat/linuxtage/companion/a$a;-><clinit>()V->exit
-2019-09-19 14:11:36.342: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;)V->exit
-2019-09-19 14:11:36.345: Lat/linuxtage/companion/widgets/AdapterLinearLayout;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;)V->exit
-2019-09-19 14:11:36.349: Lat/linuxtage/companion/activities/MainActivity$3;-><init>(Lat/linuxtage/companion/activities/MainActivity;Landroid/widget/ProgressBar;)V->exit
-2019-09-19 14:11:36.350: Lat/linuxtage/companion/activities/MainActivity$d;-><init>(Ljava/lang/String;ILjava/lang/Class;IIZZ)V->exit
-2019-09-19 14:11:36.351: Lat/linuxtage/companion/activities/MainActivity;->l()V->entry
-2019-09-19 14:11:36.352: Lat/linuxtage/companion/activities/MainActivity;->l()V->12
-2019-09-19 14:11:36.353: Lat/linuxtage/companion/activities/MainActivity;->onCreate(Landroid/os/Bundle;)V->exit
-2019-09-19 14:11:36.354: Lat/linuxtage/companion/activities/MainActivity;->onStart()V->entry
-2019-09-19 14:11:36.355: Lat/linuxtage/companion/e/q;->a(Landroid/os/Bundle;)V->2
-2019-09-19 14:11:36.358: Lat/linuxtage/companion/e/q;->a(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;->entry
-2019-09-19 14:11:36.359: Lat/linuxtage/companion/widgets/SlidingTabLayout;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V->entry
-2019-09-19 14:11:36.360: Lat/linuxtage/companion/widgets/SlidingTabLayout;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V->39
-2019-09-19 14:11:36.361: Lat/linuxtage/companion/widgets/SlidingTabLayout;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;)V->exit
-2019-09-19 14:11:36.363: Lat/linuxtage/companion/e/q;->e(Landroid/os/Bundle;)V->entry
-2019-09-19 14:11:36.364: Lat/linuxtage/companion/f/a$1;-><init>(Lat/linuxtage/companion/f/a;)V->entry
-2019-09-19 14:11:36.365: Lat/linuxtage/companion/activities/MainActivity;->onPostCreate(Landroid/os/Bundle;)V->exit
-2019-09-19 14:11:36.368: Lat/linuxtage/companion/f/a$1;->doInBackground([Ljava/lang/Object;)Ljava/lang/Object;->exit
-2019-09-19 14:11:36.388: Lat/linuxtage/companion/f/a$1;->onPostExecute(Ljava/lang/Object;)V->exit
-2019-09-19 14:11:36.389: Lat/linuxtage/companion/activities/MainActivity$c;->a(ILandroid/view/View;Landroid/view/ViewGroup;)Landroid/view/View;->3
-2019-09-19 14:11:36.390: Lat/linuxtage/companion/activities/MainActivity$c;->a(ILandroid/view/View;Landroid/view/ViewGroup;)Landroid/view/View;->36
-2019-09-19 14:11:36.391: Lat/linuxtage/companion/activities/MainActivity$c;->a(ILandroid/view/View;Landroid/view/ViewGroup;)Landroid/view/View;->3
-2019-09-19 14:11:36.392: Lat/linuxtage/companion/activities/MainActivity$c;->a(ILandroid/view/View;Landroid/view/ViewGroup;)Landroid/view/View;->3
-2019-09-19 14:11:36.393: Lat/linuxtage/companion/activities/MainActivity$d;->c()I->exit
-2019-09-19 14:11:36.394: Lat/linuxtage/companion/widgets/AdapterLinearLayout;->onAttachedToWindow()V->exit
-2019-09-19 14:11:36.396: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout$1;->a(Landroid/view/View;Landroid/support/v4/view/z;)Landroid/support/v4/view/z;->entry
-2019-09-19 14:11:36.397: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout$1;->a(Landroid/view/View;Landroid/support/v4/view/z;)Landroid/support/v4/view/z;->exit
-2019-09-19 14:11:36.451: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout$1;->a(Landroid/view/View;Landroid/support/v4/view/z;)Landroid/support/v4/view/z;->exit
-2019-09-19 14:11:36.454: Lat/linuxtage/companion/activities/MainActivity;->onCreateOptionsMenu(Landroid/view/Menu;)Z->entry
-2019-09-19 14:11:36.464: Lat/linuxtage/companion/activities/MainActivity;->onCreateOptionsMenu(Landroid/view/Menu;)Z->exit
-2019-09-19 14:11:36.466: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout$1;->a(Landroid/view/View;Landroid/support/v4/view/z;)Landroid/support/v4/view/z;->27
-2019-09-19 14:11:36.467: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout$1;->a(Landroid/view/View;Landroid/support/v4/view/z;)Landroid/support/v4/view/z;->exit
-2019-09-19 14:11:36.533: Lat/linuxtage/companion/widgets/SlidingTabLayout;->onWindowFocusChanged(Z)V->exit
-2019-09-19 14:11:36.575: Lat/linuxtage/companion/widgets/SlidingTabLayout$1;->run()V->exit
-2019-09-19 14:11:40.376: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z->exit
-2019-09-19 14:11:40.495: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z->entry
-2019-09-19 14:11:40.496: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z->exit
-2019-09-19 14:11:40.497: Lat/linuxtage/companion/activities/MainActivity;->onOptionsItemSelected(Landroid/view/MenuItem;)Z->exit
-2019-09-19 14:11:40.506: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout;->draw(Landroid/graphics/Canvas;)V->entry
-2019-09-19 14:11:40.507: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout;->draw(Landroid/graphics/Canvas;)V->exit
-2019-09-19 14:11:40.925: Lat/linuxtage/companion/activities/MainActivity$4;->a(I)V->exit
-....................................................................................................
-2019-09-19 14:11:46.702: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout$1;->a(Landroid/view/View;Landroid/support/v4/view/z;)Landroid/support/v4/view/z;->exit
-2019-09-19 14:11:47.240: Lat/linuxtage/companion/j/d;->a(Ljava/net/URL;Ljava/lang/String;Lat/linuxtage/companion/j/d$b;)Lat/linuxtage/companion/j/d$a;->33
-2019-09-19 14:11:47.242: Lat/linuxtage/companion/activities/MainActivity$1;->onReceive(Landroid/content/Context;Landroid/content/Intent;)V->entry
-2019-09-19 14:11:47.246: Lat/linuxtage/companion/activities/MainActivity$1;->onReceive(Landroid/content/Context;Landroid/content/Intent;)V->exit
-2019-09-19 14:11:47.257: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout$1;->a(Landroid/view/View;Landroid/support/v4/view/z;)Landroid/support/v4/view/z;->exit
-2019-09-19 14:11:49.423: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z->exit
-2019-09-19 14:11:49.511: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z->exit
-2019-09-19 14:11:49.518: Lat/linuxtage/companion/activities/MainActivity;->onOptionsItemSelected(Landroid/view/MenuItem;)Z->exit
-2019-09-19 14:11:49.535: Lat/linuxtage/companion/widgets/ScrimInsetsFrameLayout;->draw(Landroid/graphics/Canvas;)V->exit
-2019-09-19 14:11:49.984: Lat/linuxtage/companion/activities/MainActivity$4;->a(I)V->exit
-2019-09-19 14:11:50.687: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z->exit
-2019-09-19 14:11:50.783: Lat/linuxtage/companion/widgets/PhotoViewDrawerLayout;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z->exit
-2019-09-19 14:11:50.794: Lat/linuxtage/companion/activities/MainActivity$7;->onClick(Landroid/view/View;)V->exit
-2019-09-19 14:11:51.257: Lat/linuxtage/companion/activities/MainActivity$4;->b(Landroid/view/View;)V->11
-2019-09-19 14:11:51.258: Lat/linuxtage/companion/activities/MainActivity;->c(I)V->entry
-2019-09-19 14:11:51.270: Lat/linuxtage/companion/activities/MainActivity$4;->a(I)V->exit
-2019-09-19 14:11:51.287: Lat/linuxtage/companion/activities/SettingsActivity;-><init>()V->exit
-2019-09-19 14:11:51.288: Lat/linuxtage/companion/activities/a;->setTheme(I)V->entry
-2019-09-19 14:11:51.289: Lat/linuxtage/companion/activities/a;->b()Landroid/support/v7/app/g;->exit
-2019-09-19 14:11:51.290: Lat/linuxtage/companion/activities/a;->b()Landroid/support/v7/app/g;->exit
-2019-09-19 14:11:51.298: Lat/linuxtage/companion/activities/a;->findViewById(I)Landroid/view/View;->exit
-2019-09-19 14:11:51.299: Lat/linuxtage/companion/activities/a;->b()Landroid/support/v7/app/g;->exit
-2019-09-19 14:11:51.301: Lat/linuxtage/companion/activities/a;->findViewById(I)Landroid/view/View;->exit
-2019-09-19 14:11:51.302: Lat/linuxtage/companion/activities/a;->a()Landroid/support/v7/app/a;->exit
-2019-09-19 14:11:51.303: Lat/linuxtage/companion/activities/SettingsActivity;->g()V->entry
-2019-09-19 14:11:51.304: Lat/linuxtage/companion/activities/a;->onTitleChanged(Ljava/lang/CharSequence;I)V->entry
-2019-09-19 14:11:51.305: Lat/linuxtage/companion/activities/a;->onPostResume()V->exit
-2019-09-19 14:11:51.402: Lat/linuxtage/companion/activities/a;->getMenuInflater()Landroid/view/MenuInflater;->exit
-2019-09-19 14:11:51.871: Lat/linuxtage/companion/activities/MainActivity;->onSaveInstanceState(Landroid/os/Bundle;)V->exit
-2019-09-19 14:11:51.872: Lat/linuxtage/companion/g/b;->p()V->exit
-2019-09-19 14:11:52.704: Lat/linuxtage/companion/b/a;->f()V->entry
-2019-09-19 14:11:52.705: Lat/linuxtage/companion/b/a;->f()V->exit
-2019-09-19 14:11:52.706: Lat/linuxtage/companion/activities/SettingsActivity;->onSharedPreferenceChanged(Landroid/content/SharedPreferences;Ljava/lang/String;)V->exit
-2019-09-19 14:11:52.722: Lat/linuxtage/companion/services/AlarmIntentService;->onCreate()V->entry
-2019-09-19 14:11:52.723: Lat/linuxtage/companion/services/AlarmIntentService;->onCreate()V->exit
-2019-09-19 14:11:52.724: Lat/linuxtage/companion/d/c$1;-><init>(Lat/linuxtage/companion/d/c;)V->exit
-2019-09-19 14:11:52.725: Lat/linuxtage/companion/services/AlarmIntentService;->a(Landroid/content/Intent;)V->11
-2019-09-19 14:11:52.726: Lat/linuxtage/companion/services/AlarmIntentService;->a(Landroid/content/Intent;)V->exit
-2019-09-19 14:11:53.995: Lat/linuxtage/companion/activities/SettingsActivity;->onBackPressed()V->entry
-2019-09-19 14:11:53.998: Lat/linuxtage/companion/activities/SettingsActivity;->onPause()V->entry
-2019-09-19 14:11:53.999: Lat/linuxtage/companion/activities/SettingsActivity;->onPause()V->exit
-2019-09-19 14:11:54.014: Lat/linuxtage/companion/g/b;->l()V->entry
-2019-09-19 14:11:54.015: Lat/linuxtage/companion/activities/MainActivity;->onStart()V->48
-2019-09-19 14:11:54.016: Lat/linuxtage/companion/activities/MainActivity;->onStart()V->exit
-2019-09-19 14:11:54.628: Lat/linuxtage/companion/activities/a;->onStop()V->exit
-2019-09-19 14:11:54.629: Lat/linuxtage/companion/activities/a;->onDestroy()V->exit
-2019-09-19 14:11:55.672: Lat/linuxtage/companion/activities/MainActivity;->onBackPressed()V->9
-2019-09-19 14:11:56.382: Lat/linuxtage/companion/activities/MainActivity;->onStop()V->8
-2019-09-19 14:11:56.383: Lat/linuxtage/companion/e/j$a;->b(Landroid/database/Cursor;)Landroid/database/Cursor;->entry
-2019-09-19 14:11:56.384: Lat/linuxtage/companion/activities/MainActivity;->onDestroy()V->exit
+2019-09-20 11:05:08.605: NEW TRACE
+Lcom/zola/bmi/BMIMain;-><init>()V->entry
+Lcom/zola/bmi/BMIMain;-><init>()V->exit
+Lcom/zola/bmi/BMIMain;->onCreate(Landroid/os/Bundle;)V->entry
+Lcom/zola/bmi/BMIMain;->onCreate(Landroid/os/Bundle;)V->4
+Lcom/zola/bmi/BMIMain$PlaceholderFragment;-><init>()V->entry
+Lcom/zola/bmi/BMIMain$PlaceholderFragment;-><init>()V->exit
+Lcom/zola/bmi/BMIMain;->onCreate(Landroid/os/Bundle;)V->14
+Lcom/zola/bmi/BMIMain;->onCreate(Landroid/os/Bundle;)V->exit
+Lcom/zola/bmi/BMIMain$PlaceholderFragment;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;->entry
+Lcom/zola/bmi/BMIMain$PlaceholderFragment;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->entry
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->4
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->41
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->57
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->63
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->74
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->79
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->87
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->100
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->entry
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->exit
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->entry
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->5
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->10
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->13
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->127
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->entry
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->4
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->41
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->57
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->63
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->74
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->79
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->87
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->100
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->entry
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->exit
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->entry
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->5
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->8
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->127
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->entry
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->4
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->41
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->57
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->63
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->74
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->79
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->87
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->100
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->entry
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->exit
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->entry
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->5
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->10
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->15
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->20
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->23
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->127
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->entry
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->4
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->41
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->57
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->63
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->74
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->79
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->87
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->100
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->entry
+Lcom/zola/bmi/BMIMain;->calculateBMI(DD)D->exit
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->entry
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->5
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->10
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->15
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->20
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->25
+Lcom/zola/bmi/BMIMain;->interpretBMI(D)Ljava/lang/String;->exit
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->127
+Lcom/zola/bmi/BMIMain;->calculateClickHandler(Landroid/view/View;)V->exit
