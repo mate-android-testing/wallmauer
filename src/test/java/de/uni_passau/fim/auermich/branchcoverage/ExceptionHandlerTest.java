@@ -3,9 +3,18 @@ package de.uni_passau.fim.auermich.branchcoverage;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.jf.dexlib2.DexFileFactory;
+import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.Opcodes;
+import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.Label;
+import org.jf.dexlib2.builder.MutableMethodImplementation;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction10x;
 import org.jf.dexlib2.dexbacked.DexBackedDexFile;
 import org.jf.dexlib2.iface.*;
+import org.jf.dexlib2.immutable.ImmutableClassDef;
+import org.jf.dexlib2.immutable.ImmutableMethod;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -17,18 +26,120 @@ import static de.uni_passau.fim.auermich.branchdistance.BranchDistance.OPCODE_AP
 
 public class ExceptionHandlerTest {
 
-    @Test
-    public void checkExceptionHandlers() throws Exception {
+    private MultiDexContainer<? extends DexBackedDexFile> apk;
+    private File apkFile;
+    private Pattern exclusionPattern;
+
+    @Before
+    public void readAPK() throws Exception {
+
+        String os = System.getProperty("os.name");
 
         // describes class names we want to exclude from instrumentation
-        Pattern exclusionPattern = Utility.readExcludePatterns();
+        exclusionPattern = Utility.readExcludePatterns();
 
-        // the APK file
-        File apkFile = new File("/home/auermich/smali/at.linuxtage.companion_1500151.apk");
+        if (os.startsWith("Windows")) {
+            apkFile = new File("C:\\Users\\Michael\\Documents\\Work\\Android\\apks\\ws.xsoh.etar_15.apk");
+        } else {
+            apkFile = new File("/home/auermich/smali/at.linuxtage.companion_1500151.apk");
+        }
 
-        // process directly apk file (support for multi-dex)
-        MultiDexContainer<? extends DexBackedDexFile> apk
-                = DexFileFactory.loadDexContainer(apkFile, Opcodes.forApi(OPCODE_API));
+        apk = DexFileFactory.loadDexContainer(apkFile, Opcodes.forApi(OPCODE_API));;
+    }
+
+    @Test
+    public void insertLabels() throws Exception {
+
+        apk.getDexEntryNames().forEach(dexFile -> {
+            try {
+                insertLabels(apk.getEntry(dexFile), dexFile, exclusionPattern);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void insertLabels(DexFile dexFile, String dexFileName, Pattern exclusionPattern) throws Exception {
+
+        List<ClassDef> classes = Lists.newArrayList();
+
+        for (ClassDef classDef : dexFile.getClasses()) {
+
+            // the class name is part of the method id
+            String className = Utility.dottedClassName(classDef.getType());
+
+            // exclude certain packages/classes from instrumentation, e.g. android.widget.*
+            if (exclusionPattern != null && exclusionPattern.matcher(className).matches()) {
+                // System.out.println("Excluding class: " + className + " from instrumentation!");
+                classes.add(classDef);
+                continue;
+            }
+
+            List<Method> methods = Lists.newArrayList();
+
+            for (Method method : classDef.getMethods()) {
+                MethodImplementation implementation = method.getImplementation();
+
+                if (implementation == null) {
+                    System.err.println("Missing implementation for method: " + method.getName());
+                    methods.add(method);
+                    continue;
+                }
+
+                MutableMethodImplementation mutableMethodImplementation
+                        = new MutableMethodImplementation(implementation);
+
+                // mutableMethodImplementation.newLabelForAddress(0);
+                // mutableMethodImplementation.newLabelForIndex(0);
+
+                // NOTE that the label is only inserted if an instruction, e.g. goto, refers to it
+                /*
+                BuilderInstruction nop = new BuilderInstruction10x(Opcode.NOP);
+                mutableMethodImplementation.addInstruction(0, nop);
+                Label label = nop.getLocation().addNewLabel();
+
+                BuilderInstruction jump = new BuilderInstruction10t(Opcode.GOTO, label);
+                mutableMethodImplementation.addInstruction(0, jump);
+                */
+
+                int lastIndex = mutableMethodImplementation.getInstructions().size() - 1;
+
+                Label firstLabel = mutableMethodImplementation.newLabelForIndex(lastIndex);
+                BuilderInstruction jump = new BuilderInstruction10t(Opcode.GOTO, firstLabel);
+                mutableMethodImplementation.addInstruction(0, jump);
+
+                // mutableMethodImplementation.addInstruction(0, new BuilderInstruction10x(Opcode.NOP));
+
+                for (BuilderInstruction instruction : mutableMethodImplementation.getInstructions()) {
+                    // instruction.getLocation().addNewLabel();
+                }
+
+                methods.add(new ImmutableMethod(
+                        method.getDefiningClass(),
+                        method.getName(),
+                        method.getParameters(),
+                        method.getReturnType(),
+                        method.getAccessFlags(),
+                        method.getAnnotations(),
+                        mutableMethodImplementation));
+            }
+
+            classes.add(new ImmutableClassDef(
+                    classDef.getType(),
+                    classDef.getAccessFlags(),
+                    classDef.getSuperclass(),
+                    classDef.getInterfaces(),
+                    classDef.getSourceFile(),
+                    classDef.getAnnotations(),
+                    classDef.getFields(),
+                    methods));
+        }
+
+        Utility.writeToDexFile(apkFile.getParent() + File.separator + dexFileName, classes, OPCODE_API);
+    }
+
+    @Test
+    public void checkExceptionHandlers() throws Exception {
 
         apk.getDexEntryNames().forEach(dexFile -> {
             try {
