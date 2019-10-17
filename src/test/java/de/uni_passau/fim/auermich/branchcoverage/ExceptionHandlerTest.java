@@ -12,6 +12,7 @@ import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction10x;
 import org.jf.dexlib2.dexbacked.DexBackedDexFile;
 import org.jf.dexlib2.iface.*;
+import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
 import org.junit.Before;
@@ -19,7 +20,9 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import static de.uni_passau.fim.auermich.branchdistance.BranchDistance.OPCODE_API;
@@ -167,17 +170,72 @@ public class ExceptionHandlerTest {
                 MethodImplementation implementation = method.getImplementation();
 
                 if (implementation == null) {
-                    System.err.println("Missing implementation for method: " + method.getName());
+                    System.err.println("Missing implementation for method: " + method.toString());
                     continue;
                 }
 
+                int consumedCodeUnits = 0;
+
                 for (TryBlock<? extends ExceptionHandler> tryBlock : implementation.getTryBlocks()) {
 
-                    System.out.println("ClassName: " + className + " - MethodName: " + method.getName());
+                    System.out.println("MethodName: " + method.toString());
                     // start address is expressed in terms of code units (absolute)
                     System.out.println("TryBlock Starting Address: " + tryBlock.getStartCodeAddress());
                     // the number of code units contained within the try block -> the length of the try block
                     System.out.println("TryBlock Code Unit Count: " + tryBlock.getCodeUnitCount());
+
+                    Instruction startInstructionTryBlock = null;
+                    Instruction endInstructionTryBlock = null;
+                    List<Instruction> instructionsInTryBlock = new ArrayList<>();
+
+                    for (Instruction instruction : implementation.getInstructions()) {
+
+                        /*
+                        * The relation between a code unit and an instruction is as follows:
+                        *
+                        * code unit | instruction
+                        *      0
+                        *               instr1
+                        *      k
+                        *               instr2
+                        *      n
+                        *
+                        * This means to check whether we reached a starting point, e.g., the first instruction
+                        * of a try block, we need to compare the code unit counter before consuming the next instruction.
+                        *
+                        * However, if we want to check some end point, e.g., the end of a try block, we need to compare
+                        * the code unit counter after the consumption of the next instruction.
+                         */
+
+                        // the starting point is before the actual instruction
+                        if (consumedCodeUnits == tryBlock.getStartCodeAddress()) {
+                            startInstructionTryBlock = instruction;
+                            instructionsInTryBlock.add(startInstructionTryBlock);
+                            System.out.println("First Instruction within try block:" + startInstructionTryBlock.getOpcode());
+                            // the end point is after the actual instruction
+                        } else if (consumedCodeUnits + instruction.getCodeUnits()
+                                == tryBlock.getStartCodeAddress() + tryBlock.getCodeUnitCount()) {
+                            endInstructionTryBlock = instruction;
+                            instructionsInTryBlock.add(endInstructionTryBlock);
+                            System.out.println("Last Instruction within try block:" + endInstructionTryBlock.getOpcode());
+                            break;
+                        }
+
+                        // avoid inserting start instruction twice if using !isEmpty()
+                        if (!instructionsInTryBlock.isEmpty() && !instruction.equals(startInstructionTryBlock)) {
+                            instructionsInTryBlock.add(instruction);
+                        }
+
+                        consumedCodeUnits += instruction.getCodeUnits();
+                    }
+
+                    System.out.println("Detected first Instruction within try block:" + startInstructionTryBlock != null);
+                    System.out.println("Detected last Instruction within try block:" + endInstructionTryBlock != null);
+
+                    instructionsInTryBlock.forEach(instruction -> {
+                        System.out.println(instruction.getOpcode() + "(" + instruction.getCodeUnits() + ")");
+                    });
+
 
                     tryBlock.getExceptionHandlers()
                             .forEach(h -> {
@@ -185,12 +243,25 @@ public class ExceptionHandlerTest {
                                 System.out.println("ExceptionType: " + h.getExceptionTypeReference());
                                 // System.out.println(h.getExceptionType());
 
+                                // TODO: can we determine the end of a cath block, there is at least no explicit end marker
+                                // may search until next jump or abortion instruction (throw, return,...)
+
                                 /*
                                 * The (absolute) position of the catch block expressed in terms of code units. The catch
                                 * block starts after n-th code units. So, we need to map an instruction to its
                                 * size (code units) and count them.
                                  */
                                 System.out.println(h.getHandlerCodeAddress());
+
+                                AtomicInteger ctrCodeUnits = new AtomicInteger(0);
+
+                                for (Instruction instruction : implementation.getInstructions()) {
+                                    if (ctrCodeUnits.get() == h.getHandlerCodeAddress()) {
+                                        System.out.println("First Instruction within catch block: " + instruction.getOpcode());
+                                        break;
+                                    }
+                                    ctrCodeUnits.set(ctrCodeUnits.get() + instruction.getCodeUnits());
+                                }
                             });
 
                     /*
@@ -200,11 +271,12 @@ public class ExceptionHandlerTest {
                     System.out.println("------------------------------------------------------------");
                     */
 
+                    /*
                     implementation.getInstructions().forEach(i -> {
                         // code unit represents the 'size' of an instruction (should be expressed as a decimal)
                         System.out.println(i.getOpcode() + " (" + i.getCodeUnits() + ")");
                     });
-
+                    */
                 }
             }
         }
