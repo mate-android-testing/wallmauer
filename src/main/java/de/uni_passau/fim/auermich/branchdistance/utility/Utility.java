@@ -174,6 +174,9 @@ public final class Utility {
             // whether to decode classes.dex into smali files: -s
             decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
 
+            // whether to decode the AndroidManifest.xml
+            decoder.setForceDecodeManifest(ApkDecoder.FORCE_DECODE_MANIFEST_FULL);
+
             // whether to decode resources: -r
             decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
 

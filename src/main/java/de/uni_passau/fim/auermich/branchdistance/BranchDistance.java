@@ -15,7 +15,10 @@ import org.jf.dexlib2.dexbacked.DexBackedDexFile;
 import org.jf.dexlib2.iface.*;
 import org.jf.smali.Smali;
 import org.jf.smali.SmaliOptions;
+import org.w3c.dom.*;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -70,41 +73,103 @@ public class BranchDistance {
      * Processes the command line arguments. The following
      * arguments are mandatory:
      * <p>
-     * 1) the path to the classes.dex which should be instrumented
-     * 2) the path to the instrumented classes.dex (output file)
-     * 3) the package name of the application (see AndroidManifest file)
-     * 4) the name of mainActivity (full path, separated by '.')
+     * 1) the path to the APK file.
      *
      * @param args The command line arguments.
      */
     private static void handleArguments(String[] args) {
-
-        assert args.length == 3;
+        assert args.length == 1;
 
         apkPath = Objects.requireNonNull(args[0]);
-        packageName = Objects.requireNonNull(args[1]);
-        mainActivity = Objects.requireNonNull(args[2]);
-
         LOGGER.info("The path to the APK file is: " + apkPath);
-        LOGGER.info("The package name of the application is: " + packageName);
-        LOGGER.info("The name of the MainActivity is: " + mainActivity);
+    }
 
-        // we need to add a missing slash to the packageName
-        packageName = packageName + "/";
+    /**
+     * Parses the AndroidManifest.xml for the package name and the name of the main activity.
+     *
+     * @param manifest The path of the manifest file.
+     * @return Returns {@code true} when we were able to derive both information,
+     *              otherwise {@code false}.
+     */
+    private static boolean parseManifest(String manifest) {
 
-        // convert the MainActivity to dex format
-        mainActivityDex = "L" + mainActivity.replaceAll("\\.", "/") + ";";
+        try {
+            File xmlFile = new File(manifest);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(xmlFile);
+
+            NodeList nodeList = doc.getElementsByTagName("manifest");
+            // there should be only a single manifest tag
+            Node node = nodeList.item(0);
+
+            // get the package name
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+
+                if (!element.hasAttribute("package")) {
+                    LOGGER.severe("Couldn't derive package name!");
+                    return false;
+                } else {
+                    // we need to add a missing slash to the packageName
+                    packageName = element.getAttribute("package") + "/";
+                }
+            }
+
+            NodeList intentFilters = doc.getElementsByTagName("intent-filter");
+            final String NAME_ATTRIBUTE = "android:name";
+
+            // find intent-filter that describes the main activity
+            for (int i = 0; i < intentFilters.getLength(); i++) {
+
+                Node intentFilter = intentFilters.item(i);
+                NodeList tags = intentFilter.getChildNodes();
+
+                boolean foundMainAction = false;
+                boolean foundMainCategory = false;
+
+                for (int j = 0; j < tags.getLength(); j++) {
+                    Node tag = tags.item(j);
+                    if (tag.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) tag;
+
+                        if (element.getTagName().equals("action")
+                            && element.getAttribute(NAME_ATTRIBUTE)
+                                .equals("android.intent.action.MAIN")) {
+                            foundMainAction = true;
+                        } else if (element.getTagName().equals("category")
+                            && element.getAttribute(NAME_ATTRIBUTE)
+                                .equals("android.intent.category.LAUNCHER")) {
+                            foundMainCategory = true;
+                        }
+
+                        if (foundMainAction && foundMainCategory) {
+                            Node mainActivityNode = intentFilter.getParentNode();
+                            if (mainActivityNode.getNodeType() == Node.ELEMENT_NODE) {
+                                Element main = (Element) mainActivityNode;
+                                if (main.getTagName().equals("activity")) {
+                                    mainActivity = main.getAttribute(NAME_ATTRIBUTE);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            LOGGER.severe("Couldn't derive name of main-activity");
+        } catch (Exception e) {
+            LOGGER.severe("Couldn't parse AndroidManifest.xml");
+            LOGGER.severe(e.getMessage());
+        }
+        return false;
     }
 
     public static void main(String[] args) throws IOException, URISyntaxException {
 
         LOGGER.setLevel(Level.ALL);
 
-        if (args.length < 3) {
-            LOGGER.severe("You have not specified enough arguments!");
-            LOGGER.info("1. argument: path to the APK file");
-            LOGGER.info("2. argument: package name of app declared in AndroidManifest file");
-            LOGGER.info("3. argument: name of MainActivity declared in AndroidManifest file (FQN)");
+        if (args.length != 1) {
+            LOGGER.info("Expect exactly one argument: path to the APK file");
         } else {
 
             // process command line arguments
@@ -123,6 +188,14 @@ public class BranchDistance {
             // decode the APK file
             decodedAPKPath = Utility.decodeAPK(apkFile);
 
+            // retrieve package name and main activity
+            if (!parseManifest(decodedAPKPath + File.separator + "AndroidManifest.xml")) {
+                return;
+            }
+
+            // convert the MainActivity to dex format
+            mainActivityDex = "L" + mainActivity.replaceAll("\\.", "/") + ";";
+
             // instrument all the dex files included in the APK file
             apk.getDexEntryNames().forEach(dexFile -> {
                 try {
@@ -132,6 +205,8 @@ public class BranchDistance {
                     LOGGER.warning(e.getMessage());
                 }
             });
+
+            // we insert into the last classes.dex file our tracer functionality
 
             // the path to the last dex file, e.g. classes3.dex
             String lastDexFile = decodedAPKPath + File.separator
