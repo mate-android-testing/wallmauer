@@ -55,7 +55,7 @@ public class ExceptionHandlerTest {
 
         apk.getDexEntryNames().forEach(dexFile -> {
             try {
-                insertLabels(apk.getEntry(dexFile), dexFile, exclusionPattern);
+                insertLabels(apk.getEntry(dexFile).getDexFile(), dexFile, exclusionPattern);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -146,7 +146,7 @@ public class ExceptionHandlerTest {
 
         apk.getDexEntryNames().forEach(dexFile -> {
             try {
-                checkExceptionHandlers(apk.getEntry(dexFile), exclusionPattern);
+                checkExceptionHandlers(apk.getEntry(dexFile).getDexFile(), exclusionPattern);
             } catch (IOException e) {
                 e.printStackTrace();
             }

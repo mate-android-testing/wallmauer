@@ -26,6 +26,7 @@ public class Tracer {
 
     /**
      * Gets the current system time formatted as string.
+     * FIXME: unfortunately Ljava/time/LocalDateTime; ins not included in the ART libs
      *
      * @return Returns a string representation of the current system time.
      */
@@ -65,7 +66,7 @@ public class Tracer {
             FileWriter writer = new FileWriter(file);
 
             // record when new traces file was generated
-            writer.append(getCurrentTimeStamp() + ": NEW TRACE");
+            writer.append("NEW TRACE");
             writer.append(System.lineSeparator());
 
             for (String pathNode : executionPath) {

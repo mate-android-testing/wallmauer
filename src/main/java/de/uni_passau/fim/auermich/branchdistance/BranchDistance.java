@@ -126,7 +126,7 @@ public class BranchDistance {
             // instrument all the dex files included in the APK file
             apk.getDexEntryNames().forEach(dexFile -> {
                 try {
-                    instrument(apk.getEntry(dexFile), dexFile, exclusionPattern);
+                    instrument(apk.getEntry(dexFile).getDexFile(), dexFile, exclusionPattern);
                 } catch (IOException e) {
                     LOGGER.warning("Failure loading dexFile");
                     LOGGER.warning(e.getMessage());
