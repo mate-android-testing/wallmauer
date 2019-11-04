@@ -208,6 +208,9 @@ public final class Utility {
         // apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
 
+        // FIXME: we like to have a debuggable APK at the end, but this option seems to be broken/removed
+        // apkOptions.debugMode = true;
+
         try {
             new Androlib(apkOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
         } catch (BrutException e) {
