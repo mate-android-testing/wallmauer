@@ -175,10 +175,11 @@ public final class Utility {
             decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
 
             // whether to decode the AndroidManifest.xml
-            decoder.setForceDecodeManifest(ApkDecoder.FORCE_DECODE_MANIFEST_FULL);
+            // decoder.setForceDecodeManifest(ApkDecoder.FORCE_DECODE_MANIFEST_FULL);
 
             // whether to decode resources: -r
-            decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
+            // TODO: there seems to be some problem with the AndroidManifest if we don't fully decode resources
+            // decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
 
             // overwrites existing dir: -f
             decoder.setForceDelete(true);
@@ -205,11 +206,8 @@ public final class Utility {
     public static void buildAPK(String decodedAPKPath, File outputFile) {
 
         ApkOptions apkOptions = new ApkOptions();
-        // apkOptions.useAapt2 = true;
+        apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
-
-        // FIXME: we like to have a debuggable APK at the end, but this option seems to be broken/removed
-        // apkOptions.debugMode = true;
 
         try {
             new Androlib(apkOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
