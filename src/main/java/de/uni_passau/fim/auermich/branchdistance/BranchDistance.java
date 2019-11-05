@@ -6,6 +6,7 @@ import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.instrumentation.Instrumenter;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
+import de.uni_passau.fim.auermich.branchdistance.xml.ManifestParser;
 import org.apache.commons.io.FileUtils;
 import org.jf.baksmali.Baksmali;
 import org.jf.baksmali.BaksmaliOptions;
@@ -188,10 +189,15 @@ public class BranchDistance {
             // decode the APK file
             decodedAPKPath = Utility.decodeAPK(apkFile);
 
+            ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
+
             // retrieve package name and main activity
-            if (!parseManifest(decodedAPKPath + File.separator + "AndroidManifest.xml")) {
+            if (!manifest.parseManifest()) {
                 return;
             }
+
+            mainActivity = manifest.getMainActivity();
+            packageName = manifest.getPackageName();
 
             // convert the MainActivity to dex format
             mainActivityDex = "L" + mainActivity.replaceAll("\\.", "/") + ";";
@@ -205,6 +211,13 @@ public class BranchDistance {
                     LOGGER.warning(e.getMessage());
                 }
             });
+
+            // add broadcast receiver tag into AndroidManifest
+            if (!manifest.addBroadcastReceiverTag(
+                    "de.uni_passau.fim.auermich.branchdistance.tracer.Tracer",
+                    "STORE_TRACES")) {
+                return;
+            }
 
             // we insert into the last classes.dex file our tracer functionality
 
@@ -329,8 +342,9 @@ public class BranchDistance {
                     modifiedMethod = true;
 
                     // onDestroy need to call Tracer.write() to write branch traces to file
+                    // TODO: can be cleaned up, we use now a BroadcastReceiver to call Tracer.write()
                     if (methodInformation.isMainActivity() && methodInformation.isOnDestroy()) {
-                        Instrumenter.modifyOnDestroy(methodInformation, packageName);
+                        // Instrumenter.modifyOnDestroy(methodInformation, packageName);
                     }
 
                     /*
@@ -352,9 +366,10 @@ public class BranchDistance {
             }
 
             // check whether we need to insert own onDestroy method
+            // TODO: can be cleaned up, we use now a BroadcastReceiver to call Tracer.write()
             if (isMainActivity && !foundOnDestroy) {
-                modifiedMethod = true;
-                Instrumenter.insertOnDestroy(methods, classDef, packageName);
+                // modifiedMethod = true;
+                // Instrumenter.insertOnDestroy(methods, classDef, packageName);
             }
 
             if (!modifiedMethod) {
@@ -375,8 +390,9 @@ public class BranchDistance {
          * class of the current activity doesn't define
          * any onDestroy() method already.
          */
+        // TODO: can be cleaned up, we use now a BroadcastReceiver to call Tracer.write()
         if (foundMainActivity && !foundOnDestroy) {
-            classes = Instrumenter.insertOnDestroyForSuperClasses(classes, mainActivity);
+            // classes = Instrumenter.insertOnDestroyForSuperClasses(classes, mainActivity);
         }
 
         LOGGER.info("Found 'MainActivity': " + foundMainActivity);

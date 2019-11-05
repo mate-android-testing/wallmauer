@@ -1,5 +1,9 @@
 package de.uni_passau.fim.auermich.branchdistance.tracer;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -12,7 +16,7 @@ import java.util.logging.Logger;
  * Provides the functionality to trace branches for
  * a given application.
  */
-public class Tracer {
+public class Tracer extends BroadcastReceiver {
 
     // tracks the execution path (prefer List to MultiMap since no external dependencies are required)
     private static List<String> executionPath = new LinkedList<>();
@@ -35,6 +39,16 @@ public class Tracer {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
     }
 
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        LOGGER.info("Received Broadcast");
+
+        if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
+            String packageName = intent.getStringExtra("packageName");
+            write(packageName);
+        }
+    }
+
     /**
      * Adds a new branch to the set of covered branches. The set
      * ensures that we don't track duplicate branches.
@@ -52,7 +66,7 @@ public class Tracer {
      * @param packageName The packageName describing the path of the app
      *                    internal storage. (data/data/packageName)
      */
-    public static void write(String packageName) {
+    private static void write(String packageName) {
 
         // path to internal app directory
         String filePath = "data/data/" + packageName;
