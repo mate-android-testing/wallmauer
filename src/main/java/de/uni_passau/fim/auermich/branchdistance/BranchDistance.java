@@ -193,6 +193,7 @@ public class BranchDistance {
 
             // retrieve package name and main activity
             if (!manifest.parseManifest()) {
+                LOGGER.warning("Couldn't retrieve MainActivity and/or PackageName!");
                 return;
             }
 
@@ -216,6 +217,13 @@ public class BranchDistance {
             if (!manifest.addBroadcastReceiverTag(
                     "de.uni_passau.fim.auermich.branchdistance.tracer.Tracer",
                     "STORE_TRACES")) {
+                LOGGER.warning("Couldn't insert broadcast receiver tag!");
+                return;
+            }
+
+            // mark app as debuggable
+            if (!manifest.addDebuggableFlag()) {
+                LOGGER.warning("Couldn't mark app as debuggable!");
                 return;
             }
 

@@ -35,7 +35,7 @@ public class ManifestParser {
      * Parses the AndroidManifest.xml for the package name and the name of the main activity.
      *
      * @return Returns {@code true} when we were able to derive both information,
-     *              otherwise {@code false}.
+     * otherwise {@code false}.
      */
     public boolean parseManifest() {
 
@@ -112,6 +112,75 @@ public class ManifestParser {
         return false;
     }
 
+    /**
+     * Marks the application as debuggable.
+     *
+     * @return Returns {@code true} if inserting the debuggable attribute succeeded,
+     *      otherwise {@code false}.
+     */
+    public boolean addDebuggableFlag() {
+
+        LOGGER.info("Adding debuggable attribute to Manifest!");
+
+        try {
+
+            File xmlFile = new File(MANIFEST);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(xmlFile);
+
+            NodeList nodeList = doc.getElementsByTagName("application");
+
+            // there is just a single application tag
+            assert nodeList.getLength() == 1;
+            Node applicationTag = nodeList.item(0);
+
+            if (applicationTag.getNodeType() == Node.ELEMENT_NODE) {
+
+                Element application = (Element) applicationTag;
+                final String debuggableAttribute = "android:debuggable";
+
+                // check whether the application tag already defines a debuggable attribute
+                if (application.hasAttribute(debuggableAttribute)) {
+                    boolean isDebuggable = Boolean.parseBoolean(application.getAttribute(debuggableAttribute));
+                    if (isDebuggable) {
+                        // the app is already debuggable
+                        return true;
+                    } else {
+                        // change the attribute value to true
+                        application.setAttribute(debuggableAttribute, "true");
+                    }
+                } else {
+                    // we need to add the attribute android:debuggable
+                    application.setAttribute(debuggableAttribute, "true");
+                }
+            } else {
+                // should never happen
+                return false;
+            }
+
+            // modify manifest
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(xmlFile);
+            transformer.transform(source, result);
+
+            return true;
+        } catch (Exception e) {
+            LOGGER.severe("Couldn't parse AndroidManifest.xml");
+            LOGGER.severe(e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Adds a broadcast receiver tag to the AndroidManifest file.
+     *
+     * @param broadcastReceiver The name (android:name) of the broadcast receiver.
+     * @param actionName        The action to which the broadcast receiver reacts.
+     * @return Returns {@code true} if the tag could be added, otherwise {@code false}.
+     */
     public boolean addBroadcastReceiverTag(String broadcastReceiver, String actionName) {
 
         LOGGER.info("Adding BroadcastReceiver to AndroidManifest!");
