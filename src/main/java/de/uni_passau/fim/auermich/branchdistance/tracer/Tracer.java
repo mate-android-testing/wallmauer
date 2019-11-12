@@ -3,6 +3,7 @@ package de.uni_passau.fim.auermich.branchdistance.tracer;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Environment;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -68,12 +69,17 @@ public class Tracer extends BroadcastReceiver {
      */
     private static void write(String packageName) {
 
+        // /storage/emulated/0/Download
+        File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
         // path to internal app directory
-        String filePath = "data/data/" + packageName;
+        // String filePath = "data/data/" + packageName;
+        File dir = new File(downloadDir + File.separator + packageName);
+        dir.mkdirs();
 
-        LOGGER.info(filePath);
+        LOGGER.info(dir.getAbsolutePath());
 
-        File file = new File(filePath, TRACES_FILE);
+        File file = new File(dir, TRACES_FILE);
 
         try {
 
