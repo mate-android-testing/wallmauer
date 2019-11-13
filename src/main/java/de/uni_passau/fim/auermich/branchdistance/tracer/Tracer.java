@@ -79,11 +79,15 @@ public class Tracer extends BroadcastReceiver {
         File dir = new File(sdCard + File.separator + packageName);
         dir.mkdirs();
 
-        LOGGER.info(dir.getAbsolutePath());
+        synchronized (Tracer.class) {
+            System.out.println("Size: " + executionPath.size());
 
-        if (!executionPath.isEmpty()) {
-            System.out.println("First entry: " + executionPath.get(0));
-            System.out.println("Last entry: " + executionPath.get(executionPath.size()-1));
+            LOGGER.info(dir.getAbsolutePath());
+
+            if (!executionPath.isEmpty()) {
+                System.out.println("First entry: " + executionPath.get(0));
+                System.out.println("Last entry: " + executionPath.get(executionPath.size() - 1));
+            }
         }
 
         File file = new File(dir, TRACES_FILE);
@@ -96,11 +100,14 @@ public class Tracer extends BroadcastReceiver {
             writer.append("NEW TRACE");
             writer.append(System.lineSeparator());
 
-            for (String pathNode : executionPath) {
-                writer.append(pathNode);
-                writer.append(System.lineSeparator());
+            synchronized (Tracer.class) {
+                for (int i=0; i < executionPath.size(); i++) {
+                // for (String pathNode : executionPath) {
+                    String pathNode = executionPath.get(i);
+                    writer.append(pathNode);
+                    writer.append(System.lineSeparator());
+                }
             }
-
             // reset executionPath
             // executionPath.clear();
             // executionPath = new LinkedList<>();
@@ -108,10 +115,13 @@ public class Tracer extends BroadcastReceiver {
             writer.flush();
             writer.close();
 
-        } catch(IOException e) {
+        } catch (IOException e) {
             LOGGER.info("Writing to internal storage failed.");
             e.printStackTrace();
         }
+        System.out.println("Size: " + executionPath.size());
+        System.out.println("First entry afterwards: " + executionPath.get(0));
+        System.out.println("Last entry afterwards: " + executionPath.get(executionPath.size() - 1));
         executionPath.clear();
     }
 }
