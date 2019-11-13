@@ -81,12 +81,14 @@ public class Tracer extends BroadcastReceiver {
 
         LOGGER.info(dir.getAbsolutePath());
 
+        if (!executionPath.isEmpty()) {
+            System.out.println("First entry: " + executionPath.get(0));
+            System.out.println("Last entry: " + executionPath.get(executionPath.size()-1));
+        }
+
         File file = new File(dir, TRACES_FILE);
 
         try {
-
-            System.out.println("First entry: " + executionPath.get(0));
-            System.out.println("Last entry: " + executionPath.get(executionPath.size()-1));
 
             FileWriter writer = new FileWriter(file);
 
@@ -101,7 +103,7 @@ public class Tracer extends BroadcastReceiver {
 
             // reset executionPath
             // executionPath.clear();
-            executionPath = new LinkedList<>();
+            // executionPath = new LinkedList<>();
 
             writer.flush();
             writer.close();
@@ -110,5 +112,6 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Writing to internal storage failed.");
             e.printStackTrace();
         }
+        executionPath.clear();
     }
 }
