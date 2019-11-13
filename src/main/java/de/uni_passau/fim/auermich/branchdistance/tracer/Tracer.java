@@ -70,11 +70,13 @@ public class Tracer extends BroadcastReceiver {
     private static void write(String packageName) {
 
         // /storage/emulated/0/Download
-        File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        // File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 
+        // sd card
+        File sdCard = Environment.getExternalStorageDirectory();
         // path to internal app directory
         // String filePath = "data/data/" + packageName;
-        File dir = new File(downloadDir + File.separator + packageName);
+        File dir = new File(sdCard + File.separator + packageName);
         dir.mkdirs();
 
         LOGGER.info(dir.getAbsolutePath());
@@ -82,6 +84,9 @@ public class Tracer extends BroadcastReceiver {
         File file = new File(dir, TRACES_FILE);
 
         try {
+
+            System.out.println("First entry: " + executionPath.get(0));
+            System.out.println("Last entry: " + executionPath.get(executionPath.size()-1));
 
             FileWriter writer = new FileWriter(file);
 
@@ -95,7 +100,8 @@ public class Tracer extends BroadcastReceiver {
             }
 
             // reset executionPath
-            executionPath.clear();
+            // executionPath.clear();
+            executionPath = new LinkedList<>();
 
             writer.flush();
             writer.close();

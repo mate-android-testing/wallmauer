@@ -99,26 +99,24 @@
 .end method
 
 .method private static write(Ljava/lang/String;)V
-    .registers 9
+    .registers 11
     .param p0, "packageName"    # Ljava/lang/String;
 
     .prologue
-    .line 73
-    sget-object v6, Landroid/os/Environment;->DIRECTORY_DOWNLOADS:Ljava/lang/String;
+    .line 76
+    invoke-static {}, Landroid/os/Environment;->getExternalStorageDirectory()Ljava/io/File;
 
-    invoke-static {v6}, Landroid/os/Environment;->getExternalStoragePublicDirectory(Ljava/lang/String;)Ljava/io/File;
+    move-result-object v4
 
-    move-result-object v1
-
-    .line 77
-    .local v1, "downloadDir":Ljava/io/File;
+    .line 79
+    .local v4, "sdCard":Ljava/io/File;
     new-instance v0, Ljava/io/File;
 
     new-instance v6, Ljava/lang/StringBuilder;
 
     invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
 
-    invoke-virtual {v6, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/Object;)Ljava/lang/StringBuilder;
 
     move-result-object v6
 
@@ -138,11 +136,11 @@
 
     invoke-direct {v0, v6}, Ljava/io/File;-><init>(Ljava/lang/String;)V
 
-    .line 78
+    .line 80
     .local v0, "dir":Ljava/io/File;
     invoke-virtual {v0}, Ljava/io/File;->mkdirs()Z
 
-    .line 80
+    .line 82
     sget-object v6, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     invoke-virtual {v0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
@@ -151,107 +149,181 @@
 
     invoke-virtual {v6, v7}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 82
-    new-instance v3, Ljava/io/File;
+    .line 84
+    new-instance v2, Ljava/io/File;
 
     const-string v6, "traces.txt"
 
-    invoke-direct {v3, v0, v6}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    invoke-direct {v2, v0, v6}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 86
-    .local v3, "file":Ljava/io/File;
-    :try_start_35
-    new-instance v5, Ljava/io/FileWriter;
+    .line 88
+    .local v2, "file":Ljava/io/File;
+    :try_start_33
+    sget-object v7, Ljava/lang/System;->out:Ljava/io/PrintStream;
 
-    invoke-direct {v5, v3}, Ljava/io/FileWriter;-><init>(Ljava/io/File;)V
+    new-instance v6, Ljava/lang/StringBuilder;
+
+    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v8, "First entry: "
+
+    invoke-virtual {v6, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    sget-object v6, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->executionPath:Ljava/util/List;
+
+    const/4 v9, 0x0
+
+    invoke-interface {v6, v9}, Ljava/util/List;->get(I)Ljava/lang/Object;
+
+    move-result-object v6
+
+    check-cast v6, Ljava/lang/String;
+
+    invoke-virtual {v8, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v6
+
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v6
+
+    invoke-virtual {v7, v6}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V
 
     .line 89
+    sget-object v7, Ljava/lang/System;->out:Ljava/io/PrintStream;
+
+    new-instance v6, Ljava/lang/StringBuilder;
+
+    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v8, "Last entry: "
+
+    invoke-virtual {v6, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    sget-object v6, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->executionPath:Ljava/util/List;
+
+    sget-object v9, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->executionPath:Ljava/util/List;
+
+    invoke-interface {v9}, Ljava/util/List;->size()I
+
+    move-result v9
+
+    add-int/lit8 v9, v9, -0x1
+
+    invoke-interface {v6, v9}, Ljava/util/List;->get(I)Ljava/lang/Object;
+
+    move-result-object v6
+
+    check-cast v6, Ljava/lang/String;
+
+    invoke-virtual {v8, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v6
+
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v6
+
+    invoke-virtual {v7, v6}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V
+
+    .line 91
+    new-instance v5, Ljava/io/FileWriter;
+
+    invoke-direct {v5, v2}, Ljava/io/FileWriter;-><init>(Ljava/io/File;)V
+
+    .line 94
     .local v5, "writer":Ljava/io/FileWriter;
     const-string v6, "NEW TRACE"
 
     invoke-virtual {v5, v6}, Ljava/io/FileWriter;->append(Ljava/lang/CharSequence;)Ljava/io/Writer;
 
-    .line 90
+    .line 95
     invoke-static {}, Ljava/lang/System;->lineSeparator()Ljava/lang/String;
 
     move-result-object v6
 
     invoke-virtual {v5, v6}, Ljava/io/FileWriter;->append(Ljava/lang/CharSequence;)Ljava/io/Writer;
 
-    .line 92
+    .line 97
     sget-object v6, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->executionPath:Ljava/util/List;
 
     invoke-interface {v6}, Ljava/util/List;->iterator()Ljava/util/Iterator;
 
     move-result-object v6
 
-    :goto_4c
+    :goto_93
     invoke-interface {v6}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v7
 
-    if-eqz v7, :cond_6f
+    if-eqz v7, :cond_b6
 
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
-    move-result-object v4
+    move-result-object v3
 
-    check-cast v4, Ljava/lang/String;
+    check-cast v3, Ljava/lang/String;
 
-    .line 93
-    .local v4, "pathNode":Ljava/lang/String;
-    invoke-virtual {v5, v4}, Ljava/io/FileWriter;->append(Ljava/lang/CharSequence;)Ljava/io/Writer;
+    .line 98
+    .local v3, "pathNode":Ljava/lang/String;
+    invoke-virtual {v5, v3}, Ljava/io/FileWriter;->append(Ljava/lang/CharSequence;)Ljava/io/Writer;
 
-    .line 94
+    .line 99
     invoke-static {}, Ljava/lang/System;->lineSeparator()Ljava/lang/String;
 
     move-result-object v7
 
     invoke-virtual {v5, v7}, Ljava/io/FileWriter;->append(Ljava/lang/CharSequence;)Ljava/io/Writer;
-    :try_end_62
-    .catch Ljava/io/IOException; {:try_start_35 .. :try_end_62} :catch_63
+    :try_end_a9
+    .catch Ljava/io/IOException; {:try_start_33 .. :try_end_a9} :catch_aa
 
-    goto :goto_4c
+    goto :goto_93
 
-    .line 103
-    .end local v4    # "pathNode":Ljava/lang/String;
+    .line 109
+    .end local v3    # "pathNode":Ljava/lang/String;
     .end local v5    # "writer":Ljava/io/FileWriter;
-    :catch_63
-    move-exception v2
+    :catch_aa
+    move-exception v1
 
-    .line 104
-    .local v2, "e":Ljava/io/IOException;
+    .line 110
+    .local v1, "e":Ljava/io/IOException;
     sget-object v6, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v7, "Writing to internal storage failed."
 
     invoke-virtual {v6, v7}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 105
-    invoke-virtual {v2}, Ljava/io/IOException;->printStackTrace()V
+    .line 111
+    invoke-virtual {v1}, Ljava/io/IOException;->printStackTrace()V
 
-    .line 107
-    .end local v2    # "e":Ljava/io/IOException;
-    :goto_6e
+    .line 113
+    .end local v1    # "e":Ljava/io/IOException;
+    :goto_b5
     return-void
 
-    .line 98
+    .line 104
     .restart local v5    # "writer":Ljava/io/FileWriter;
-    :cond_6f
-    :try_start_6f
-    sget-object v6, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->executionPath:Ljava/util/List;
+    :cond_b6
+    :try_start_b6
+    new-instance v6, Ljava/util/LinkedList;
 
-    invoke-interface {v6}, Ljava/util/List;->clear()V
+    invoke-direct {v6}, Ljava/util/LinkedList;-><init>()V
 
-    .line 100
+    sput-object v6, Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;->executionPath:Ljava/util/List;
+
+    .line 106
     invoke-virtual {v5}, Ljava/io/FileWriter;->flush()V
 
-    .line 101
+    .line 107
     invoke-virtual {v5}, Ljava/io/FileWriter;->close()V
-    :try_end_7a
-    .catch Ljava/io/IOException; {:try_start_6f .. :try_end_7a} :catch_63
+    :try_end_c3
+    .catch Ljava/io/IOException; {:try_start_b6 .. :try_end_c3} :catch_aa
 
-    goto :goto_6e
+    goto :goto_b5
 .end method
 
 
