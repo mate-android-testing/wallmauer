@@ -100,14 +100,14 @@ public class Tracer extends BroadcastReceiver {
             writer.append("NEW TRACE");
             writer.append(System.lineSeparator());
 
-            synchronized (Tracer.class) {
+            // synchronized (Tracer.class) {
                 for (int i=0; i < executionPath.size(); i++) {
                 // for (String pathNode : executionPath) {
                     String pathNode = executionPath.get(i);
                     writer.append(pathNode);
                     writer.append(System.lineSeparator());
                 }
-            }
+            // }
             // reset executionPath
             // executionPath.clear();
             // executionPath = new LinkedList<>();
@@ -116,12 +116,29 @@ public class Tracer extends BroadcastReceiver {
             writer.close();
 
         } catch (IOException e) {
-            LOGGER.info("Writing to internal storage failed.");
+            LOGGER.info("Writing to external storage failed.");
             e.printStackTrace();
         }
-        System.out.println("Size: " + executionPath.size());
+
+        int size = executionPath.size();
+        System.out.println("Size: " + size);
         System.out.println("First entry afterwards: " + executionPath.get(0));
         System.out.println("Last entry afterwards: " + executionPath.get(executionPath.size() - 1));
         executionPath.clear();
+
+        // signal that we finished writing out traces
+        try {
+            String filePath = "data/data/" + packageName;
+            File info = new File(filePath, "info.txt");
+            FileWriter writer = new FileWriter(info);
+
+            writer.append(String.valueOf(size));
+            writer.flush();
+            writer.close();
+
+        } catch (IOException e) {
+            LOGGER.info("Writing to internal storage failed.");
+            e.printStackTrace();
+        }
     }
 }
