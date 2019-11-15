@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Environment;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -29,6 +30,8 @@ public class Tracer extends BroadcastReceiver {
     private static final Logger LOGGER = Logger.getLogger(Tracer.class
             .getName());
 
+    private static final int CACHE_SIZE = 5000;
+
     /**
      * Gets the current system time formatted as string.
      * FIXME: unfortunately Ljava/time/LocalDateTime; ins not included in the ART libs
@@ -47,6 +50,7 @@ public class Tracer extends BroadcastReceiver {
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
             String packageName = intent.getStringExtra("packageName");
             write(packageName);
+            executionPath.clear();
         }
     }
 
@@ -58,6 +62,37 @@ public class Tracer extends BroadcastReceiver {
      */
     public static void trace(String identifier) {
         executionPath.add(identifier);
+
+        if (executionPath.size() == CACHE_SIZE) {
+            write();
+            executionPath.clear();
+        }
+    }
+
+    private static void write() {
+
+        File sdCard = Environment.getExternalStorageDirectory();
+        File traces = new File(sdCard, TRACES_FILE);
+
+        try {
+
+            FileWriter writer = new FileWriter(traces, true);
+            BufferedWriter br = new BufferedWriter(writer);
+
+            for (int i=0; i < CACHE_SIZE; i++) {
+                String pathNode = executionPath.get(i);
+                br.write(pathNode);
+                br.newLine();
+            }
+
+            br.flush();
+            br.close();
+            writer.close();
+
+        } catch (IOException e) {
+            LOGGER.info("Writing to external storage failed.");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -69,20 +104,12 @@ public class Tracer extends BroadcastReceiver {
      */
     private static void write(String packageName) {
 
-        // /storage/emulated/0/Download
-        // File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-
         // sd card
         File sdCard = Environment.getExternalStorageDirectory();
-        // path to internal app directory
-        // String filePath = "data/data/" + packageName;
-        File dir = new File(sdCard + File.separator + packageName);
-        dir.mkdirs();
+        File traces = new File(sdCard, TRACES_FILE);
 
         synchronized (Tracer.class) {
             System.out.println("Size: " + executionPath.size());
-
-            LOGGER.info(dir.getAbsolutePath());
 
             if (!executionPath.isEmpty()) {
                 System.out.println("First entry: " + executionPath.get(0));
@@ -90,29 +117,20 @@ public class Tracer extends BroadcastReceiver {
             }
         }
 
-        File file = new File(dir, TRACES_FILE);
-
+        // write out remaining traces
         try {
 
-            FileWriter writer = new FileWriter(file);
+            FileWriter writer = new FileWriter(traces, true);
+            BufferedWriter br = new BufferedWriter(writer);
 
-            // record when new traces file was generated
-            writer.append("NEW TRACE");
-            writer.append(System.lineSeparator());
+            for (int i=0; i < executionPath.size(); i++) {
+                String pathNode = executionPath.get(i);
+                br.write(pathNode);
+                br.newLine();
+            }
 
-            // synchronized (Tracer.class) {
-                for (int i=0; i < executionPath.size(); i++) {
-                // for (String pathNode : executionPath) {
-                    String pathNode = executionPath.get(i);
-                    writer.append(pathNode);
-                    writer.append(System.lineSeparator());
-                }
-            // }
-            // reset executionPath
-            // executionPath.clear();
-            // executionPath = new LinkedList<>();
-
-            writer.flush();
+            br.flush();
+            br.close();
             writer.close();
 
         } catch (IOException e) {
@@ -124,7 +142,6 @@ public class Tracer extends BroadcastReceiver {
         System.out.println("Size: " + size);
         System.out.println("First entry afterwards: " + executionPath.get(0));
         System.out.println("Last entry afterwards: " + executionPath.get(executionPath.size() - 1));
-        executionPath.clear();
 
         // signal that we finished writing out traces
         try {
