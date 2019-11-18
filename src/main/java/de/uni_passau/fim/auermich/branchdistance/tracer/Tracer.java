@@ -21,7 +21,8 @@ import java.util.logging.Logger;
 public class Tracer extends BroadcastReceiver {
 
     // tracks the execution path (prefer List to MultiMap since no external dependencies are required)
-    private static List<String> executionPath = new LinkedList<>();
+    // TODO: use synchronized list if really necessary to avoid synchronized block
+    private static List<String> executionPath = new ArrayList<>();
 
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
