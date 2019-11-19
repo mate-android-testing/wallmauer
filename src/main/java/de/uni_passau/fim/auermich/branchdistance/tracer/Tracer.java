@@ -22,7 +22,7 @@ public class Tracer extends BroadcastReceiver {
 
     // tracks the execution path (prefer List to MultiMap since no external dependencies are required)
     // TODO: use synchronized list if really necessary to avoid synchronized block
-    private static List<String> executionPath = new ArrayList<>();
+    private static List<String> executionPath = Collections.synchronizedList(new ArrayList<>());
 
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
@@ -109,13 +109,11 @@ public class Tracer extends BroadcastReceiver {
         File sdCard = Environment.getExternalStorageDirectory();
         File traces = new File(sdCard, TRACES_FILE);
 
-        synchronized (Tracer.class) {
-            System.out.println("Size: " + executionPath.size());
+        System.out.println("Size: " + executionPath.size());
 
-            if (!executionPath.isEmpty()) {
-                System.out.println("First entry: " + executionPath.get(0));
-                System.out.println("Last entry: " + executionPath.get(executionPath.size() - 1));
-            }
+        if (!executionPath.isEmpty()) {
+            System.out.println("First entry: " + executionPath.get(0));
+            System.out.println("Last entry: " + executionPath.get(executionPath.size() - 1));
         }
 
         // write out remaining traces
