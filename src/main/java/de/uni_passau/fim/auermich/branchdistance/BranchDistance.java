@@ -227,6 +227,12 @@ public class BranchDistance {
                 return;
             }
 
+            // add external storage write permission
+            if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")) {
+                LOGGER.warning("Couldn't add write permission for external storage!");
+                return;
+            }
+
             // we insert into the last classes.dex file our tracer functionality
 
             // the path to the last dex file, e.g. classes3.dex

@@ -174,6 +174,57 @@ public class ManifestParser {
         return false;
     }
 
+    public boolean addPermissionTag(String permission) {
+
+        LOGGER.info("Adding permission " + permission + " to Manifest!");
+
+        try {
+
+            File xmlFile = new File(MANIFEST);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(xmlFile);
+
+            NodeList nodeList = doc.getElementsByTagName("uses-permission");
+
+            if (nodeList.getLength() == 0) {
+                // there are no permissions specified
+
+                Element permissionTag = doc.createElement("uses-permission");
+                permissionTag.setAttribute("android:name", permission);
+                // add as child of root tag <xml>
+                doc.getDocumentElement().appendChild(permissionTag);
+            } else {
+
+                // check whether the given permission is already specified
+                for (int i=0; i < nodeList.getLength(); i++) {
+                    Element permissionTag = (Element) nodeList.item(i);
+                    if (permissionTag.getAttribute("android:name").equals(permission)) {
+                        return true;
+                    }
+                }
+
+                Element permissionTag = doc.createElement("uses-permission");
+                permissionTag.setAttribute("android:name", permission);
+                // add as child of root tag <xml>
+                doc.getDocumentElement().appendChild(permissionTag);
+            }
+
+            // modify manifest
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(xmlFile);
+            transformer.transform(source, result);
+
+            return true;
+        } catch (Exception e) {
+            LOGGER.severe("Couldn't parse AndroidManifest.xml");
+            LOGGER.severe(e.getMessage());
+        }
+        return false;
+    }
+
     /**
      * Adds a broadcast receiver tag to the AndroidManifest file.
      *
