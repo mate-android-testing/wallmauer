@@ -228,8 +228,9 @@ public class BranchDistance {
             }
 
             // add external storage write permission
-            if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")) {
-                LOGGER.warning("Couldn't add write permission for external storage!");
+            if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")
+                    || !manifest.addPermissionTag("android.permission.READ_EXTERNAL_STORAGE")) {
+                LOGGER.warning("Couldn't add read/write permission for external storage!");
                 return;
             }
 
