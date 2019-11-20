@@ -23,10 +23,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -312,6 +309,20 @@ public class BranchDistance {
                 mainActivity = classDef;
             }
 
+            boolean isActivity = false;
+            boolean isFragment = false;
+
+            // check whether the current class is an activity/fragment class
+            if (Utility.isActivity(classes, classDef)) {
+                isActivity = true;
+            } else if (Utility.isFragment(classes, classDef)) {
+                isFragment = true;
+            }
+
+            // track which activity/fragment lifecycle methods are missing
+            Set<String> activityLifeCycleMethods = new HashSet<>(Utility.getActivityLifeCycleMethods());
+            Set<String> fragmentLifeCycleMethods = new HashSet<>(Utility.getFragmentLifeCycleMethods());
+
             // the set of methods included in the instrumented classes.dex
             List<Method> methods = Lists.newArrayList();
 
@@ -325,6 +336,18 @@ public class BranchDistance {
 
                 // each method is identified by its class name and method name
                 String id = method.toString();
+
+                if (isActivity) {
+                    String methodName = id.split("->")[1];
+                    if (activityLifeCycleMethods.contains(methodName)) {
+                        activityLifeCycleMethods.remove(methodName);
+                    }
+                } else if (isFragment) {
+                    String methodName = id.split("->")[1];
+                    if (fragmentLifeCycleMethods.contains(methodName)) {
+                        fragmentLifeCycleMethods.remove(methodName);
+                    }
+                }
 
                 MethodInformation methodInformation = new MethodInformation(id, classDef, method, isMainActivity);
 
@@ -378,6 +401,13 @@ public class BranchDistance {
                     // no modification necessary
                     methods.add(method);
                 }
+            }
+
+            // add dummy implementation for missing activity/fragment lifecycle methods
+            if (isActivity) {
+                LOGGER.info("Missing activity lifecycle methods: " + activityLifeCycleMethods);
+            } else if (isFragment) {
+                LOGGER.info("Missing fragment lifecycle methods: " + fragmentLifeCycleMethods);
             }
 
             // check whether we need to insert own onDestroy method

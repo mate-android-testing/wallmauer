@@ -27,10 +27,7 @@ import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.AbstractSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -365,6 +362,122 @@ public final class Utility {
                 }
             }
         }
+    }
+
+    /**
+     * Checks whether the given class represents an activity by checking against the super class.
+     *
+     * @param classes The set of classes.
+     * @param currentClass The class to be inspected.
+     * @return Returns {@code true} if the current class is an activity,
+     *          otherwise {@code false}.
+     */
+    public static boolean isActivity(List<ClassDef> classes, ClassDef currentClass) {
+
+        // TODO: this approach might be quite time-consuming, may find a better solution
+
+        String superClass = currentClass.getSuperclass();
+        boolean abort = false;
+
+        while (!abort && superClass != null && !superClass.equals("Ljava/lang/Object;")) {
+
+            abort = true;
+
+            if (superClass.equals("Landroid/app/Activity;")
+                    || superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
+                    || superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
+                    || superClass.equals("Landroid/support/v4/app/FragmentActivity;")) {
+                return true;
+            } else {
+                // step up in the class hierarchy
+                for (ClassDef classDef : classes) {
+                    if (classDef.toString().equals(superClass)) {
+                        superClass = classDef.getSuperclass();
+                        abort = false;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks whether the given class represents a fragment by checking against the super class.
+     *
+     * @param classes The set of classes.
+     * @param currentClass The class to be inspected.
+     * @return Returns {@code true} if the current class is a fragment,
+     *          otherwise {@code false}.
+     */
+    public static boolean isFragment(List<ClassDef> classes, ClassDef currentClass) {
+
+        // TODO: this approach might be quite time-consuming, may find a better solution
+
+        String superClass = currentClass.getSuperclass();
+        boolean abort = false;
+
+        while (!abort && superClass != null && !superClass.equals("Ljava/lang/Object;")) {
+
+            abort = true;
+
+            // https://developer.android.com/reference/android/app/Fragment
+            if (superClass.equals("Landroid/app/Fragment;")
+                    || superClass.equals("Landroid/support/v4/app/Fragment;")
+                    || superClass.equals("Landroid/app/DialogFragment;")
+                    || superClass.equals("Landroid/app/ListFragment;")
+                    || superClass.equals("Landroid/preference/PreferenceFragment;")
+                    || superClass.equals("Landroid/webkit/WebViewFragment;")) {
+                return true;
+            } else {
+                // step up in the class hierarchy
+                for (ClassDef classDef : classes) {
+                    if (classDef.toString().equals(superClass)) {
+                        superClass = classDef.getSuperclass();
+                        abort = false;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the set of activity lifecycle methods.
+     *
+     * @return Returns the method names of the activity lifecycle methods.
+     */
+    public static Set<String> getActivityLifeCycleMethods() {
+        Set<String> activityLifeCycleMethods = new HashSet<>();
+        activityLifeCycleMethods.add("onCreate(Landroid/os/Bundle;)V");
+        activityLifeCycleMethods.add("onStart()V");
+        activityLifeCycleMethods.add("onResume()V");
+        activityLifeCycleMethods.add("onPause()V");
+        activityLifeCycleMethods.add("onStop()V");
+        activityLifeCycleMethods.add("onDestroy()V");
+        activityLifeCycleMethods.add("onRestart()V");
+        return activityLifeCycleMethods;
+    }
+
+    /**
+     * Returns the set of fragment lifecycle methods.
+     *
+     * @return Returns the method names of the fragment lifecycle methods.
+     */
+    public static Set<String> getFragmentLifeCycleMethods() {
+
+        // TODO: add the deprecated onAttach method
+
+        Set<String> fragmentLifeCycleMethods = new HashSet<>();
+        fragmentLifeCycleMethods.add("onAttach(Landroid/content/Context;)V");
+        fragmentLifeCycleMethods.add("onCreate(Landroid/os/Bundle;)V");
+        fragmentLifeCycleMethods.add("onCreateView(Landroid/view/LayoutInflater;"
+                + "Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;");
+        fragmentLifeCycleMethods.add("onActivityCreated(Landroid/os/Bundle;)V");
+        fragmentLifeCycleMethods.add("onViewStateRestored(Landroid/os/Bundle;)V");
+        fragmentLifeCycleMethods.add("onDestroyView()V");
+        fragmentLifeCycleMethods.add("onDestroy()V");
+        fragmentLifeCycleMethods.add("onDetach()V");
+        return fragmentLifeCycleMethods;
     }
 
 }

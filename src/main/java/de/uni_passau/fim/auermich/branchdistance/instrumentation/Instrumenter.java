@@ -298,6 +298,45 @@ public final class Instrumenter {
     }
 
     /**
+     * Adds a basic lifecycle method to the given activity or fragment class.
+     *
+     * @param method The lifecycle method name.
+     * @param methods The list of methods belonging to the class.
+     * @param classDef The activity or fragment class.
+     */
+    public static void addLifeCycleMethod(String method, List<Method> methods, ClassDef classDef) {
+
+        String superClass = classDef.getSuperclass();
+
+        // TODO: split method into name, parameters and return type
+
+        MutableMethodImplementation implementation = new MutableMethodImplementation(1);
+
+        // TODO: check if super call is mandatory
+
+        // call super method
+        implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1,
+                0, 0, 0, 0, 0,
+                new ImmutableMethodReference(superClass, "onDestroy",
+                        Lists.newArrayList(), "V")));
+
+        // TODO: check if all methods return void
+
+        // we have to add return-statement as well, though void!
+        implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
+
+        // add method to final instrumented dex file
+        methods.add(new ImmutableMethod(
+                classDef.toString(),
+                "onDestroy",
+                null,
+                "V",
+                4,
+                null,
+                implementation));
+    }
+
+    /**
      * If the 'MainActivity' already contains an onDestroy method, we have to integrate our tracer functionality
      * into it instead of creating an own onDestroy method. In general, we need to place before each 'return' statement
      * instructions that call our tracer.
