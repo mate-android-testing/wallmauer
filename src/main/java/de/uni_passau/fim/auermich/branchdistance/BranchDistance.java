@@ -406,8 +406,12 @@ public class BranchDistance {
             // add dummy implementation for missing activity/fragment lifecycle methods
             if (isActivity) {
                 LOGGER.info("Missing activity lifecycle methods: " + activityLifeCycleMethods);
+                activityLifeCycleMethods.forEach(method -> Instrumenter.addLifeCycleMethod(method, methods, classDef));
+                modifiedMethod = true;
             } else if (isFragment) {
                 LOGGER.info("Missing fragment lifecycle methods: " + fragmentLifeCycleMethods);
+                fragmentLifeCycleMethods.forEach(method -> Instrumenter.addLifeCycleMethod(method, methods, classDef));
+                modifiedMethod = true;
             }
 
             // check whether we need to insert own onDestroy method

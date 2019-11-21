@@ -1,5 +1,6 @@
 package de.uni_passau.fim.auermich.branchdistance.instrumentation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
@@ -7,22 +8,27 @@ import de.uni_passau.fim.auermich.branchdistance.branch.ElseBranch;
 import de.uni_passau.fim.auermich.branchdistance.branch.IfBranch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.RegisterType;
+import org.jf.dexlib2.base.BaseMethodParameter;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.iface.*;
 import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
+import org.jf.dexlib2.immutable.ImmutableMethodParameter;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 import org.jf.dexlib2.util.MethodUtil;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -63,7 +69,7 @@ public final class Instrumenter {
      * Determines the new total amount of registers and derives the register IDs of
      * the new registers as well as the free/usable registers.
      *
-     * @param methodInformation Contains the relevant information about a method.
+     * @param methodInformation   Contains the relevant information about a method.
      * @param additionalRegisters The amount of additional registers.
      */
     public static void computeRegisterStates(MethodInformation methodInformation, int additionalRegisters) {
@@ -82,27 +88,27 @@ public final class Instrumenter {
         List<Integer> parameterRegisters = new ArrayList<>();
 
         /*
-        * When we increase the number of local registers, the additional
-        * registers reside at the end of the local registers, that is:
-        *       v0...vN -> v0...vN,vNew1...vNewN
-        * The index of the first newly created register resides at
-        * the original count of local registers (#localRegisters).
+         * When we increase the number of local registers, the additional
+         * registers reside at the end of the local registers, that is:
+         *       v0...vN -> v0...vN,vNew1...vNewN
+         * The index of the first newly created register resides at
+         * the original count of local registers (#localRegisters).
          */
-        for (int i=0; i < additionalRegisters; i++) {
-            newRegisters.add(localRegisters+i);
+        for (int i = 0; i < additionalRegisters; i++) {
+            newRegisters.add(localRegisters + i);
         }
         methodInformation.setNewRegisters(newRegisters);
 
         /*
-        * The idea is to use the last registers for the actual instrumentation by
-        * shifting their content into the newly created local registers.
-        * This resolves the issue of invoke-range instructions spanning over
-        * the newly created local registers.
-        * The index of the first usable/free register resides at the original
-        * total count of registers (#totalRegisters).
+         * The idea is to use the last registers for the actual instrumentation by
+         * shifting their content into the newly created local registers.
+         * This resolves the issue of invoke-range instructions spanning over
+         * the newly created local registers.
+         * The index of the first usable/free register resides at the original
+         * total count of registers (#totalRegisters).
          */
-        for (int i=0; i < additionalRegisters; i++) {
-            freeRegisters.add(totalRegisters+i);
+        for (int i = 0; i < additionalRegisters; i++) {
+            freeRegisters.add(totalRegisters + i);
         }
         methodInformation.setFreeRegisters(freeRegisters);
 
@@ -125,7 +131,6 @@ public final class Instrumenter {
      * of our tracer functionality, which in turn writes the collected traces
      * into the app-internal storage. The onDestroy method should be always called
      * upon the (normal) termination of the app.
-     *
      */
     public static void insertOnDestroy(List<Method> methods, ClassDef classDef, String packageName) {
 
@@ -174,7 +179,7 @@ public final class Instrumenter {
      * Adds a custom onDestroy method in the super classes of the MainActivity class
      * if not present yet.
      *
-     * @param classes The set of classes part of the instrumented classes.dex file.
+     * @param classes      The set of classes part of the instrumented classes.dex file.
      * @param mainActivity The class describing the MainActivity.
      */
     public static List<ClassDef> insertOnDestroyForSuperClasses(List<ClassDef> classes, ClassDef mainActivity) {
@@ -298,39 +303,122 @@ public final class Instrumenter {
     }
 
     /**
-     * Adds a basic lifecycle method to the given activity or fragment class.
+     * Adds a basic lifecycle method to the given activity or fragment class. This already
+     * includes the instrumentation of the method.
      *
-     * @param method The lifecycle method name.
-     * @param methods The list of methods belonging to the class.
+     * @param method   The lifecycle method name.
+     * @param methods  The list of methods belonging to the class.
      * @param classDef The activity or fragment class.
      */
     public static void addLifeCycleMethod(String method, List<Method> methods, ClassDef classDef) {
 
         String superClass = classDef.getSuperclass();
 
-        // TODO: split method into name, parameters and return type
+        String methodName = method.split("\\(")[0];
+        String parameters = method.split("\\(")[1].split("\\)")[0];
+        String returnType = method.split("\\)")[1];
 
-        MutableMethodImplementation implementation = new MutableMethodImplementation(1);
+        // ASSUMPTION: all parameters are objects (this is true for lifecycle methods)
+        int paramCount = StringUtils.countMatches(parameters, ";");
+        List<String> params = new ArrayList<>();
 
-        // TODO: check if super call is mandatory
+        if (paramCount > 0) {
+            // the params have the form L../../../..; -> Landroid/view/View;
+            params = Arrays.stream(parameters.split(";")).map(param -> param + ";").collect(Collectors.toList());
+        }
 
-        // call super method
-        implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1,
-                0, 0, 0, 0, 0,
-                new ImmutableMethodReference(superClass, "onDestroy",
-                        Lists.newArrayList(), "V")));
+        MutableMethodImplementation implementation;
 
-        // TODO: check if all methods return void
+        if (returnType.equals("V")) {
 
-        // we have to add return-statement as well, though void!
-        implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
+            // one local register v0 required -> p0 has index 0
+            int paramIndex = 1;
 
-        // add method to final instrumented dex file
+            // we require one additional parameter for the invisible this reference p0 + one for trace
+            implementation = new MutableMethodImplementation(2 + paramCount);
+
+            // entry string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef.toString()+"->"+method+"->entry")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+
+            // call super method (we have one register for this reference + one register for each parameter)
+            implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
+                    paramIndex++, paramIndex++, paramIndex++, paramIndex++, paramIndex++,
+                    new ImmutableMethodReference(superClass, methodName,
+                            params, returnType)));
+
+            // exit string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef.toString()+"->"+method+"->exit")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            // we have to add return-statement as well, though void!
+            implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
+        } else {
+
+            // two local registers v0,v1 required -> p0 has index 2
+            int paramIndex = 2;
+
+            // we require one additional parameter for the invisible this reference p0, one for the trace and one for the return value
+            implementation = new MutableMethodImplementation(3 + paramCount);
+
+            // entry string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef.toString()+"->"+method+"->entry")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            // call super method (we have one register for this reference + one register for each parameter)
+            implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
+                    paramIndex++, paramIndex++, paramIndex++, paramIndex++, paramIndex++,
+                    new ImmutableMethodReference(superClass, methodName,
+                            params, returnType)));
+
+            // move-result v1
+            implementation.addInstruction(new BuilderInstruction11x(Opcode.MOVE_RESULT_OBJECT,1));
+
+            // exit string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef.toString()+"->"+method+"->exit")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            // only onCreateView(..) returns Landroid/view/View; which is stored in v1
+            implementation.addInstruction(new BuilderInstruction11x(Opcode.RETURN_OBJECT, 1));
+        }
+
+        List<MethodParameter> methodParams = params.stream().map(p ->
+            new ImmutableMethodParameter(p, null,
+                    // use three random letters as param names
+                    RandomStringUtils.random(3, true, false).toLowerCase()))
+                .collect(Collectors.toList());
+
+        // add instrumented method to set of methods
         methods.add(new ImmutableMethod(
                 classDef.toString(),
-                "onDestroy",
-                null,
-                "V",
+                methodName,
+                methodParams,
+                returnType,
                 4,
                 null,
                 implementation));
@@ -342,7 +430,7 @@ public final class Instrumenter {
      * instructions that call our tracer.
      *
      * @param methodInformation Stores all relevant information about a method.
-     * @param packageName The package name declared in the AndroidManifest.xml file.
+     * @param packageName       The package name declared in the AndroidManifest.xml file.
      */
     public static void modifyOnDestroy(MethodInformation methodInformation, String packageName) {
 
@@ -353,14 +441,14 @@ public final class Instrumenter {
         List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 
         /*
-        * Since we iterate over the instructions and insert before each return statement our code,
-        * the insertion causes to re-iterate over the same return statement infinitely often.
-        * Thus, we need to track the covered return statements.
+         * Since we iterate over the instructions and insert before each return statement our code,
+         * the insertion causes to re-iterate over the same return statement infinitely often.
+         * Thus, we need to track the covered return statements.
          */
         Set<BuilderInstruction> coveredReturnStatements = new HashSet<>();
 
         // we need to insert the code before each return statement
-        for (int i=0; i < instructions.size(); i++) {
+        for (int i = 0; i < instructions.size(); i++) {
 
             BuilderInstruction instruction = instructions.get(i);
 
@@ -386,7 +474,7 @@ public final class Instrumenter {
                                 Lists.newArrayList("Ljava/lang/String;"), "V"));
 
                 mutableMethodImplementation.addInstruction(i, constString);
-                mutableMethodImplementation.addInstruction(++i,invokeStaticRange);
+                mutableMethodImplementation.addInstruction(++i, invokeStaticRange);
             }
         }
         // update implementation
@@ -450,8 +538,8 @@ public final class Instrumenter {
      * Instruments the given branch with the tracer functionality.
      *
      * @param methodInformation Stores all relevant information about the given method.
-     * @param index The position where we insert our instrumented code.
-     * @param id    The id which identifies the given branch, i.e. packageName->className->method->branchID.
+     * @param index             The position where we insert our instrumented code.
+     * @param id                The id which identifies the given branch, i.e. packageName->className->method->branchID.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index, final String id) {
@@ -484,7 +572,6 @@ public final class Instrumenter {
      * Performs the instrumentation, i.e. inserts the following instructions at each branch:
      * 1) const-string/16 pN, "unique-branch-id" (pN refers to the register with the highest ID)
      * 2) invoke-range-static Tracer.trace(pN)
-     *
      */
     public static void modifyMethod(MethodInformation methodInformation) {
 
@@ -509,20 +596,20 @@ public final class Instrumenter {
 
         mutableImplementation.getInstructions().stream().forEach(
                 instruction -> {
-                        LOGGER.fine(instruction.getOpcode().toString());
+                    LOGGER.fine(instruction.getOpcode().toString());
                 });
 
         /*
-        * Traverse the branches backwards, i.e. the last branch comes first, in order
-        * to avoid inherent index/position updates of other branches while instrumenting.
-        * This resolves the issue of branches that share the same position, e.g. two
-        * if branches refer to the same else branch. Since branches are only comparable
-        * by their position, an intermediate index change would make branches incomparable,
-        * thus leading to a multiple instrumentation of the same branch.
+         * Traverse the branches backwards, i.e. the last branch comes first, in order
+         * to avoid inherent index/position updates of other branches while instrumenting.
+         * This resolves the issue of branches that share the same position, e.g. two
+         * if branches refer to the same else branch. Since branches are only comparable
+         * by their position, an intermediate index change would make branches incomparable,
+         * thus leading to a multiple instrumentation of the same branch.
          */
         Iterator<Branch> iterator = ((TreeSet<Branch>) sortedBranches).descendingIterator();
 
-        int branchIndex = sortedBranches.size() -1;
+        int branchIndex = sortedBranches.size() - 1;
 
         while (iterator.hasNext()) {
 
@@ -575,11 +662,11 @@ public final class Instrumenter {
         for (BuilderInstruction instruction : mutableImplementation.getInstructions()) {
             // search for return instructions
             if (instruction.getOpcode() == Opcode.RETURN
-                || instruction.getOpcode() == Opcode.RETURN_VOID
-                || instruction.getOpcode() == Opcode.RETURN_OBJECT
-                || instruction.getOpcode() == Opcode.RETURN_WIDE
-                || instruction.getOpcode() == Opcode.RETURN_VOID_BARRIER
-                || instruction.getOpcode() == Opcode.RETURN_VOID_NO_BARRIER) {
+                    || instruction.getOpcode() == Opcode.RETURN_VOID
+                    || instruction.getOpcode() == Opcode.RETURN_OBJECT
+                    || instruction.getOpcode() == Opcode.RETURN_WIDE
+                    || instruction.getOpcode() == Opcode.RETURN_VOID_BARRIER
+                    || instruction.getOpcode() == Opcode.RETURN_VOID_NO_BARRIER) {
                 returnStmtIndices.add(instruction.getLocation().getIndex());
             }
         }
@@ -589,7 +676,7 @@ public final class Instrumenter {
 
         for (Integer returnStmtIndex : returnStmtIndices) {
             // insert the tracer functionality prior to each return statement
-            mutableImplementation = insertInstrumentationCode(methodInformation, returnStmtIndex-1,
+            mutableImplementation = insertInstrumentationCode(methodInformation, returnStmtIndex - 1,
                     methodInformation.getMethodID() + "->exit");
             // update implementation
             methodInformation.setMethodImplementation(mutableImplementation);
@@ -613,7 +700,7 @@ public final class Instrumenter {
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
-        Map<Integer,RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
+        Map<Integer, RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
         LOGGER.fine(paramRegisterMap.toString());
 
         List<Integer> newRegisters = methodInformation.getNewRegisters();
@@ -639,7 +726,7 @@ public final class Instrumenter {
         int pos = 0;
 
         // use correct move instruction depend on type of source register
-        for (int index=0; index < sourceRegisters.size(); index++) {
+        for (int index = 0; index < sourceRegisters.size(); index++) {
 
             // id corresponds to actual register ID of param register
             RegisterType registerType = paramRegisterMap.get(paramRegisters.get(index));
@@ -653,7 +740,7 @@ public final class Instrumenter {
                 LOGGER.info("Wide type LOW_HALF!");
 
                 // destination register : {vnew0,vnew1,p0...pn}\{pn-1,pn}
-                int destinationRegisterID  = destinationRegisters.get(index);
+                int destinationRegisterID = destinationRegisters.get(index);
 
                 // source register : p0...pN
                 int sourceRegisterID = sourceRegisters.get(index);
@@ -685,7 +772,7 @@ public final class Instrumenter {
 
                 LOGGER.info("Object type!");
 
-                int destinationRegisterID  = destinationRegisters.get(index);
+                int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
                 LOGGER.info("Destination reg: " + destinationRegisterID);
@@ -701,7 +788,7 @@ public final class Instrumenter {
 
                 LOGGER.info("Primitive type!");
 
-                int destinationRegisterID  = destinationRegisters.get(index);
+                int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
                 LOGGER.info("Destination reg: " + destinationRegisterID);
