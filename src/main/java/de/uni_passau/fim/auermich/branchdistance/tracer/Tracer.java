@@ -137,6 +137,7 @@ public class Tracer extends BroadcastReceiver {
             e.printStackTrace();
         }
 
+        // FIXME: handle empty traces file -> check size() before accessing first/last element
         int size = executionPath.size();
         System.out.println("Size: " + size);
         System.out.println("First entry afterwards: " + executionPath.get(0));

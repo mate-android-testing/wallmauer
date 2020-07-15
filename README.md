@@ -30,6 +30,22 @@ Only the path to the APK is required, e.g.:
 
 C:\Users\Michael\git\mate-commander\com.simple.app.apk
 
+# Saving and Fetching Traces:
+
+In order to retrieve the traces, a broadcast need to be sent to the AUT:
+
+adb install -g <apk> <br />
+
+adb root
+adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.auermich.branchdistance.tracer.Tracer --es packageName "<package-name>" <br />
+adb pull storage/emulated/0/traces.txt <br />
+adb pull data/data/<package-name>/info.txt <br /> (may require a slash before data on Linux)
+
+With adb install -g all necessary permissions are granted. After sending the intent, the traces.txt
+is generated and can be found in the external storage. Additionally, once all traces have be written out,
+an info.txt is generated within the app internal storage. This file solely indicates how many
+traces have been collected.
+
 # Program Arguments BranchCoverage:
 
 C:\Users\Michael\com.xabber.androiddev_348\classes.dex <br />
