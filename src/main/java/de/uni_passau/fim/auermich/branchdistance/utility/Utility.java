@@ -384,6 +384,7 @@ public final class Utility {
             abort = true;
 
             if (superClass.equals("Landroid/app/Activity;")
+                    || superClass.equals("Landroidx/appcompat/app/AppCompatActivity;")
                     || superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
                     || superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
                     || superClass.equals("Landroid/support/v4/app/FragmentActivity;")) {
@@ -422,6 +423,7 @@ public final class Utility {
 
             // https://developer.android.com/reference/android/app/Fragment
             if (superClass.equals("Landroid/app/Fragment;")
+                    || superClass.equals("Landroidx/fragment/app/Fragment;")
                     || superClass.equals("Landroid/support/v4/app/Fragment;")
                     || superClass.equals("Landroid/app/DialogFragment;")
                     || superClass.equals("Landroid/app/ListFragment;")
