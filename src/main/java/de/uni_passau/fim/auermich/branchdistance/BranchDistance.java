@@ -162,6 +162,13 @@ public class BranchDistance {
         return false;
     }
 
+    /**
+     * Invokes the instrumentation process on a given app.
+     *
+     * @param args A single commandline argument specifying the path to the APK file.
+     * @throws IOException Should never happen.
+     * @throws URISyntaxException Should never happen.
+     */
     public static void main(String[] args) throws IOException, URISyntaxException {
 
         LOGGER.setLevel(Level.ALL);
