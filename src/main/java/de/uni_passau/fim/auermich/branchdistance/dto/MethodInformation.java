@@ -41,12 +41,6 @@ public class MethodInformation {
     // the number of param registers (p0...pN)
     private int paramRegisterCount;
 
-    // whether this is the onDestroy method of the mainActivity class
-    private boolean isOnDestroy = false;
-
-    // whether this is method is part of the mainActivity class
-    private final boolean isMainActivity;
-
     // the register IDs of the param registers (might be empty)
     private List<Integer> paramRegisters = new ArrayList<>();
 
@@ -59,11 +53,10 @@ public class MethodInformation {
     // the instruction IDs of entry/beginning instructions
     private List<Integer> entryInstructionIDs = new ArrayList<>();
 
-    public MethodInformation(String methodID, ClassDef classDef, Method method, boolean isMainActivity) {
+    public MethodInformation(String methodID, ClassDef classDef, Method method) {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
-        this.isMainActivity = isMainActivity;
         methodImplementation = method.getImplementation();
     }
 
@@ -95,14 +88,6 @@ public class MethodInformation {
         return newRegisters;
     }
 
-    public boolean isOnDestroy() {
-        return isOnDestroy;
-    }
-
-    public boolean isMainActivity() {
-        return isMainActivity;
-    }
-
     public MethodImplementation getMethodImplementation() {
         return methodImplementation;
     }
@@ -110,16 +95,6 @@ public class MethodInformation {
     public void setMethodImplementation(MethodImplementation methodImplementation) {
         this.methodImplementation = methodImplementation;
     }
-
-    /*
-    public Optional<MethodImplementation> getImplementation() {
-        if (method.getImplementation() == null) {
-            return Optional.empty();
-        } else {
-            return Optional.of(method.getImplementation());
-        }
-    }
-    */
 
     public int getTotalRegisterCount() {
         return totalRegisterCount;
@@ -159,10 +134,6 @@ public class MethodInformation {
 
     public void setParamRegisterCount(int paramRegisters) {
         this.paramRegisterCount = paramRegisters;
-    }
-
-    public void setOnDestroyFlag() {
-        this.isOnDestroy = true;
     }
 
     public void setParamRegisterTypeMap(Optional<Map<Integer, RegisterType>> paramRegisterTypeMap) {
