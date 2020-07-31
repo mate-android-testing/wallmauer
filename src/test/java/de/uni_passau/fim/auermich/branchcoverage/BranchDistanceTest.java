@@ -21,13 +21,16 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static de.uni_passau.fim.auermich.branchdistance.BranchDistance.OPCODE_API;
 
-public class ExceptionHandlerTest {
+public class BranchDistanceTest {
 
     private MultiDexContainer<? extends DexBackedDexFile> apk;
     private File apkFile;
@@ -48,6 +51,78 @@ public class ExceptionHandlerTest {
         }
 
         apk = DexFileFactory.loadDexContainer(apkFile, Opcodes.forApi(OPCODE_API));;
+    }
+
+    /**
+     * Tracks the first instruction (ids) of each try and catch block.
+     *
+     * @throws Exception Should never happen.
+     */
+    @Test
+    public void analyzeTryCatchBlocks() throws Exception {
+
+        File testAPK = new File("C:\\Users\\Michael\\git\\mate-commander\\com.simple.app.apk");
+
+        final MultiDexContainer<? extends DexBackedDexFile> apk
+                = DexFileFactory.loadDexContainer(testAPK, Opcodes.forApi(OPCODE_API));
+
+        apk.getDexEntryNames().forEach(dexFile -> {
+            try {
+                DexFile dex = apk.getEntry(dexFile).getDexFile();
+
+                for (ClassDef classDef : dex.getClasses()) {
+                    for (Method method: classDef.getMethods()) {
+                        if (method.getName().equals("tryCatch")) {
+
+                            Set<Integer> tryCatchBlockIDs = new HashSet<>();
+
+                            MethodImplementation implementation = method.getImplementation();
+                            int consumedCodeUnits = 0;
+
+                            for (TryBlock<? extends ExceptionHandler> tryBlock : implementation.getTryBlocks()) {
+
+                                List<Instruction> instructions = Lists.newArrayList(implementation.getInstructions());
+
+                                for (int index = 0; index < instructions.size(); index++) {
+
+                                    // the starting point is before the actual instruction
+                                    if (consumedCodeUnits == tryBlock.getStartCodeAddress()) {
+                                        // reached the beginning of the try block
+                                        tryCatchBlockIDs.add(index);
+                                    }
+                                    consumedCodeUnits += instructions.get(index).getCodeUnits();
+                                }
+
+                                // iterate over attached catch blocks
+                                tryBlock.getExceptionHandlers().forEach(h -> {
+
+                                    /*
+                                     * The (absolute) position of the catch block expressed in terms of code units. The catch
+                                     * block starts after n-th code units. So, we need to map an instruction to its
+                                     * size (code units) and count them.
+                                     */
+                                    AtomicInteger ctrCodeUnits = new AtomicInteger(0);
+
+                                    for (int index = 0; index < instructions.size(); index++) {
+                                        if (ctrCodeUnits.get() == h.getHandlerCodeAddress()) {
+                                            // reached the beginning of the catch block
+                                            tryCatchBlockIDs.add(index);
+                                            break;
+                                        }
+                                        ctrCodeUnits.set(ctrCodeUnits.get() + instructions.get(index).getCodeUnits());
+                                    }
+                                });
+                            }
+
+                            // ensure ascending order
+                            System.out.println(tryCatchBlockIDs.stream().sorted().collect(Collectors.toList()));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Test

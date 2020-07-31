@@ -3,6 +3,7 @@ package de.uni_passau.fim.auermich.branchdistance.instrumentation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
+import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
 import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
 import de.uni_passau.fim.auermich.branchdistance.branch.ElseBranch;
 import de.uni_passau.fim.auermich.branchdistance.branch.IfBranch;
@@ -572,6 +573,7 @@ public final class Instrumenter {
      * Performs the instrumentation, i.e. inserts the following instructions at each branch:
      * 1) const-string/16 pN, "unique-branch-id" (pN refers to the register with the highest ID)
      * 2) invoke-range-static Tracer.trace(pN)
+     * Also instruments the method entry and exit.
      */
     public static void modifyMethod(MethodInformation methodInformation) {
 
@@ -650,8 +652,25 @@ public final class Instrumenter {
         methodInformation.setMethodImplementation(mutableImplementation);
 
         // we need to instrument the method entry (do this after branches, otherwise branch ids are corrupted)
-        mutableImplementation = insertInstrumentationCode(methodInformation, -1,
-                methodInformation.getMethodID() + "->entry");
+        List<Integer> entryInstructionIDs = methodInformation.getEntryInstructionIDs();
+        Collections.reverse(entryInstructionIDs);
+
+        /*
+        for (Integer entryInstructionID : entryInstructionIDs) {
+            // consider offset of 1
+            mutableImplementation = insertInstrumentationCode(methodInformation, entryInstructionID,
+                    methodInformation.getMethodID() + "->entry" + entryInstructionID);
+        }
+        */
+
+        // we need to instrument the try catch blocks
+        List<Integer> tryCatchBlocks = Analyzer.analyzeTryCatchBlocks(methodInformation);
+        Collections.reverse(tryCatchBlocks);
+
+        for (Integer tryCatchBlock : tryCatchBlocks) {
+            mutableImplementation = insertInstrumentationCode(methodInformation, tryCatchBlock,
+                    methodInformation.getMethodID() + "->tryCatchBlock" + tryCatchBlock);
+        }
 
         methodInformation.setMethodImplementation(mutableImplementation);
 

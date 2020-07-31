@@ -12,6 +12,7 @@ import org.jf.baksmali.Baksmali;
 import org.jf.baksmali.BaksmaliOptions;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
+import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.dexbacked.DexBackedDexFile;
 import org.jf.dexlib2.iface.*;
 import org.jf.smali.Smali;
@@ -376,6 +377,9 @@ public class BranchDistance {
 
                     // determine the number of branches per method
                     branches.addAll(Analyzer.trackBranches(methodInformation));
+
+                    // determine the entry/beginning instructions of a method
+                    methodInformation.setEntryInstructionIDs(Analyzer.analyzeEntryInstructions(methodInformation, dexFile));
 
                     // determine the register type of the param registers if the method has param registers
                     if (methodInformation.getParamRegisterCount() > 0) {

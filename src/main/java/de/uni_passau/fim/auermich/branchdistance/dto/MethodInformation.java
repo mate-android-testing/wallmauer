@@ -56,6 +56,9 @@ public class MethodInformation {
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
 
+    // the instruction IDs of entry/beginning instructions
+    private List<Integer> entryInstructionIDs = new ArrayList<>();
+
     public MethodInformation(String methodID, ClassDef classDef, Method method, boolean isMainActivity) {
         this.methodID = methodID;
         this.classDef = classDef;
@@ -64,6 +67,13 @@ public class MethodInformation {
         methodImplementation = method.getImplementation();
     }
 
+    public List<Integer> getEntryInstructionIDs() {
+        return entryInstructionIDs;
+    }
+
+    public void setEntryInstructionIDs(List<Integer> entryInstructionIDs) {
+        this.entryInstructionIDs = entryInstructionIDs;
+    }
 
     public String getMethodID() {
         return methodID;
