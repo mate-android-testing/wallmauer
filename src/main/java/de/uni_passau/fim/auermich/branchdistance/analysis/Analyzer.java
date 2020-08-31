@@ -6,6 +6,7 @@ import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
 import de.uni_passau.fim.auermich.branchdistance.branch.ElseBranch;
 import de.uni_passau.fim.auermich.branchdistance.branch.IfBranch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
@@ -25,6 +26,30 @@ import java.util.stream.Collectors;
 
 public final class Analyzer {
 
+
+    public static List<AnalyzedInstruction> trackIfInstructions(DexFile dexFile, MethodInformation methodInformation) {
+
+        List<AnalyzedInstruction> ifInstructions = new ArrayList<>();
+
+        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                true, ClassPath.NOT_ART), methodInformation.getMethod(),
+                null, false);
+
+        // TODO: can be simplified with stream API
+        for (AnalyzedInstruction analyzedInstruction : analyzer.getAnalyzedInstructions()) {
+
+            if (Utility.isBranchingInstruction(analyzedInstruction)) {
+
+                if (analyzedInstruction.getSuccessors().size() > 2) {
+                    throw new UnsupportedOperationException("IF statements with > 2 successors are not supported!");
+                }
+
+                ifInstructions.add(analyzedInstruction);
+            }
+        }
+
+        return ifInstructions;
+    }
 
     /**
      * Traverses and collects the branches for the given method. This yields
@@ -58,13 +83,12 @@ public final class Analyzer {
                 String id = methodInformation.getMethodID() + "->" + branchID;
 
                 // if branch location (uses the instruction/instruction id following the if-instruction)
-                Branch ifBranch = new IfBranch(instructions.get(i + 1), id);
+                Branch ifBranch = new IfBranch(null, id);
                 branches.add(ifBranch);
                 branchID++;
 
                 // else branch location
-                Branch elseBranch = new ElseBranch(instructions.get(
-                        ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex()), id);
+                Branch elseBranch = new ElseBranch(null, id);
                 branches.add(elseBranch);
                 branchID++;
             }

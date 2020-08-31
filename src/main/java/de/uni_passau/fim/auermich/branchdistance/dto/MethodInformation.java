@@ -1,6 +1,7 @@
 package de.uni_passau.fim.auermich.branchdistance.dto;
 
 import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
+import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.Method;
@@ -28,6 +29,8 @@ public class MethodInformation {
 
     // a list of the additional register IDs
     private List<Integer> newRegisters;
+
+    private List<AnalyzedInstruction> ifInstructions;
 
     // a set of branches included in the method
     private Set<Branch> branches;
@@ -66,6 +69,14 @@ public class MethodInformation {
 
     public void setEntryInstructionIDs(List<Integer> entryInstructionIDs) {
         this.entryInstructionIDs = entryInstructionIDs;
+    }
+
+    public void addIfInstructions(List<AnalyzedInstruction> ifInstructions) {
+        this.ifInstructions = ifInstructions;
+    }
+
+    public List<AnalyzedInstruction> getIfInstructions() {
+        return ifInstructions;
     }
 
     public String getMethodID() {

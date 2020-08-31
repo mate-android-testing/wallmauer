@@ -9,7 +9,9 @@ import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import org.apache.commons.io.FileUtils;
 import org.jf.dexlib2.DexFileFactory;
+import org.jf.dexlib2.Format;
 import org.jf.dexlib2.Opcodes;
+import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction3rc;
@@ -17,6 +19,7 @@ import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
 
@@ -36,53 +39,11 @@ public final class Utility {
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
 
-    // the logger instance
     private static final Logger LOGGER = Logger.getLogger(Utility.class
             .getName());
 
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
-    }
-
-    /**
-     * Checks whether we can find the 'MainActivity' class in the set of given classes.
-     *
-     * @param classes The set of classes contained in the classes.dex file.
-     * @param mainActivity The name of the 'MainActivity'.
-     * @return Returns @{code true} if the 'MainActivity is included, otherwise {@code false}.
-     */
-    public static boolean containsMainActivity(Set<? extends ClassDef> classes, String mainActivity) {
-
-        for (ClassDef classDef: classes) {
-            if (classDef.toString().equals(mainActivity)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Checks whether the 'MainActivity' class declares an 'onDestroy' method.
-     *
-     * @param mainClass The 'MainActivity' class.
-     * @return Returns @{code true} if the onDestroy method is declared, otherwise {@code false}.
-     */
-    public static boolean containsOnDestroy(ClassDef mainClass) {
-
-        for (Method method : mainClass.getMethods()) {
-            if (method.getName().equals("onDestroy")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static boolean isMainActivity(ClassDef classDef, String mainActivity) {
-        return classDef.toString().equals(mainActivity);
-    }
-
-    public static boolean isOnDestroy(Method method) {
-        return method.getName().equals("onDestroy");
     }
 
     /**
@@ -214,6 +175,14 @@ public final class Utility {
         }
     }
 
+    /**
+     * Writes the assembled classes to a dex file.
+     *
+     * @param filePath The path of the newly created dex file.
+     * @param classes The classes that should be contained within the dex file.
+     * @param opCode The API opcode level, e.g. API 28 (Android).
+     * @throws IOException Should never happen.
+     */
     public static void writeToDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
 
         DexFileFactory.writeDexFile(filePath, new DexFile() {
@@ -272,6 +241,19 @@ public final class Utility {
     }
 
     /**
+     * Checks whether the given instruction refers to an if instruction.
+     *
+     * @param analyzedInstruction The instruction to be analyzed.
+     * @return Returns {@code true} if the instruction is a branching instruction,
+     * otherwise {@code false} is returned.
+     */
+    public static boolean isBranchingInstruction(AnalyzedInstruction analyzedInstruction) {
+        Instruction instruction = analyzedInstruction.getInstruction();
+        EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
+        return branchingInstructions.contains(instruction.getOpcode().format);
+    }
+
+    /**
      * Adds the modified method implementation to the list of methods that are written to
      * the instrumented dex file.
      *
@@ -312,56 +294,6 @@ public final class Utility {
                 classDef.getAnnotations(),
                 classDef.getFields(),
                 methods));
-    }
-
-    /**
-     * Increasing the amount of registers for a method requires shifting
-     * certain registers back to their original position. In particular, all
-     * registers, which register id is bigger or equal than the new specified
-     * register count {@param registerNumber}, need to be shifted (increased) by the amount of the newly
-     * created registers. Especially, originally param registers are affected
-     * by increasing the register count, and would be treated now as a local register
-     * without re-ordering (shifting).
-     *
-     * @param instruction    The instruction that is currently inspected.
-     * @param registerNumber Specifies a lower limit for registers, which need to be considered.
-     * @throws NoSuchFieldException   Should never happen, constitutes a byproduct of using reflection.
-     * @throws IllegalAccessException Should never happen, constitutes a byproduct of using reflection.
-     */
-    public static void reOrderRegister(BuilderInstruction instruction, int registerNumber, int shift)
-            throws NoSuchFieldException, IllegalAccessException {
-
-        // those invoke range instructions require a special treatment, since they don't have fields containing the registers
-        if (instruction instanceof BuilderInstruction3rc) {
-
-            // those instructions store the number of registers (var registerCount) and the first register of these range (var startRegister)
-            int registerStart = ((BuilderInstruction3rc) instruction).getStartRegister();
-            java.lang.reflect.Field f = instruction.getClass().getDeclaredField("startRegister");
-            if (registerStart >= registerNumber) {
-                f.setAccessible(true);
-                f.set(instruction, registerStart + shift);
-            }
-            return;
-        }
-
-        java.lang.reflect.Field[] fields = instruction.getClass().getDeclaredFields();
-
-        for (java.lang.reflect.Field field : fields) {
-            // all fields are labeled registerA - registerG
-            if (field.getName().startsWith("register") && !field.getName().equals("registerCount")) {
-                field.setAccessible(true);
-                // System.out.println(field.getName());
-                try {
-                    int value = field.getInt(instruction);
-
-                    if (value >= registerNumber)
-                        field.set(instruction, value + shift);
-
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 
     /**

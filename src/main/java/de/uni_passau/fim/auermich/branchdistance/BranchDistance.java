@@ -278,6 +278,14 @@ public class BranchDistance {
         }
     }
 
+    /**
+     * Instruments the classes respectively methods within a dex file.
+     *
+     * @param dexFile The dexFile containing the classes and methods.
+     * @param dexFileName The name of the dexFile.
+     * @param exclusionPattern A pattern describing classes that should be excluded from instrumentation.
+     * @throws IOException Should never happen.
+     */
     private static void instrument(DexFile dexFile, String dexFileName, Pattern exclusionPattern) throws  IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
@@ -328,6 +336,7 @@ public class BranchDistance {
                 // each method is identified by its class name and method name
                 String id = method.toString();
 
+                // track which lifecycle methods are missing, i.e. not overwritten lifecycle methods
                 if (isActivity) {
                     String methodName = id.split("->")[1];
                     if (activityLifeCycleMethods.contains(methodName)) {
@@ -341,10 +350,13 @@ public class BranchDistance {
                 }
 
                 MethodInformation methodInformation = new MethodInformation(id, classDef, method);
-
                 MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
-                // check whether we can instrument given method
+                /* We can only instrument methods with a given register count because
+                 * our instrumentation code uses instructions that only the usage of
+                 * registers with a register ID < MAX_TOTAL_REGISTERS, i.e. the newly
+                 * inserted registers aren't allowed to exceed this limit.
+                 */
                 if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
                     LOGGER.info("Instrumenting method " + method.getName() + " of class " + classDef.toString());
@@ -352,11 +364,12 @@ public class BranchDistance {
                     // determine the new local registers and free register IDs
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
+                    // track the if instructions
+                    methodInformation.addIfInstructions(Analyzer.trackIfInstructions(dexFile, methodInformation));
+
                     // determine the number of branches per method
                     branches.addAll(Analyzer.trackBranches(methodInformation));
 
-                    // determine the entry/beginning instructions of a method
-                    methodInformation.setEntryInstructionIDs(Analyzer.analyzeEntryInstructions(methodInformation, dexFile));
 
                     // determine the register type of the param registers if the method has param registers
                     if (methodInformation.getParamRegisterCount() > 0) {

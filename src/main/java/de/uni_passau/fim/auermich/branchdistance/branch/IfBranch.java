@@ -1,12 +1,12 @@
 package de.uni_passau.fim.auermich.branchdistance.branch;
 
 
-import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.analysis.AnalyzedInstruction;
 
 public class IfBranch extends Branch {
 
-    public IfBranch(BuilderInstruction instruction, String id) {
-        super(instruction, id);
+    public IfBranch(AnalyzedInstruction instruction, String id) {
+        super(instruction);
     }
 
     @Override

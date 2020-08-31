@@ -1,19 +1,17 @@
 package de.uni_passau.fim.auermich.branchdistance.branch;
 
-import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.analysis.AnalyzedInstruction;
 
 public abstract class Branch implements Comparable<Branch> {
 
-    private BuilderInstruction instruction;
-    private String id;
+    private AnalyzedInstruction instruction;
 
-    public Branch(BuilderInstruction instruction, String id) {
+    public Branch(AnalyzedInstruction instruction) {
         this.instruction = instruction;
-        this.id = id;
     }
 
     public int getIndex() {
-        return instruction.getLocation().getIndex();
+        return instruction.getInstructionIndex();
     }
 
     /**
@@ -36,8 +34,8 @@ public abstract class Branch implements Comparable<Branch> {
 
         Branch o = (Branch) other;
 
-        return this.instruction.getLocation().getIndex()
-                == o.instruction.getLocation().getIndex();
+        return this.instruction.getInstructionIndex()
+                == o.instruction.getInstructionIndex();
     }
 
     /**
@@ -49,7 +47,7 @@ public abstract class Branch implements Comparable<Branch> {
      */
     @Override
     public int hashCode() {
-        return instruction.getLocation().getIndex();
+        return instruction.getInstructionIndex();
     }
 
     /**
@@ -61,13 +59,13 @@ public abstract class Branch implements Comparable<Branch> {
      */
     @Override
     public int compareTo(Branch other) {
-        return Integer.compare(this.instruction.getLocation().getIndex(),
-                other.instruction.getLocation().getIndex());
+        return Integer.compare(this.instruction.getInstructionIndex(),
+                other.instruction.getInstructionIndex());
     }
 
     @Override
     public String toString() {
-        return "Branch Position: " + this.instruction.getLocation().getIndex();
+        return "Branch Position: " + this.instruction.getInstructionIndex();
     }
 
 }

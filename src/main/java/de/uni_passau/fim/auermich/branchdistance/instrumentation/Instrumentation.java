@@ -11,6 +11,7 @@ import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jf.dexlib2.Opcode;
+import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
@@ -195,6 +196,34 @@ public final class Instrumentation {
         return mutableMethodImplementation;
     }
 
+    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index,
+                                                                         boolean elseBranch) {
+
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // we require one parameter containing the unique branch id
+        int freeRegisterID = methodInformation.getFreeRegisters().get(0);
+
+        // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
+        BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
+                new ImmutableStringReference(""));
+
+        // invoke-static-range
+        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                freeRegisterID, 1,
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                        Lists.newArrayList("Ljava/lang/String;"), "V"));
+
+        mutableMethodImplementation.addInstruction(++index, constString);
+        mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
+        return mutableMethodImplementation;
+
+    }
+
     /**
      * Performs the instrumentation, i.e. inserts the following instructions at each branch:
      * 1) const-string/16 pN, "unique-branch-id" (pN refers to the register with the highest ID)
@@ -202,8 +231,6 @@ public final class Instrumentation {
      * Also instruments the method entry and exit.
      */
     public static void modifyMethod(MethodInformation methodInformation) {
-
-        LOGGER.info("Instrumenting branches now...");
 
         MutableMethodImplementation mutableImplementation =
                 new MutableMethodImplementation(methodInformation.getMethodImplementation());
@@ -216,16 +243,41 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
+        List<AnalyzedInstruction> ifInstructions = methodInformation.getIfInstructions();
+
+        // determine the branches and sort them
+        Comparator<AnalyzedInstruction> comparator = Comparator.comparingInt(AnalyzedInstruction::getInstructionIndex);
+        Set<AnalyzedInstruction> branches = new TreeSet<>(comparator);
+
+        // track the instruction ids of else branches
+        List<Integer> elseBranches = new ArrayList<>();
+
+        for (AnalyzedInstruction ifInstruction : ifInstructions) {
+            List<AnalyzedInstruction> branchTargets = ifInstruction.getSuccessors();
+
+            for (AnalyzedInstruction branchTarget : branchTargets) {
+                if (branchTarget.getInstructionIndex() != ifInstruction.getInstructionIndex() + 1) {
+                    // else branch
+                    elseBranches.add(branchTarget.getInstructionIndex());
+                }
+                branches.add(branchTarget);
+            }
+        }
+
+        // combine branches + if instructions in reverse order
+        Set<AnalyzedInstruction> instrumentationPoints = new TreeSet<>(Collections.reverseOrder(comparator));
+        instrumentationPoints.addAll(branches);
+        instrumentationPoints.addAll(ifInstructions);
+
+        for (AnalyzedInstruction instrumentationPoint : instrumentationPoints) {
+
+
+
+
+        }
+
         // sort the branches by their position/location within the method
         Set<Branch> sortedBranches = new TreeSet<>(methodInformation.getBranches());
-
-        LOGGER.info(sortedBranches.toString());
-        LOGGER.info("Number of Instructions: " + mutableImplementation.getInstructions().size());
-
-        mutableImplementation.getInstructions().stream().forEach(
-                instruction -> {
-                    LOGGER.fine(instruction.getOpcode().toString());
-                });
 
         /*
          * Traverse the branches backwards, i.e. the last branch comes first, in order
