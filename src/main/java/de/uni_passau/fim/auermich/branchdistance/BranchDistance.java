@@ -83,86 +83,6 @@ public class BranchDistance {
     }
 
     /**
-     * Parses the AndroidManifest.xml for the package name and the name of the main activity.
-     *
-     * @param manifest The path of the manifest file.
-     * @return Returns {@code true} when we were able to derive both information,
-     *              otherwise {@code false}.
-     */
-    private static boolean parseManifest(String manifest) {
-
-        try {
-            File xmlFile = new File(manifest);
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-            Document doc = dBuilder.parse(xmlFile);
-
-            NodeList nodeList = doc.getElementsByTagName("manifest");
-            // there should be only a single manifest tag
-            Node node = nodeList.item(0);
-
-            // get the package name
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-
-                if (!element.hasAttribute("package")) {
-                    LOGGER.severe("Couldn't derive package name!");
-                    return false;
-                } else {
-                    // we need to add a missing slash to the packageName
-                    packageName = element.getAttribute("package") + "/";
-                }
-            }
-
-            NodeList intentFilters = doc.getElementsByTagName("intent-filter");
-            final String NAME_ATTRIBUTE = "android:name";
-
-            // find intent-filter that describes the main activity
-            for (int i = 0; i < intentFilters.getLength(); i++) {
-
-                Node intentFilter = intentFilters.item(i);
-                NodeList tags = intentFilter.getChildNodes();
-
-                boolean foundMainAction = false;
-                boolean foundMainCategory = false;
-
-                for (int j = 0; j < tags.getLength(); j++) {
-                    Node tag = tags.item(j);
-                    if (tag.getNodeType() == Node.ELEMENT_NODE) {
-                        Element element = (Element) tag;
-
-                        if (element.getTagName().equals("action")
-                            && element.getAttribute(NAME_ATTRIBUTE)
-                                .equals("android.intent.action.MAIN")) {
-                            foundMainAction = true;
-                        } else if (element.getTagName().equals("category")
-                            && element.getAttribute(NAME_ATTRIBUTE)
-                                .equals("android.intent.category.LAUNCHER")) {
-                            foundMainCategory = true;
-                        }
-
-                        if (foundMainAction && foundMainCategory) {
-                            Node mainActivityNode = intentFilter.getParentNode();
-                            if (mainActivityNode.getNodeType() == Node.ELEMENT_NODE) {
-                                Element main = (Element) mainActivityNode;
-                                if (main.getTagName().equals("activity")) {
-                                    mainActivity = main.getAttribute(NAME_ATTRIBUTE);
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            LOGGER.severe("Couldn't derive name of main-activity");
-        } catch (Exception e) {
-            LOGGER.severe("Couldn't parse AndroidManifest.xml");
-            LOGGER.severe(e.getMessage());
-        }
-        return false;
-    }
-
-    /**
      * Invokes the instrumentation process on a given app.
      *
      * @param args A single commandline argument specifying the path to the APK file.
@@ -293,9 +213,6 @@ public class BranchDistance {
         // the set of classes we write into the instrumented classes.dex file
         List<ClassDef> classes = Lists.newArrayList();
 
-        // count total number of branches per each class
-        List<Branch> branches = new LinkedList<>();
-
         for (ClassDef classDef : dexFile.getClasses()) {
 
             // the class name is part of the method id
@@ -328,8 +245,8 @@ public class BranchDistance {
             // track whether we modified the method or not
             boolean modifiedMethod = false;
 
-            // reset number of branches per class
-            branches.clear();
+            // count the number of branches per class
+            int numberOfBranches = 0;
 
             for (Method method : classDef.getMethods()) {
 
@@ -364,11 +281,11 @@ public class BranchDistance {
                     // determine the new local registers and free register IDs
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
-                    // track the if instructions
-                    methodInformation.addIfInstructions(Analyzer.trackIfInstructions(dexFile, methodInformation));
+                    // determine where we need to instrument
+                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
-                    // determine the number of branches per method
-                    branches.addAll(Analyzer.trackBranches(methodInformation));
+                    // determine the number of branches per class
+                    numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);
 
 
                     // determine the register type of the param registers if the method has param registers
@@ -376,7 +293,7 @@ public class BranchDistance {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
                     }
 
-                    // instrument branches + method entry and exit
+                    // instrument branches + if stmts
                     Instrumentation.modifyMethod(methodInformation);
                     modifiedMethod = true;
 
@@ -417,7 +334,7 @@ public class BranchDistance {
             }
 
             // write out the number of branches per class
-            Utility.writeBranches(className, branches.size());
+            Utility.writeBranches(className, numberOfBranches);
         }
 
         // assemble modified dex files

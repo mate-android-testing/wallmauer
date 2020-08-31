@@ -6,6 +6,7 @@ import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
 import de.uni_passau.fim.auermich.branchdistance.branch.ElseBranch;
 import de.uni_passau.fim.auermich.branchdistance.branch.IfBranch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
@@ -22,33 +23,77 @@ import org.jf.dexlib2.util.MethodUtil;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public final class Analyzer {
 
+    private static final Logger LOGGER = Logger.getLogger(Analyzer.class
+            .getName());
 
-    public static List<AnalyzedInstruction> trackIfInstructions(DexFile dexFile, MethodInformation methodInformation) {
+    public static Set<InstrumentationPoint> trackInstrumentationPoints(MethodInformation methodInformation) {
 
-        List<AnalyzedInstruction> ifInstructions = new ArrayList<>();
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
 
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), methodInformation.getMethod(),
-                null, false);
+        MutableMethodImplementation mutableMethodImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
 
-        // TODO: can be simplified with stream API
-        for (AnalyzedInstruction analyzedInstruction : analyzer.getAnalyzedInstructions()) {
+        List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 
-            if (Utility.isBranchingInstruction(analyzedInstruction)) {
+        for (BuilderInstruction instruction : instructions) {
 
-                if (analyzedInstruction.getSuccessors().size() > 2) {
-                    throw new UnsupportedOperationException("IF statements with > 2 successors are not supported!");
-                }
+            // check whether instruction is an if instruction
+            if (instruction instanceof BuilderInstruction21t
+                    || instruction instanceof BuilderInstruction22t) {
 
-                ifInstructions.add(analyzedInstruction);
+                /*
+                * We need to instrument before the if instruction, where we basically want to compute the branch
+                * distance.
+                 */
+                InstrumentationPoint ifInstruction = new InstrumentationPoint(instruction.getLocation().getIndex(), InstrumentationPoint.Type.IF_STMT);
+                instrumentationPoints.add(ifInstruction);
+
+                // The if branch starts at the next instruction, which we also need to trace.
+                InstrumentationPoint ifBranch = new InstrumentationPoint(instruction.getLocation().getIndex() + 1, InstrumentationPoint.Type.IF_BRANCH);
+                instrumentationPoints.add(ifBranch);
+
+                // We also need to instrument the else branch.
+                int elseBranchPosition = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
+                InstrumentationPoint elseBranch = new InstrumentationPoint(elseBranchPosition, InstrumentationPoint.Type.ELSE_BRANCH);
+                instrumentationPoints.add(elseBranch);
             }
         }
 
-        return ifInstructions;
+        LOGGER.info(instrumentationPoints.toString());
+        return instrumentationPoints;
+    }
+
+    /**
+     * Tracks the number of branches contained in a given method.
+     *
+     * @param methodInformation Encapsulates a given method.
+     * @return Returns the number of branches in the given method.
+     */
+    public static int trackNumberOfBranches(MethodInformation methodInformation) {
+
+        MutableMethodImplementation mutableMethodImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
+
+        Set<BuilderInstruction> branches = new HashSet<>();
+
+        for(BuilderInstruction instruction : instructions) {
+
+            if (instruction instanceof BuilderInstruction21t
+                    || instruction instanceof BuilderInstruction22t) {
+
+                branches.add(instructions.get(instruction.getLocation().getIndex() + 1));
+                branches.add(instructions.get(((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex()));
+            }
+        }
+
+        return branches.size();
     }
 
     /**

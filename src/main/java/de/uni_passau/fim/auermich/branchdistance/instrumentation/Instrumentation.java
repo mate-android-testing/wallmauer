@@ -196,8 +196,16 @@ public final class Instrumentation {
         return mutableMethodImplementation;
     }
 
-    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index,
-                                                                         boolean elseBranch) {
+    /**
+     * Instruments the given branch with the tracer functionality.
+     *
+     * @param methodInformation Stores all relevant information about the given method.
+     * @param index             The position where we insert our instrumented code.
+     * @param id                The id which identifies the given branch, i.e. packageName->className->method->branchID.
+     * @param elseBranch        Whether the location where we instrument refers to an else branch.
+     * @return Returns the instrumented method implementation.
+     */
+    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index, final String id, boolean elseBranch) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -207,7 +215,7 @@ public final class Instrumentation {
 
         // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
         BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
-                new ImmutableStringReference(""));
+                new ImmutableStringReference(id));
 
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -215,20 +223,32 @@ public final class Instrumentation {
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
-        mutableMethodImplementation.addInstruction(++index, constString);
-        mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+        if (elseBranch) {
+            mutableMethodImplementation.addInstruction(++index, constString);
+            mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+
+            /*
+             * We cannot directly insert our instructions after the else-branch label (those instructions
+             * would fall between the goto and else-branch label). Instead we need to insert our
+             * instructions after the first instructions there, and swap them back afterwards.
+             */
+            mutableMethodImplementation.swapInstructions(index - 2, index - 1);
+            mutableMethodImplementation.swapInstructions(index - 1, index);
+        } else {
+            mutableMethodImplementation.addInstruction(index, constString);
+            mutableMethodImplementation.addInstruction(index+1, invokeStaticRange);
+        }
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
         return mutableMethodImplementation;
-
     }
 
     /**
-     * Performs the instrumentation, i.e. inserts the following instructions at each branch:
-     * 1) const-string/16 pN, "unique-branch-id" (pN refers to the register with the highest ID)
-     * 2) invoke-range-static Tracer.trace(pN)
-     * Also instruments the method entry and exit.
+     * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. branch or if stmt, a trace
+     * statement. For each if stmt, the branch distance is computed as well.
+     *
+     * @param methodInformation Encapsulates a method and its instrumentation points.
      */
     public static void modifyMethod(MethodInformation methodInformation) {
 
@@ -243,89 +263,48 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        List<AnalyzedInstruction> ifInstructions = methodInformation.getIfInstructions();
+        // TODO: avoid to instrument a branch multiple times, i.e. when an if stmt is the first instruction of an else branch!
 
-        // determine the branches and sort them
-        Comparator<AnalyzedInstruction> comparator = Comparator.comparingInt(AnalyzedInstruction::getInstructionIndex);
-        Set<AnalyzedInstruction> branches = new TreeSet<>(comparator);
+        Set<Integer> coveredInstructionPoints = new HashSet<>();
 
-        // track the instruction ids of else branches
-        List<Integer> elseBranches = new ArrayList<>();
-
-        for (AnalyzedInstruction ifInstruction : ifInstructions) {
-            List<AnalyzedInstruction> branchTargets = ifInstruction.getSuccessors();
-
-            for (AnalyzedInstruction branchTarget : branchTargets) {
-                if (branchTarget.getInstructionIndex() != ifInstruction.getInstructionIndex() + 1) {
-                    // else branch
-                    elseBranches.add(branchTarget.getInstructionIndex());
-                }
-                branches.add(branchTarget);
-            }
-        }
-
-        // combine branches + if instructions in reverse order
-        Set<AnalyzedInstruction> instrumentationPoints = new TreeSet<>(Collections.reverseOrder(comparator));
-        instrumentationPoints.addAll(branches);
-        instrumentationPoints.addAll(ifInstructions);
-
-        for (AnalyzedInstruction instrumentationPoint : instrumentationPoints) {
-
-
-
-
-        }
-
-        // sort the branches by their position/location within the method
-        Set<Branch> sortedBranches = new TreeSet<>(methodInformation.getBranches());
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
+        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
         /*
          * Traverse the branches backwards, i.e. the last branch comes first, in order
          * to avoid inherent index/position updates of other branches while instrumenting.
-         * This resolves the issue of branches that share the same position, e.g. two
-         * if branches refer to the same else branch. Since branches are only comparable
-         * by their position, an intermediate index change would make branches incomparable,
-         * thus leading to a multiple instrumentation of the same branch.
          */
-        Iterator<Branch> iterator = ((TreeSet<Branch>) sortedBranches).descendingIterator();
-
-        int branchIndex = sortedBranches.size() - 1;
-
         while (iterator.hasNext()) {
 
-            Branch branch = iterator.next();
+            InstrumentationPoint instrumentationPoint = iterator.next();
+            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
 
-            // unique branch id: full-qualified method name + id of first instruction at branch
-            String id = methodInformation.getMethodID();
+            if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT) {
+                // compute branch distance + trace
 
-            id += "->" + branch.getIndex();
-            int branchPosition = branch.getIndex();
+                // TODO: add branch distance computation
 
-            // we need to insert our code before the first instruction residing at the if branch
-            if (branch instanceof IfBranch) {
-                branchPosition--;
-            }
+                // we only need to add a trace if it is not yet covered -> avoids instrumentation same location multiple times
+                if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
+                    // instrument branch
+                    coveredInstructionPoints.add(instrumentationPoint.getPosition());
+                    mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, false);
+                }
 
-            LOGGER.info(branch.toString());
-
-            // instrument branch
-            mutableImplementation = insertInstrumentationCode(methodInformation, branchPosition, id);
-
-            LOGGER.fine("Number of Instructions after Instrumentation: " + mutableImplementation.getInstructions().size());
-
-            // swap instructions to right position when dealing with an else branch
-            if (branch instanceof ElseBranch) {
+            } else {
+                // instrument branch with trace
+                coveredInstructionPoints.add(instrumentationPoint.getPosition());
 
                 /*
-                 * We cannot directly insert our instructions after the else-branch label (those instructions
-                 * would fall between the goto and else-branch label). Instead we need to insert our
-                 * instructions after the first instructions there, and swap them back afterwards.
+                * We can't directly insert a statement before the else branch, instead
+                * we need to insert our code after the first instruction of the else branch
+                * and later swap those instructions.
                  */
-                mutableImplementation.swapInstructions(branchPosition, branchPosition + 1);
-                mutableImplementation.swapInstructions(branchPosition + 1, branchPosition + 2);
+                boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
+                mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, shiftInstruction);
             }
-            branchIndex--;
         }
+
         // update implementation
         methodInformation.setMethodImplementation(mutableImplementation);
 
@@ -333,15 +312,9 @@ public final class Instrumentation {
         List<Integer> entryInstructionIDs = methodInformation.getEntryInstructionIDs();
         Collections.reverse(entryInstructionIDs);
 
-        /*
-        for (Integer entryInstructionID : entryInstructionIDs) {
-            // consider offset of 1
-            mutableImplementation = insertInstrumentationCode(methodInformation, entryInstructionID,
-                    methodInformation.getMethodID() + "->entry" + entryInstructionID);
-        }
-        */
 
         // we need to instrument the try catch blocks
+        /*
         List<Integer> tryCatchBlocks = Analyzer.analyzeTryCatchBlocks(methodInformation);
         Collections.reverse(tryCatchBlocks);
 
@@ -349,6 +322,7 @@ public final class Instrumentation {
             mutableImplementation = insertInstrumentationCode(methodInformation, tryCatchBlock,
                     methodInformation.getMethodID() + "->tryCatchBlock" + tryCatchBlock);
         }
+        */
 
         methodInformation.setMethodImplementation(mutableImplementation);
 

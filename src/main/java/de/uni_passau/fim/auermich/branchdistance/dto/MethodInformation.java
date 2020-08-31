@@ -1,6 +1,7 @@
 package de.uni_passau.fim.auermich.branchdistance.dto;
 
 import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
+import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
 import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.iface.ClassDef;
@@ -56,11 +57,22 @@ public class MethodInformation {
     // the instruction IDs of entry/beginning instructions
     private List<Integer> entryInstructionIDs = new ArrayList<>();
 
+    // contains the locations where we need to instrument
+    private Set<InstrumentationPoint> instrumentationPoints;
+
     public MethodInformation(String methodID, ClassDef classDef, Method method) {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
         methodImplementation = method.getImplementation();
+    }
+
+    public Set<InstrumentationPoint> getInstrumentationPoints() {
+        return instrumentationPoints;
+    }
+
+    public void setInstrumentationPoints(Set<InstrumentationPoint> instrumentationPoints) {
+        this.instrumentationPoints = instrumentationPoints;
     }
 
     public List<Integer> getEntryInstructionIDs() {
