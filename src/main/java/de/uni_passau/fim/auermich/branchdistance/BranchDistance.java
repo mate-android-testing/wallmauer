@@ -284,6 +284,9 @@ public class BranchDistance {
                     // determine where we need to instrument
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
+                    // determine the method entry points
+                    
+
                     // determine the number of branches per class
                     numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);
 

@@ -246,7 +246,8 @@ public final class Instrumentation {
 
     /**
      * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. branch or if stmt, a trace
-     * statement. For each if stmt, the branch distance is computed as well.
+     * statement. For each if stmt, the branch distance is computed as well. In addition, also method entry
+     * and exit is instrumented.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
      */
@@ -323,34 +324,49 @@ public final class Instrumentation {
                     methodInformation.getMethodID() + "->tryCatchBlock" + tryCatchBlock);
         }
         */
+        instrumentMethodExit(methodInformation);
+    }
 
-        methodInformation.setMethodImplementation(mutableImplementation);
 
-        // finally we need to instrument the method exit
-        List<Integer> returnStmtIndices = new ArrayList<>();
+    private static void instrumentMethodEntry(MethodInformation methodInformation) {
 
-        // collect the indices of the return statements
+
+
+    }
+
+    /**
+     * Instruments the method exit, i.e. before each return or throw statement a trace is inserted.
+     *
+     * @param methodInformation Encapsulates the method to be instrumented.
+     */
+    private static void instrumentMethodExit(MethodInformation methodInformation) {
+
+        MutableMethodImplementation mutableImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        List<Integer> returnOrThrowStmtIndices = new ArrayList<>();
+
+        // collect the indices of the return or throw statements
         for (BuilderInstruction instruction : mutableImplementation.getInstructions()) {
-            // search for return instructions
             if (instruction.getOpcode() == Opcode.RETURN
                     || instruction.getOpcode() == Opcode.RETURN_VOID
                     || instruction.getOpcode() == Opcode.RETURN_OBJECT
                     || instruction.getOpcode() == Opcode.RETURN_WIDE
                     || instruction.getOpcode() == Opcode.RETURN_VOID_BARRIER
-                    || instruction.getOpcode() == Opcode.RETURN_VOID_NO_BARRIER) {
-                returnStmtIndices.add(instruction.getLocation().getIndex());
+                    || instruction.getOpcode() == Opcode.RETURN_VOID_NO_BARRIER
+                    || instruction.getOpcode() == Opcode.THROW
+                    || instruction.getOpcode() == Opcode.THROW_VERIFICATION_ERROR) {
+                returnOrThrowStmtIndices.add(instruction.getLocation().getIndex());
             }
         }
 
         // backwards traverse the return instructions -> no shifting issue
-        Collections.reverse(returnStmtIndices);
+        Collections.reverse(returnOrThrowStmtIndices);
 
-        for (Integer returnStmtIndex : returnStmtIndices) {
-            // insert the tracer functionality prior to each return statement
-            mutableImplementation = insertInstrumentationCode(methodInformation, returnStmtIndex - 1,
-                    methodInformation.getMethodID() + "->exit");
-            // update implementation
-            methodInformation.setMethodImplementation(mutableImplementation);
+        final String trace = methodInformation.getMethodID() + "->exit";
+
+        for (Integer returnOrThrowStmtIndex : returnOrThrowStmtIndices) {
+            insertInstrumentationCode(methodInformation, returnOrThrowStmtIndex, trace, false);
         }
     }
 
