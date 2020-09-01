@@ -309,28 +309,54 @@ public final class Instrumentation {
         // update implementation
         methodInformation.setMethodImplementation(mutableImplementation);
 
-        // we need to instrument the method entry (do this after branches, otherwise branch ids are corrupted)
-        List<Integer> entryInstructionIDs = methodInformation.getEntryInstructionIDs();
-        Collections.reverse(entryInstructionIDs);
+        instrumentMethodEntry(methodInformation);
+        instrumentMethodExit(methodInformation);
+        // instrumentTryCatchBlocks(methodInformation);
+    }
 
+    /**
+     * Instruments try-catch blocks of a method. This is necessary to ensure which path was taken
+     * in the control-flow graph. Currently unused.
+     *
+     * @param methodInformation Encapsulates the method to be instrumented.
+     */
+    private static void instrumentTryCatchBlocks(MethodInformation methodInformation) {
 
-        // we need to instrument the try catch blocks
         /*
+        * TODO: To get the full path going through a try-catch block, it is probably
+        *   necessary to instrument AFTER each statement within a try block, which
+        *   is linked to the catch block, and, in addition, it is necessary to instrument
+        *   the beginning of a catch block. But how should we handle for instance return/throw
+        *   instructions within try blocks, we can't insert our trace after those instructions.
+        *   Probably we need to find a trade-off here.
+         */
+
         List<Integer> tryCatchBlocks = Analyzer.analyzeTryCatchBlocks(methodInformation);
         Collections.reverse(tryCatchBlocks);
 
         for (Integer tryCatchBlock : tryCatchBlocks) {
-            mutableImplementation = insertInstrumentationCode(methodInformation, tryCatchBlock,
+            insertInstrumentationCode(methodInformation, tryCatchBlock,
                     methodInformation.getMethodID() + "->tryCatchBlock" + tryCatchBlock);
         }
-        */
-        instrumentMethodExit(methodInformation);
+
     }
 
-
+    /**
+     * Instruments the method entry, i.e. before the first or the first instruction within a cath block a trace is inserted.
+     *
+     * @param methodInformation Encapsulates the method to be instrumented.
+     */
     private static void instrumentMethodEntry(MethodInformation methodInformation) {
 
+        List<Integer> entryInstructionIDs = methodInformation.getEntryInstructionIDs();
+        Collections.reverse(entryInstructionIDs);
 
+        final String trace = methodInformation.getMethodID() + "->entry";
+
+
+        for (Integer entryInstructionID : entryInstructionIDs) {
+            insertInstrumentationCode(methodInformation, entryInstructionID, trace, false);
+        }
 
     }
 

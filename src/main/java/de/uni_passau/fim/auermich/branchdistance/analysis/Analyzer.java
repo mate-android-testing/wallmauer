@@ -31,6 +31,12 @@ public final class Analyzer {
     private static final Logger LOGGER = Logger.getLogger(Analyzer.class
             .getName());
 
+    /**
+     * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @return Returns the set of instrumentation points.
+     */
     public static Set<InstrumentationPoint> trackInstrumentationPoints(MethodInformation methodInformation) {
 
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
@@ -96,51 +102,7 @@ public final class Analyzer {
         return branches.size();
     }
 
-    /**
-     * Traverses and collects the branches for the given method. This yields
-     * the number of branches per method, whereas duplicates are removed inherently.
-     *
-     * @param methodInformation Stores all relevant information about a method.
-     * @return Returns a set of branches (duplicates eliminated) for the given method.
-     */
-    public static Set<Branch> trackBranches(MethodInformation methodInformation) {
 
-        MutableMethodImplementation mutableMethodImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
-
-        List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
-
-        Set<BuilderInstruction> coveredInstructions = new HashSet<>();
-        Set<Branch> branches = new HashSet<>();
-
-        int branchID = 0;
-
-        for (int i = 0; i < instructions.size(); i++) {
-
-            BuilderInstruction instruction = instructions.get(i);
-
-            if (instruction instanceof BuilderInstruction21t
-                    || instruction instanceof BuilderInstruction22t && !coveredInstructions.contains(instruction)) {
-
-                // avoid iterating over same instruction multiple times
-                coveredInstructions.add(instruction);
-
-                String id = methodInformation.getMethodID() + "->" + branchID;
-
-                // if branch location (uses the instruction/instruction id following the if-instruction)
-                Branch ifBranch = new IfBranch(null, id);
-                branches.add(ifBranch);
-                branchID++;
-
-                // else branch location
-                Branch elseBranch = new ElseBranch(null, id);
-                branches.add(elseBranch);
-                branchID++;
-            }
-        }
-        methodInformation.setBranches(branches);
-        return branches;
-    }
 
     /**
      * Tracks the instruction IDs of entry/beginning instructions. A method can have multiple such
@@ -150,7 +112,7 @@ public final class Analyzer {
      * @param dexFile           The dexFile containing the method implementation.
      * @return Returns a list of instruction IDs referring to the entry/beginning instructions.
      */
-    public static List<Integer> analyzeEntryInstructions(MethodInformation methodInformation, DexFile dexFile) {
+    public static List<Integer> trackEntryInstructions(MethodInformation methodInformation, DexFile dexFile) {
 
         MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
                 true, ClassPath.NOT_ART), methodInformation.getMethod(),

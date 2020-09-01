@@ -285,7 +285,7 @@ public class BranchDistance {
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
                     // determine the method entry points
-                    
+                    methodInformation.setEntryInstructionIDs(Analyzer.trackEntryInstructions(methodInformation, dexFile));
 
                     // determine the number of branches per class
                     numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);
