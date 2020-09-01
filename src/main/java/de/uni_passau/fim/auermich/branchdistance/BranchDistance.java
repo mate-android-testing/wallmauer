@@ -2,7 +2,6 @@ package de.uni_passau.fim.auermich.branchdistance;
 
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.instrumentation.Instrumentation;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
@@ -16,14 +15,16 @@ import org.jf.dexlib2.dexbacked.DexBackedDexFile;
 import org.jf.dexlib2.iface.*;
 import org.jf.smali.Smali;
 import org.jf.smali.SmaliOptions;
-import org.w3c.dom.*;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -266,7 +267,7 @@ public class BranchDistance {
                     }
                 }
 
-                MethodInformation methodInformation = new MethodInformation(id, classDef, method);
+                MethodInformation methodInformation = new MethodInformation(id, classDef, method, dexFile);
                 MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
                 /* We can only instrument methods with a given register count because

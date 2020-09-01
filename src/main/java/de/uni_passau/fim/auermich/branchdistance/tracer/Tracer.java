@@ -55,6 +55,46 @@ public class Tracer extends BroadcastReceiver {
         }
     }
 
+    // unary operation
+    public static void computeBranchDistance(int operation, int argument) {
+
+        // TODO: combine unary and binary operation, simple call with '0' as second argument for unary
+        // TODO: may use double for distance and re-use method for both primitive and primitive-wide types
+        int distance = 0;
+
+        switch (operation) {
+            case 0: // if-eqz
+                distance = Math.abs(argument);
+                break;
+            case 1: // if-nez
+                distance = Math.abs(argument);
+                break;
+            case 2: // if-lez
+                distance = argument;
+                break;
+            case 3: // if-gez
+                distance = -argument;
+                break;
+            case 4: // if-ltz
+                distance = argument;
+                break;
+            case 5: // if-gtz
+                distance = -argument;
+                break;
+                default:
+                    throw new UnsupportedOperationException("Comparison operator not yet supported!");
+        }
+
+        // TODO: call tracer with distance + identifier for if stmt?
+    }
+
+    // binary operation
+    public static void computeBranchDistance(int operation, int argument1, int argument2) {
+        switch (operation) {
+            case 0: //
+        }
+    }
+
     /**
      * Adds a new branch to the set of covered branches. The set
      * ensures that we don't track duplicate branches.

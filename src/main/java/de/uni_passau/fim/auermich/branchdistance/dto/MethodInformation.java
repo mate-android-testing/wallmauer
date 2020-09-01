@@ -1,10 +1,10 @@
 package de.uni_passau.fim.auermich.branchdistance.dto;
 
-import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
+import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
-import org.jf.dexlib2.analysis.AnalyzedInstruction;
-import org.jf.dexlib2.analysis.RegisterType;
+import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.iface.ClassDef;
+import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
 
@@ -25,16 +25,14 @@ public class MethodInformation {
     // a reference to the actual method
     private final Method method;
 
+    // a reference to the dex file
+    private final DexFile dexFile;
+
     // a list of free/usable register IDs
     private List<Integer> freeRegisters;
 
     // a list of the additional register IDs
     private List<Integer> newRegisters;
-
-    private List<AnalyzedInstruction> ifInstructions;
-
-    // a set of branches included in the method
-    private Set<Branch> branches;
 
     // the total register count
     private int totalRegisterCount;
@@ -60,11 +58,30 @@ public class MethodInformation {
     // contains the locations where we need to instrument
     private Set<InstrumentationPoint> instrumentationPoints;
 
-    public MethodInformation(String methodID, ClassDef classDef, Method method) {
+    public MethodInformation(String methodID, ClassDef classDef, Method method, DexFile dexFile) {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
         methodImplementation = method.getImplementation();
+        this.dexFile = dexFile;
+    }
+
+    public AnalyzedInstruction getInstructionAtIndex(int index) {
+
+        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                true, ClassPath.NOT_ART), method,
+                null, false);
+
+        return analyzer.getAnalyzedInstructions().get(index);
+    }
+
+    public List<AnalyzedInstruction> getInstructions() {
+
+        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                true, ClassPath.NOT_ART), method,
+                null, false);
+
+        return analyzer.getAnalyzedInstructions();
     }
 
     public Set<InstrumentationPoint> getInstrumentationPoints() {
@@ -81,14 +98,6 @@ public class MethodInformation {
 
     public void setEntryInstructionIDs(List<Integer> entryInstructionIDs) {
         this.entryInstructionIDs = entryInstructionIDs;
-    }
-
-    public void addIfInstructions(List<AnalyzedInstruction> ifInstructions) {
-        this.ifInstructions = ifInstructions;
-    }
-
-    public List<AnalyzedInstruction> getIfInstructions() {
-        return ifInstructions;
     }
 
     public String getMethodID() {
@@ -131,20 +140,12 @@ public class MethodInformation {
         return paramRegisterCount;
     }
 
-    public Set<Branch> getBranches() {
-        return branches;
-    }
-
     public void setFreeRegisters(List<Integer> freeRegisters) {
         this.freeRegisters = freeRegisters;
     }
 
     public void setNewRegisters(List<Integer> newRegisters) {
         this.newRegisters = newRegisters;
-    }
-
-    public void setBranches(Set<Branch> branches) {
-        this.branches = branches;
     }
 
     public void setTotalRegisterCount(int totalRegisters) {

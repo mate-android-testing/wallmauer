@@ -2,12 +2,8 @@ package de.uni_passau.fim.auermich.branchdistance.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
-import de.uni_passau.fim.auermich.branchdistance.branch.ElseBranch;
-import de.uni_passau.fim.auermich.branchdistance.branch.IfBranch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;

@@ -3,16 +3,13 @@ package de.uni_passau.fim.auermich.branchdistance.instrumentation;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchdistance.branch.Branch;
-import de.uni_passau.fim.auermich.branchdistance.branch.ElseBranch;
-import de.uni_passau.fim.auermich.branchdistance.branch.IfBranch;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jf.dexlib2.Format;
 import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.AnalyzedInstruction;
-import org.jf.dexlib2.analysis.RegisterType;
+import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
@@ -168,40 +165,6 @@ public final class Instrumentation {
      * @param methodInformation Stores all relevant information about the given method.
      * @param index             The position where we insert our instrumented code.
      * @param id                The id which identifies the given branch, i.e. packageName->className->method->branchID.
-     * @return Returns the instrumented method implementation.
-     */
-    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index, final String id) {
-
-        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
-        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
-
-        // we require one parameter containing the unique branch id
-        int freeRegisterID = methodInformation.getFreeRegisters().get(0);
-
-        // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
-        BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
-                new ImmutableStringReference(id));
-
-        // invoke-static-range
-        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
-                freeRegisterID, 1,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
-                        Lists.newArrayList("Ljava/lang/String;"), "V"));
-
-        mutableMethodImplementation.addInstruction(++index, constString);
-        mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
-
-        // update implementation
-        methodInformation.setMethodImplementation(mutableMethodImplementation);
-        return mutableMethodImplementation;
-    }
-
-    /**
-     * Instruments the given branch with the tracer functionality.
-     *
-     * @param methodInformation Stores all relevant information about the given method.
-     * @param index             The position where we insert our instrumented code.
-     * @param id                The id which identifies the given branch, i.e. packageName->className->method->branchID.
      * @param elseBranch        Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
@@ -264,10 +227,8 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        // TODO: avoid to instrument a branch multiple times, i.e. when an if stmt is the first instruction of an else branch!
-
+        // instrument the branches first
         Set<Integer> coveredInstructionPoints = new HashSet<>();
-
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
         Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
@@ -285,7 +246,7 @@ public final class Instrumentation {
 
                 // TODO: add branch distance computation
 
-                // we only need to add a trace if it is not yet covered -> avoids instrumentation same location multiple times
+                // we only need to add a trace if it is not yet covered -> avoids instrumenting same location multiple times
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
                     // instrument branch
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
@@ -314,6 +275,57 @@ public final class Instrumentation {
         // instrumentTryCatchBlocks(methodInformation);
     }
 
+    private static void computeBranchDistance(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
+
+        MutableMethodImplementation mutableImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        // get the if instruction
+        int instructionIndex = instrumentationPoint.getPosition();
+        BuilderInstruction ifInstruction = mutableImplementation.getInstructions().get(instructionIndex);
+        AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
+
+        // should return the register ids that are used with this instruction???
+        List<Integer> setRegisters = instruction.getSetRegisters();
+
+        // TODO: derive type
+        instruction.getPostInstructionRegisterType(0);
+
+        // map op code to interal operation code
+        int operation = mapOpCodeToOperation(ifInstruction.getOpcode());
+
+        if (ifInstruction.getFormat() == Format.Format21t) {
+            // unary operation -> if-eqz v0
+
+        } else {
+            // binary operation -> if-eq v0, v1
+        }
+
+
+
+    }
+
+    // returns an operation code for a given op code
+    private static int mapOpCodeToOperation(Opcode opcode) {
+
+        switch (opcode) {
+            case IF_EQZ:
+                return 0;
+            case IF_NEZ:
+                return 1;
+            case IF_LEZ:
+                return 2;
+            case IF_GEZ:
+                return 3;
+            case IF_LTZ:
+                return 4;
+            case IF_GTZ:
+                return 5;
+                default:
+                    throw new UnsupportedOperationException("Opcode not yet supported!");
+        }
+    }
+
     /**
      * Instruments try-catch blocks of a method. This is necessary to ensure which path was taken
      * in the control-flow graph. Currently unused.
@@ -336,7 +348,7 @@ public final class Instrumentation {
 
         for (Integer tryCatchBlock : tryCatchBlocks) {
             insertInstrumentationCode(methodInformation, tryCatchBlock,
-                    methodInformation.getMethodID() + "->tryCatchBlock" + tryCatchBlock);
+                    methodInformation.getMethodID() + "->tryCatchBlock" + tryCatchBlock, false);
         }
 
     }

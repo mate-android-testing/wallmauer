@@ -1,7 +1,5 @@
 package de.uni_passau.fim.auermich.branchdistance.instrumentation;
 
-import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
-
 import java.util.Objects;
 import java.util.logging.Logger;
 
