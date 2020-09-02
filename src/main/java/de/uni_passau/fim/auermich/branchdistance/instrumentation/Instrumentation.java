@@ -245,6 +245,7 @@ public final class Instrumentation {
                 // compute branch distance + trace
 
                 // TODO: add branch distance computation
+                computeBranchDistance(methodInformation, instrumentationPoint);
 
                 // we only need to add a trace if it is not yet covered -> avoids instrumenting same location multiple times
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
@@ -285,20 +286,28 @@ public final class Instrumentation {
         BuilderInstruction ifInstruction = mutableImplementation.getInstructions().get(instructionIndex);
         AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
 
-        // should return the register ids that are used with this instruction???
-        List<Integer> setRegisters = instruction.getSetRegisters();
-
-        // TODO: derive type
-        instruction.getPostInstructionRegisterType(0);
-
-        // map op code to interal operation code
+        // map op code to internal operation code
         int operation = mapOpCodeToOperation(ifInstruction.getOpcode());
 
         if (ifInstruction.getFormat() == Format.Format21t) {
             // unary operation -> if-eqz v0
+            BuilderInstruction21t instruction21t = (BuilderInstruction21t) ifInstruction;
+            int registerA = instruction21t.getRegisterA();
+
+            RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
+
 
         } else {
             // binary operation -> if-eq v0, v1
+            BuilderInstruction22t instruction22t = (BuilderInstruction22t) ifInstruction;
+            int registerA = instruction22t.getRegisterA();
+            int registerB = instruction22t.getRegisterB();
+
+            RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
+            RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
+
+
+
         }
 
 
