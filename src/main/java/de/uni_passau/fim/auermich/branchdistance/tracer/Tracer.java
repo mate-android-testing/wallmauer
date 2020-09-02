@@ -55,44 +55,37 @@ public class Tracer extends BroadcastReceiver {
         }
     }
 
-    // unary operation
+    // unary operation - primitive types
     public static void computeBranchDistance(int operation, int argument) {
+        computeBranchDistance(operation, argument, 0);
+    }
 
-        // TODO: combine unary and binary operation, simple call with '0' as second argument for unary
-        // TODO: may use double for distance and re-use method for both primitive and primitive-wide types
+    // binary operation - primitive types
+    public static void computeBranchDistance(int operation, int argument1, int argument2) {
+
         int distance = 0;
 
         switch (operation) {
-            case 0: // if-eqz
-                distance = Math.abs(argument);
+            case 0: // if-eqz, if-eq
+            case 1: // if-nez, if-ne
+                distance = Math.abs(argument1 - argument2);
                 break;
-            case 1: // if-nez
-                distance = Math.abs(argument);
+            case 2: // if-lez, if-le
+            case 3: // if-ltz, if-lt
+                distance = argument1 - argument2;
                 break;
-            case 2: // if-lez
-                distance = argument;
+            case 4: // if-gez, if-ge
+            case 5: // if-gtz, if-gt
+                distance = argument2 - argument1;
                 break;
-            case 3: // if-gez
-                distance = -argument;
-                break;
-            case 4: // if-ltz
-                distance = argument;
-                break;
-            case 5: // if-gtz
-                distance = -argument;
-                break;
-                default:
-                    throw new UnsupportedOperationException("Comparison operator not yet supported!");
+            default:
+                throw new UnsupportedOperationException("Comparison operator not yet supported!");
         }
 
-        // TODO: call tracer with distance + identifier for if stmt?
-    }
-
-    // binary operation
-    public static void computeBranchDistance(int operation, int argument1, int argument2) {
-        switch (operation) {
-            case 0: //
-        }
+        // TODO: do we need to identify the if stmt as well here?
+        final String identifier = "BRANCH DISTANCE: " + distance;
+        System.out.println("BRANCH_DISTANCE: " + identifier);
+        trace(identifier);
     }
 
     /**

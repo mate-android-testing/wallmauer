@@ -291,7 +291,6 @@ public class BranchDistance {
                     // determine the number of branches per class
                     numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);
 
-
                     // determine the register type of the param registers if the method has param registers
                     if (methodInformation.getParamRegisterCount() > 0) {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);

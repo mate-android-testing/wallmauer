@@ -181,7 +181,7 @@ public final class Analyzer {
         // compute the new count for total/local/param registers
         methodInformation.setTotalRegisterCount(totalRegisters + additionalRegisters);
         methodInformation.setLocalRegisterCount(localRegisters + additionalRegisters);
-        // stays changed, no additional param register
+        // stays unchanged, no additional param register
         methodInformation.setParamRegisterCount(paramRegisters);
     }
 

@@ -296,6 +296,16 @@ public final class Instrumentation {
 
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
 
+            System.out.println("Method: " + methodInformation.getMethodID());
+            System.out.println("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
+            System.out.println("RegisterA: " + registerA + "[" + registerTypeA + "]");
+
+            // check whether we deal with primitive or object types
+            if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
+                handlePrimitiveUnaryComparison(methodInformation, instructionIndex, operation, registerA);
+            } else {
+
+            }
 
         } else {
             // binary operation -> if-eq v0, v1
@@ -306,29 +316,85 @@ public final class Instrumentation {
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
             RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
 
-
+            System.out.println("Method: " + methodInformation.getMethodID());
+            System.out.println("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
+            System.out.println("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            System.out.println("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
         }
-
-
-
     }
 
-    // returns an operation code for a given op code
+    private static void handlePrimitiveUnaryComparison(MethodInformation methodInformation, int instructionIndex,
+                                                       int operation, int registerA) {
+
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // we require one parameter for the operation identifier
+        int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
+
+        // we need another free register for the single argument of the if instruction
+        int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
+
+        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
+        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+
+        // we need to move the content of single if instruction argument to the second free register
+        // this enables us to us it with the invoke-static range instruction
+        BuilderInstruction32x move = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
+
+        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
+        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
+        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
+
+        // invoke-static-range
+        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                firstFreeRegister, 2,
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                        "computeBranchDistance",
+                        Lists.newArrayList("II"), "V"));
+
+        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
+        //  could break the verification process. As far as I remember, the type of a register must be consistent
+        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
+        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
+        //  solely for the operation opcode and the max 2 args of if stmts.
+
+        mutableMethodImplementation.addInstruction(instructionIndex, operationID);
+        mutableMethodImplementation.addInstruction(instructionIndex+1, move);
+        mutableMethodImplementation.addInstruction(instructionIndex+2, invokeStaticRange);
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
+    }
+
+    /**
+     * Maps an opcode to an internal operation type identifier.
+     *
+     * @param opcode The given opcode.
+     * @return Returns the internal operation type identifier
+     *          for the given opcode.
+     */
     private static int mapOpCodeToOperation(Opcode opcode) {
 
         switch (opcode) {
             case IF_EQZ:
+            case IF_EQ:
                 return 0;
             case IF_NEZ:
+            case IF_NE:
                 return 1;
             case IF_LEZ:
+            case IF_LE:
                 return 2;
-            case IF_GEZ:
-                return 3;
             case IF_LTZ:
+            case IF_LT:
+                return 3;
+            case IF_GEZ:
+            case IF_GE:
                 return 4;
             case IF_GTZ:
+            case IF_GT:
                 return 5;
                 default:
                     throw new UnsupportedOperationException("Opcode not yet supported!");
