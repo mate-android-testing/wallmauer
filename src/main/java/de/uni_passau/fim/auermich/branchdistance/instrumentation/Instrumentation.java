@@ -434,7 +434,7 @@ public final class Instrumentation {
     }
 
     /**
-     * Instruments the method entry, i.e. before the first or the first instruction within a cath block a trace is inserted.
+     * Instruments the method entry, i.e. before the first or the first instruction within a catch block a trace is inserted.
      *
      * @param methodInformation Encapsulates the method to be instrumented.
      */
@@ -445,9 +445,9 @@ public final class Instrumentation {
 
         final String trace = methodInformation.getMethodID() + "->entry";
 
-
         for (Integer entryInstructionID : entryInstructionIDs) {
-            insertInstrumentationCode(methodInformation, entryInstructionID, trace, false);
+            // treat as else branch to avoid label/instruction issue
+            insertInstrumentationCode(methodInformation, entryInstructionID, trace, true);
         }
 
     }
