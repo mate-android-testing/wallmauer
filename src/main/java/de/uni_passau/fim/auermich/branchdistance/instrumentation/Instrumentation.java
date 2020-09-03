@@ -243,13 +243,12 @@ public final class Instrumentation {
 
             if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT) {
                 // compute branch distance + trace
-
-                // TODO: add branch distance computation
                 computeBranchDistance(methodInformation, instrumentationPoint);
 
                 // we only need to add a trace if it is not yet covered -> avoids instrumenting same location multiple times
+                // this would happen when an if stmt is the first instruction of another branch
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
-                    // instrument branch
+                    // instrument branch with trace
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
                     mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, false);
                 }
@@ -276,6 +275,12 @@ public final class Instrumentation {
         // instrumentTryCatchBlocks(methodInformation);
     }
 
+    /**
+     * Inserts instructions before every if stmt in order to invoke the branch distance computation.
+     *
+     * @param methodInformation Encapsulates the method.
+     * @param instrumentationPoint Encapsulates information about the if stmt.
+     */
     private static void computeBranchDistance(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
 
         MutableMethodImplementation mutableImplementation =
@@ -479,7 +484,12 @@ public final class Instrumentation {
         final String trace = methodInformation.getMethodID() + "->exit";
 
         for (Integer returnOrThrowStmtIndex : returnOrThrowStmtIndices) {
-            insertInstrumentationCode(methodInformation, returnOrThrowStmtIndex, trace, false);
+            /*
+            * If a label is attached to a return statement, which is often the case, the insertion
+            * between the label and the return statement is not directly possible. Instead, we
+            * need to use the same approach as for else branches.
+             */
+            insertInstrumentationCode(methodInformation, returnOrThrowStmtIndex, trace, true);
         }
     }
 
