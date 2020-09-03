@@ -74,7 +74,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString()+"->"+method+"->entry")));
+                    new ImmutableStringReference(classDef.toString() + "->" + method + "->entry")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -91,7 +91,7 @@ public final class Instrumentation {
 
             // exit string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString()+"->"+method+"->exit")));
+                    new ImmutableStringReference(classDef.toString() + "->" + method + "->exit")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -111,7 +111,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString()+"->"+method+"->entry")));
+                    new ImmutableStringReference(classDef.toString() + "->" + method + "->entry")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -126,11 +126,11 @@ public final class Instrumentation {
                             params, returnType)));
 
             // move-result v1
-            implementation.addInstruction(new BuilderInstruction11x(Opcode.MOVE_RESULT_OBJECT,1));
+            implementation.addInstruction(new BuilderInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1));
 
             // exit string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString()+"->"+method+"->exit")));
+                    new ImmutableStringReference(classDef.toString() + "->" + method + "->exit")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -143,9 +143,9 @@ public final class Instrumentation {
         }
 
         List<MethodParameter> methodParams = params.stream().map(p ->
-            new ImmutableMethodParameter(p, null,
-                    // use three random letters as param names
-                    RandomStringUtils.random(3, true, false).toLowerCase()))
+                new ImmutableMethodParameter(p, null,
+                        // use three random letters as param names
+                        RandomStringUtils.random(3, true, false).toLowerCase()))
                 .collect(Collectors.toList());
 
         // add instrumented method to set of methods
@@ -199,7 +199,7 @@ public final class Instrumentation {
             mutableMethodImplementation.swapInstructions(index - 1, index);
         } else {
             mutableMethodImplementation.addInstruction(index, constString);
-            mutableMethodImplementation.addInstruction(index+1, invokeStaticRange);
+            mutableMethodImplementation.addInstruction(index + 1, invokeStaticRange);
         }
 
         // update implementation
@@ -258,9 +258,9 @@ public final class Instrumentation {
                 coveredInstructionPoints.add(instrumentationPoint.getPosition());
 
                 /*
-                * We can't directly insert a statement before the else branch, instead
-                * we need to insert our code after the first instruction of the else branch
-                * and later swap those instructions.
+                 * We can't directly insert a statement before the else branch, instead
+                 * we need to insert our code after the first instruction of the else branch
+                 * and later swap those instructions.
                  */
                 boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
                 mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, shiftInstruction);
@@ -278,7 +278,7 @@ public final class Instrumentation {
     /**
      * Inserts instructions before every if stmt in order to invoke the branch distance computation.
      *
-     * @param methodInformation Encapsulates the method.
+     * @param methodInformation    Encapsulates the method.
      * @param instrumentationPoint Encapsulates information about the if stmt.
      */
     private static void computeBranchDistance(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
@@ -309,7 +309,7 @@ public final class Instrumentation {
             if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
                 handlePrimitiveUnaryComparison(methodInformation, instructionIndex, operation, registerA);
             } else {
-
+                // handle single object type
             }
 
         } else {
@@ -326,9 +326,30 @@ public final class Instrumentation {
             System.out.println("RegisterA: " + registerA + "[" + registerTypeA + "]");
             System.out.println("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
+            Set<Byte> referenceTypes = new HashSet<Byte>() {{
+                add(RegisterType.REFERENCE);
+                add(RegisterType.UNINIT_REF);
+            }};
+
+            if (!referenceTypes.contains(registerTypeA.category) && !referenceTypes.contains(registerTypeB.category)) {
+                handlePrimitiveBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
+            } else if (referenceTypes.contains(registerTypeA.category) && referenceTypes.contains(registerTypeB.category)) {
+                // object type
+            } else {
+                throw new IllegalStateException("Comparing objects with primitives!");
+            }
         }
     }
 
+    /**
+     * Inserts code to invoke the branch distance computation for an if statement that has
+     * a single primitive argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, int argument)'.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @param instructionIndex  The instruction index of the if statement.
+     * @param operation         The operation id, e.g. 0 for if-eqz.
+     * @param registerA         The register id of the argument register.
+     */
     private static void handlePrimitiveUnaryComparison(MethodInformation methodInformation, int instructionIndex,
                                                        int operation, int registerA) {
 
@@ -378,11 +399,79 @@ public final class Instrumentation {
     }
 
     /**
+     * Inserts code to invoke the branch distance computation for an if statement that has
+     * two primitive arguments, e.g. if-eq v0, v1. We simply call '
+     *      branchDistance(int op_type, int argument1, int argument2)'.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @param instructionIndex  The instruction index of the if statement.
+     * @param operation         The operation id, e.g. 0 for if-eq v0, v1.
+     * @param registerA         The register id of the first argument register.
+     * @param registerB         The register id of the second argument register.
+     */
+    private static void handlePrimitiveBinaryComparison(MethodInformation methodInformation, int instructionIndex,
+                                                        int operation, int registerA, int registerB) {
+
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // we require one parameter for the operation identifier
+        int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
+
+        // we need another free register for the first argument of the if instruction
+        int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
+
+        // we need another free register for the second argument of the if instruction
+        int thirdFreeRegister = methodInformation.getFreeRegisters().get(2);
+
+        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
+        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+
+        // we need to move the content of the first if instruction argument to the second free register
+        // this enables us to us it with the invoke-static range instruction
+        BuilderInstruction32x moveA = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
+
+        // we need to move the content of the second if instruction argument to the third free register
+        // this enables us to us it with the invoke-static range instruction
+        BuilderInstruction32x moveB = new BuilderInstruction32x(Opcode.MOVE_16, thirdFreeRegister, registerB);
+
+        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
+        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
+        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
+
+        // invoke-static-range
+        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                firstFreeRegister, 3,
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                        "computeBranchDistance",
+                        Lists.newArrayList("III"), "V"));
+
+        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
+        //  could break the verification process. As far as I remember, the type of a register must be consistent
+        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
+        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
+        //  solely for the operation opcode and the max 2 args of if stmts.
+
+        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+        mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
+        mutableMethodImplementation.addInstruction(++instructionIndex, moveB);
+        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+        mutableMethodImplementation.swapInstructions(instructionIndex - 4, instructionIndex - 3);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
+    }
+
+    /**
      * Maps an opcode to an internal operation type identifier.
      *
      * @param opcode The given opcode.
      * @return Returns the internal operation type identifier
-     *          for the given opcode.
+     * for the given opcode.
      */
     private static int mapOpCodeToOperation(Opcode opcode) {
 
@@ -405,8 +494,8 @@ public final class Instrumentation {
             case IF_GTZ:
             case IF_GT:
                 return 5;
-                default:
-                    throw new UnsupportedOperationException("Opcode not yet supported!");
+            default:
+                throw new UnsupportedOperationException("Opcode not yet supported!");
         }
     }
 
@@ -419,12 +508,12 @@ public final class Instrumentation {
     private static void instrumentTryCatchBlocks(MethodInformation methodInformation) {
 
         /*
-        * TODO: To get the full path going through a try-catch block, it is probably
-        *   necessary to instrument AFTER each statement within a try block, which
-        *   is linked to the catch block, and, in addition, it is necessary to instrument
-        *   the beginning of a catch block. But how should we handle for instance return/throw
-        *   instructions within try blocks, we can't insert our trace after those instructions.
-        *   Probably we need to find a trade-off here.
+         * TODO: To get the full path going through a try-catch block, it is probably
+         *   necessary to instrument AFTER each statement within a try block, which
+         *   is linked to the catch block, and, in addition, it is necessary to instrument
+         *   the beginning of a catch block. But how should we handle for instance return/throw
+         *   instructions within try blocks, we can't insert our trace after those instructions.
+         *   Probably we need to find a trade-off here.
          */
 
         List<Integer> tryCatchBlocks = Analyzer.analyzeTryCatchBlocks(methodInformation);
@@ -489,9 +578,9 @@ public final class Instrumentation {
 
         for (Integer returnOrThrowStmtIndex : returnOrThrowStmtIndices) {
             /*
-            * If a label is attached to a return statement, which is often the case, the insertion
-            * between the label and the return statement is not directly possible. Instead, we
-            * need to use the same approach as for else branches.
+             * If a label is attached to a return statement, which is often the case, the insertion
+             * between the label and the return statement is not directly possible. Instead, we
+             * need to use the same approach as for else branches.
              */
             insertInstrumentationCode(methodInformation, returnOrThrowStmtIndex, trace, true);
         }

@@ -50,8 +50,14 @@ public class BranchDistance {
     // dex op code specified in header of classes.dex file
     public static final int OPCODE_API = 28;
 
-    // the number of additional required registers (two for wide-types required when moving)
-    public static final int ADDITIONAL_REGISTERS = 2;
+    /*
+    * Defines the number of additional registers. We require one additional register
+    * for storing the unique branch id. Then, we need two additional registers for holding
+    * the arguments of if instructions. In addition, we may need two further registers
+    * for the shifting of the param registers, since the register type must be consistent
+    * within a try-catch block, otherwise the verification process fails.
+     */
+    public static final int ADDITIONAL_REGISTERS = 3;
 
     // the dex conform mainActivity name, uses '/' instead of '.'
     public static String mainActivityDex;
