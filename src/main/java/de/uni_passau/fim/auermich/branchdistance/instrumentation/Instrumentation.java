@@ -250,7 +250,7 @@ public final class Instrumentation {
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
                     // instrument branch with trace
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
-                    mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, false);
+                    mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, true);
                 }
 
             } else {
@@ -365,9 +365,13 @@ public final class Instrumentation {
         //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
         //  solely for the operation opcode and the max 2 args of if stmts.
 
-        mutableMethodImplementation.addInstruction(instructionIndex, operationID);
-        mutableMethodImplementation.addInstruction(instructionIndex+1, move);
-        mutableMethodImplementation.addInstruction(instructionIndex+2, invokeStaticRange);
+        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+        mutableMethodImplementation.addInstruction(++instructionIndex, move);
+        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
