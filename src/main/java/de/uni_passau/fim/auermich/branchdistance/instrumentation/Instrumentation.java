@@ -466,6 +466,16 @@ public final class Instrumentation {
         methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
+    private static void handleObjectUnaryComparison(MethodInformation methodInformation, int instructionIndex,
+                                                        int operation, int registerA, int registerB) {
+
+    }
+
+    private static void handleObjectBinaryComparison(MethodInformation methodInformation, int instructionIndex,
+                                                        int operation, int registerA, int registerB) {
+
+    }
+
     /**
      * Maps an opcode to an internal operation type identifier.
      *
