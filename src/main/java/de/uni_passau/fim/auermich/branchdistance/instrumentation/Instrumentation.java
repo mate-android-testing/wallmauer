@@ -13,10 +13,7 @@ import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.iface.MethodParameter;
+import org.jf.dexlib2.iface.*;
 import org.jf.dexlib2.immutable.ImmutableMethod;
 import org.jf.dexlib2.immutable.ImmutableMethodParameter;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
@@ -213,8 +210,9 @@ public final class Instrumentation {
      * and exit is instrumented.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
+     * @param dexFile The dex file containing the method.
      */
-    public static void modifyMethod(MethodInformation methodInformation) {
+    public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
 
         MutableMethodImplementation mutableImplementation =
                 new MutableMethodImplementation(methodInformation.getMethodImplementation());
@@ -270,7 +268,7 @@ public final class Instrumentation {
         // update implementation
         methodInformation.setMethodImplementation(mutableImplementation);
 
-        instrumentMethodEntry(methodInformation);
+        instrumentMethodEntry(methodInformation, dexFile);
         instrumentMethodExit(methodInformation);
         // instrumentTryCatchBlocks(methodInformation);
     }
@@ -654,10 +652,12 @@ public final class Instrumentation {
      * Instruments the method entry, i.e. before the first or the first instruction within a catch block a trace is inserted.
      *
      * @param methodInformation Encapsulates the method to be instrumented.
+     * @param dexFile The dex file containing the method.
      */
-    private static void instrumentMethodEntry(MethodInformation methodInformation) {
+    private static void instrumentMethodEntry(MethodInformation methodInformation, DexFile dexFile) {
 
-        List<Integer> entryInstructionIDs = methodInformation.getEntryInstructionIDs();
+        // request entry instructions in place, otherwise instructions ids are out of date
+        List<Integer> entryInstructionIDs = Analyzer.trackEntryInstructions(methodInformation, dexFile);
         Collections.reverse(entryInstructionIDs);
 
         final String trace = methodInformation.getMethodID() + "->entry";

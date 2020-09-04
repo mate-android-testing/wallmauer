@@ -291,9 +291,6 @@ public class BranchDistance {
                     // determine where we need to instrument
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
-                    // determine the method entry points
-                    methodInformation.setEntryInstructionIDs(Analyzer.trackEntryInstructions(methodInformation, dexFile));
-
                     // determine the number of branches per class
                     numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);
 
@@ -303,7 +300,7 @@ public class BranchDistance {
                     }
 
                     // instrument branches + if stmts
-                    Instrumentation.modifyMethod(methodInformation);
+                    Instrumentation.modifyMethod(methodInformation, dexFile);
                     modifiedMethod = true;
 
                     /*

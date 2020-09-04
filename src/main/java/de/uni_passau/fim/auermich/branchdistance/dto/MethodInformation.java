@@ -52,9 +52,6 @@ public class MethodInformation {
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
 
-    // the instruction IDs of entry/beginning instructions
-    private List<Integer> entryInstructionIDs = new ArrayList<>();
-
     // contains the locations where we need to instrument
     private Set<InstrumentationPoint> instrumentationPoints;
 
@@ -90,14 +87,6 @@ public class MethodInformation {
 
     public void setInstrumentationPoints(Set<InstrumentationPoint> instrumentationPoints) {
         this.instrumentationPoints = instrumentationPoints;
-    }
-
-    public List<Integer> getEntryInstructionIDs() {
-        return entryInstructionIDs;
-    }
-
-    public void setEntryInstructionIDs(List<Integer> entryInstructionIDs) {
-        this.entryInstructionIDs = entryInstructionIDs;
     }
 
     public String getMethodID() {
