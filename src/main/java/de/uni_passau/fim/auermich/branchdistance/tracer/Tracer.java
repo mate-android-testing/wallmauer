@@ -55,6 +55,42 @@ public class Tracer extends BroadcastReceiver {
         }
     }
 
+    // unary operation - object types
+    public static void computeBranchDistance(int operation, Object argument) {
+        computeBranchDistance(operation, argument, null);
+    }
+
+    // binary operation - object types
+    public static void computeBranchDistance(int operation, Object argument1, Object argument2) {
+
+        int distance = 0;
+
+        switch (operation) {
+            case 0: // if-eqz, if-eq
+                if (argument1 == argument2) {
+                    distance = 0;
+                } else {
+                    distance = 1;
+                }
+                break;
+            case 1: // if-nez, if-ne
+                if (argument1 != argument2) {
+                    distance = 0;
+                } else {
+                    distance = 1;
+                }
+                break;
+            default:
+                // Further comparisons on object types seem to be not reasonable.
+                throw new UnsupportedOperationException("Comparison operator " + operation + " not yet supported!");
+        }
+
+        // TODO: do we need to identify the if stmt as well here?
+        final String identifier = "BRANCH DISTANCE: " + distance;
+        System.out.println("BRANCH_DISTANCE: " + identifier);
+        trace(identifier);
+    }
+
     // unary operation - primitive types
     public static void computeBranchDistance(int operation, int argument) {
         computeBranchDistance(operation, argument, 0);
@@ -113,7 +149,7 @@ public class Tracer extends BroadcastReceiver {
             FileWriter writer = new FileWriter(traces, true);
             BufferedWriter br = new BufferedWriter(writer);
 
-            for (int i=0; i < CACHE_SIZE; i++) {
+            for (int i = 0; i < CACHE_SIZE; i++) {
                 String pathNode = executionPath.get(i);
                 br.write(pathNode);
                 br.newLine();
@@ -155,7 +191,7 @@ public class Tracer extends BroadcastReceiver {
             FileWriter writer = new FileWriter(traces, true);
             BufferedWriter br = new BufferedWriter(writer);
 
-            for (int i=0; i < executionPath.size(); i++) {
+            for (int i = 0; i < executionPath.size(); i++) {
                 String pathNode = executionPath.get(i);
                 br.write(pathNode);
                 br.newLine();

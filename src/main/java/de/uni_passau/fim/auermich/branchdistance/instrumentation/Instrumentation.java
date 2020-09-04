@@ -301,15 +301,15 @@ public final class Instrumentation {
 
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
 
-            System.out.println("Method: " + methodInformation.getMethodID());
-            System.out.println("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
-            System.out.println("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            LOGGER.info("Method: " + methodInformation.getMethodID());
+            LOGGER.info("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
 
             // check whether we deal with primitive or object types
             if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
                 handlePrimitiveUnaryComparison(methodInformation, instructionIndex, operation, registerA);
             } else {
-                // handle single object type
+                handleObjectUnaryComparison(methodInformation, instructionIndex, operation, registerA);
             }
 
         } else {
@@ -321,10 +321,10 @@ public final class Instrumentation {
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
             RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
 
-            System.out.println("Method: " + methodInformation.getMethodID());
-            System.out.println("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
-            System.out.println("RegisterA: " + registerA + "[" + registerTypeA + "]");
-            System.out.println("RegisterB: " + registerB + "[" + registerTypeB + "]");
+            LOGGER.info("Method: " + methodInformation.getMethodID());
+            LOGGER.info("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
             Set<Byte> referenceTypes = new HashSet<Byte>() {{
                 add(RegisterType.REFERENCE);
@@ -334,7 +334,7 @@ public final class Instrumentation {
             if (!referenceTypes.contains(registerTypeA.category) && !referenceTypes.contains(registerTypeB.category)) {
                 handlePrimitiveBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
             } else if (referenceTypes.contains(registerTypeA.category) && referenceTypes.contains(registerTypeB.category)) {
-                // object type
+                handleObjectBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
             } else {
                 throw new IllegalStateException("Comparing objects with primitives!");
             }
@@ -466,14 +466,129 @@ public final class Instrumentation {
         methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
+    /**
+     * Inserts code to invoke the branch distance computation for an if statement that has
+     * a single object argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, Object argument)'.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @param instructionIndex  The instruction index of the if statement.
+     * @param operation         The operation id, e.g. 0 for if-eqz.
+     * @param registerA         The register id of the argument register.
+     */
     private static void handleObjectUnaryComparison(MethodInformation methodInformation, int instructionIndex,
-                                                        int operation, int registerA, int registerB) {
+                                                        int operation, int registerA) {
 
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // we require one parameter for the operation identifier
+        int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
+
+        // we need another free register for the single argument of the if instruction
+        int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
+
+        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
+        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+
+        // we need to move the content of single if instruction argument to the second free register
+        // this enables us to us it with the invoke-static range instruction
+        BuilderInstruction32x move = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, secondFreeRegister, registerA);
+
+        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
+        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
+        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
+
+        // invoke-static-range
+        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                firstFreeRegister, 2,
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                        "computeBranchDistance",
+                        Lists.newArrayList("ILjava/lang/Object;"), "V"));
+
+        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
+        //  could break the verification process. As far as I remember, the type of a register must be consistent
+        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
+        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
+        //  solely for the operation opcode and the max 2 args of if stmts.
+
+        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+        mutableMethodImplementation.addInstruction(++instructionIndex, move);
+        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
+    /**
+     * Inserts code to invoke the branch distance computation for an if statement that has
+     * two object arguments, e.g. if-eq v0, v1. We simply call '
+     *      branchDistance(int op_type, Object argument1, Object argument2)'.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @param instructionIndex  The instruction index of the if statement.
+     * @param operation         The operation id, e.g. 0 for if-eq v0, v1.
+     * @param registerA         The register id of the first argument register.
+     * @param registerB         The register id of the second argument register.
+     */
     private static void handleObjectBinaryComparison(MethodInformation methodInformation, int instructionIndex,
                                                         int operation, int registerA, int registerB) {
 
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // we require one parameter for the operation identifier
+        int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
+
+        // we need another free register for the first argument of the if instruction
+        int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
+
+        // we need another free register for the second argument of the if instruction
+        int thirdFreeRegister = methodInformation.getFreeRegisters().get(2);
+
+        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
+        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+
+        // we need to move the content of the first if instruction argument to the second free register
+        // this enables us to us it with the invoke-static range instruction
+        BuilderInstruction32x moveA = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, secondFreeRegister, registerA);
+
+        // we need to move the content of the second if instruction argument to the third free register
+        // this enables us to us it with the invoke-static range instruction
+        BuilderInstruction32x moveB = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, thirdFreeRegister, registerB);
+
+        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
+        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
+        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
+
+        // invoke-static-range
+        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                firstFreeRegister, 3,
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                        "computeBranchDistance",
+                        Lists.newArrayList("ILjava/lang/Object;Ljava/lang/Object;"), "V"));
+
+        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
+        //  could break the verification process. As far as I remember, the type of a register must be consistent
+        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
+        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
+        //  solely for the operation opcode and the max 2 args of if stmts.
+
+        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+        mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
+        mutableMethodImplementation.addInstruction(++instructionIndex, moveB);
+        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+        mutableMethodImplementation.swapInstructions(instructionIndex - 4, instructionIndex - 3);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
     /**
