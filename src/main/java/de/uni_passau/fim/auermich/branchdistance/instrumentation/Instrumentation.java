@@ -663,7 +663,17 @@ public final class Instrumentation {
         final String trace = methodInformation.getMethodID() + "->entry";
 
         for (Integer entryInstructionID : entryInstructionIDs) {
-            // treat as else branch to avoid label/instruction issue
+            /*
+            * We need to treat method entries similar to else branches in order to avoid that
+            * label/instruction issue. Moreover, a method entry that is not the first instruction
+            * (it is the first instruction of the catch block) needs a special treatment. The bytecode
+            * verifier ensures that the move-exception instruction must be the first instruction of
+            * the catch block, thus we can't insert any instruction before move-exception. Instead,
+            * we have to insert our trace after the move-exception instruction.
+             */
+            if (entryInstructionID > 0) {
+                entryInstructionID++;
+            }
             insertInstrumentationCode(methodInformation, entryInstructionID, trace, true);
         }
 
