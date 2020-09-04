@@ -1,5 +1,7 @@
 package de.uni_passau.fim.auermich.branchdistance.instrumentation;
 
+import org.jf.dexlib2.builder.BuilderInstruction;
+
 import java.util.Objects;
 import java.util.logging.Logger;
 
@@ -11,11 +13,13 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private static final Logger LOGGER = Logger.getLogger(InstrumentationPoint.class
             .getName());
 
+    private final BuilderInstruction instruction;
     private final int position;
     private final Type type;
 
-    public InstrumentationPoint(int position, Type type) {
-        this.position = position;
+    public InstrumentationPoint(BuilderInstruction instruction, Type type) {
+        this.instruction = instruction;
+        this.position = instruction.getLocation().getIndex();
         this.type = type;
     }
 
@@ -26,6 +30,10 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     public Type getType() {
         return type;
+    }
+
+    public BuilderInstruction getInstruction() {
+        return instruction;
     }
 
     @Override

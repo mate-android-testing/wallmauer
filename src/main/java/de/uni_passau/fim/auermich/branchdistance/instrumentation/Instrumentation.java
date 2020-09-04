@@ -288,21 +288,20 @@ public final class Instrumentation {
 
         // get the if instruction
         int instructionIndex = instrumentationPoint.getPosition();
-        BuilderInstruction ifInstruction = mutableImplementation.getInstructions().get(instructionIndex);
         AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
 
         // map op code to internal operation code
-        int operation = mapOpCodeToOperation(ifInstruction.getOpcode());
+        int operation = mapOpCodeToOperation(instruction.getOriginalInstruction().getOpcode());
 
-        if (ifInstruction.getFormat() == Format.Format21t) {
+        if (instruction.getOriginalInstruction().getOpcode().format == Format.Format21t) {
             // unary operation -> if-eqz v0
-            BuilderInstruction21t instruction21t = (BuilderInstruction21t) ifInstruction;
+            BuilderInstruction21t instruction21t = (BuilderInstruction21t) instrumentationPoint.getInstruction();
             int registerA = instruction21t.getRegisterA();
 
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
 
             LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
             LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
 
             // check whether we deal with primitive or object types
@@ -314,7 +313,7 @@ public final class Instrumentation {
 
         } else {
             // binary operation -> if-eq v0, v1
-            BuilderInstruction22t instruction22t = (BuilderInstruction22t) ifInstruction;
+            BuilderInstruction22t instruction22t = (BuilderInstruction22t) instrumentationPoint.getInstruction();
             int registerA = instruction22t.getRegisterA();
             int registerB = instruction22t.getRegisterB();
 
@@ -322,7 +321,7 @@ public final class Instrumentation {
             RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
 
             LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + ifInstruction.getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
             LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
             LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
@@ -620,7 +619,7 @@ public final class Instrumentation {
             case IF_GT:
                 return 5;
             default:
-                throw new UnsupportedOperationException("Opcode not yet supported!");
+                throw new UnsupportedOperationException("Opcode: " + opcode + " not yet supported!");
         }
     }
 
