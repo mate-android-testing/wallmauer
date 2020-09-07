@@ -1,7 +1,8 @@
 
 # Remarks:
 
-Running the BranchDistance class inside the IDE fails with the following stack trace:
+The android.jar as well as the apktool-cli-all.jar contain both an implementation of the XmlPullParser library, which
+leads to a conflict, if the Android API is selected. In this case the following exception occurs:
 
 INFO: Decoding AndroidManifest.xml with resources...
 Exception in thread "main" java.lang.RuntimeException: Stub!
@@ -17,12 +18,7 @@ Exception in thread "main" java.lang.RuntimeException: Stub!
 	at de.uni_passau.fim.auermich.branchdistance.utility.Utility.decodeAPK(Utility.java:184)
 	at de.uni_passau.fim.auermich.branchdistance.BranchDistance.main(BranchDistance.java:194)
 	
-I primarily assume this is due to XmlPullParser library, which is both contained in the android.jar 
-and the apktool-cli-all.jar. However, when android.jar is referenced in this regard, only a stub is called,
-which in turn leads to the aforementioned RuntimeException. It would be necessary to delete the respective
-class files from the android.jar.
-
-Running the library on the console via 'java -jar branchDistance.jar <APK-path>' works however.
+To fix this issue, I had to manually remove class files from the android.jar.
 
 # Program Arguments BranchDistance:
 
