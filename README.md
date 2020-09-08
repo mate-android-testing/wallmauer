@@ -1,5 +1,13 @@
 
-# Remarks:
+# Instrumentation
+
+The instrumentation library offers three modules responsible for:
+
+BranchCoverage Instrumentation
+BranchCoverage Evaluation
+BranchDistance Instrumentation
+
+# BranchDistance Instrumentation:
 
 The android.jar as well as the apktool-cli-all.jar contain both an implementation of the XmlPullParser library, which
 leads to a conflict, if the Android API is selected. In this case the following exception occurs:
@@ -44,17 +52,15 @@ traces have been collected.
 
 # Program Arguments BranchCoverage:
 
-C:\Users\Michael\com.xabber.androiddev_348\classes.dex <br />
-C:\Users\Michael\com.xabber.androiddev_348\instrumented.dex <br />
-ws.xsoh.etar <br />
-com.android.calendar.AllInOneActivity <br />
+Only the path to the APK is required, e.g.:
 
-The first argument describes the classes.dex file inside the APK. We can extract
-it by using apktool as follows: apktool d -s <apk-file>
+C:\Users\Michael\git\mate-commander\com.simple.app.apk
 
-The second argument describes the instrumented dex file, that is the output
-of this program.
+# Program Arguments BranchCoverageEvaluation:
 
-The third argument refers to the package name of the AUT.
+1st Argument: Path to branches.txt
+2nd Argument: Path to traces.txt
 
-The fourth argument denotes the main activity of the AUT.
+The branches.txt is obtained from the instrumentation process.
+
+Have a look at the corresponding BranchCoverageEvaluationTest.
