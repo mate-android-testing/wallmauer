@@ -15,8 +15,8 @@ Exception in thread "main" java.lang.RuntimeException: Stub!
 	at brut.androlib.res.AndrolibResources.decodeManifestWithResources(AndrolibResources.java:204)
 	at brut.androlib.Androlib.decodeManifestWithResources(Androlib.java:136)
 	at brut.androlib.ApkDecoder.decode(ApkDecoder.java:122)
-	at de.uni_passau.fim.auermich.branchdistance.utility.Utility.decodeAPK(Utility.java:184)
-	at de.uni_passau.fim.auermich.branchdistance.BranchDistance.main(BranchDistance.java:194)
+	at de.uni_passau.fim.Utility.decodeAPK(Utility.java:184)
+	at de.uni_passau.fim.BranchDistance.main(BranchDistance.java:194)
 	
 To fix this issue, I had to manually remove class files from the android.jar.
 
@@ -33,7 +33,7 @@ In order to retrieve the traces, a broadcast need to be sent to the AUT:
 adb install -g <apk> <br />
 
 adb root
-adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.auermich.branchdistance.tracer.Tracer --es packageName "<package-name>" <br />
+adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.Tracer --es packageName "<package-name>" <br />
 adb pull storage/emulated/0/traces.txt <br />
 adb pull data/data/<package-name>/info.txt <br /> (may require a slash before data on Linux)
 
