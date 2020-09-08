@@ -12,6 +12,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+/**
+ * Note that the test class only runs with the IntelliJ TestRunner, not with the gradle TestRunner.
+ * You have to change under Settings->Build,Run,Execution->Gradle the field 'Run test using:'.
+ */
 public class BranchCoverageEvaluationTest {
 
     // the logger instance
