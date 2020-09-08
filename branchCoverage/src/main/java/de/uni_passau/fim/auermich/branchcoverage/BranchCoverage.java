@@ -294,7 +294,7 @@ public class BranchCoverage {
             }
 
             // write out the number of branches per class
-            Utility.writeBranches(className, numberOfBranches);
+            Utility.writeBranches(classDef.getType(), numberOfBranches);
         }
 
         // assemble modified dex files

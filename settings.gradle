@@ -1,4 +1,5 @@
-rootProject.name = 'branchCoverage'
+rootProject.name = 'instrumentation'
 include 'branchDistance'
 include 'branchCoverage'
+include 'branchCoverageEvaluation'
 
