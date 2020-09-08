@@ -22,7 +22,7 @@ jar {
 
 task customFatJar(type: Jar) {
     manifest {
-        attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchdistance.BranchDistance'
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchcoverage.BranchCoverageEvaluation'
     }
     baseName = 'branchDistance'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
