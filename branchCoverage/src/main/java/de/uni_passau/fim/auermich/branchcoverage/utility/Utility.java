@@ -169,6 +169,14 @@ public final class Utility {
         return Pattern.compile(builder.toString());
     }
 
+    /**
+     * Produces a .dex file containing the given list of classes.
+     *
+     * @param filePath The path of the .dex file.
+     * @param classes The list of classes that should be contained in the .dex file.
+     * @param opCode The API opcode level.
+     * @throws IOException Should never happen.
+     */
     public static void writeToDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
 
         DexFileFactory.writeDexFile(filePath, new DexFile() {

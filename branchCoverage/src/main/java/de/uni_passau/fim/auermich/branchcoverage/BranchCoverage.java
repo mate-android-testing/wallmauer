@@ -2,7 +2,6 @@ package de.uni_passau.fim.auermich.branchcoverage;
 
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchcoverage.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchcoverage.branch.Branch;
 import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchcoverage.instrumentation.Instrumentation;
 import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
@@ -22,7 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -255,6 +255,9 @@ public class BranchCoverage {
 
                     // determine the location of the branches
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
+
+                    // determine the location of try blocks
+                    methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
 
                     // determine the number of branches per class
                     numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);

@@ -2,6 +2,7 @@ package de.uni_passau.fim.auermich.branchcoverage.dto;
 
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchcoverage.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
@@ -55,6 +56,9 @@ public class MethodInformation {
     // contains the locations where we need to instrument
     private Set<InstrumentationPoint> instrumentationPoints;
 
+    // describes the ranges of try blocks
+    private Set<Range> tryBlocks = new TreeSet<>();
+
     public MethodInformation(String methodID, ClassDef classDef, Method method, DexFile dexFile) {
         this.methodID = methodID;
         this.classDef = classDef;
@@ -79,6 +83,14 @@ public class MethodInformation {
                 null, false);
 
         return analyzer.getAnalyzedInstructions();
+    }
+
+    public Set<Range> getTryBlocks() {
+        return tryBlocks;
+    }
+
+    public void setTryBlocks(Set<Range> tryBlocks) {
+        this.tryBlocks = tryBlocks;
     }
 
     public Set<InstrumentationPoint> getInstrumentationPoints() {

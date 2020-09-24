@@ -4,6 +4,7 @@ package de.uni_passau.fim.auermich.branchcoverage.analysis;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchcoverage.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
@@ -14,13 +15,10 @@ import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.TryBlock;
-import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.util.MethodUtil;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public final class Analyzer {
 
@@ -61,6 +59,77 @@ public final class Analyzer {
 
         LOGGER.info(instrumentationPoints.toString());
         return instrumentationPoints;
+    }
+
+    /**
+     * Returns a sorted set of try blocks. Each try block is identified by its start and end index.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @return Returns ranges describing the start and end of try blocks.
+     */
+    public static Set<Range> getTryBlocks(MethodInformation methodInformation) {
+
+        LOGGER.info("Retrieving try blocks of method...");
+
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+
+        MutableMethodImplementation mutableMethodImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        Set<Range> tryBlocks = new TreeSet<>();
+
+        // TODO: this can be done in one pass over the instructions
+        for (TryBlock<? extends ExceptionHandler> tryBlock : methodImplementation.getTryBlocks()) {
+
+            int consumedCodeUnits = 0;
+            BuilderInstruction startInstructionTryBlock = null;
+            BuilderInstruction endInstructionTryBlock = null;
+
+            for (BuilderInstruction instruction : mutableMethodImplementation.getInstructions()) {
+
+                /*
+                 * The relation between a code unit and an instruction is as follows:
+                 *
+                 * code unit | instruction
+                 *      0
+                 *               instr1
+                 *      k
+                 *               instr2
+                 *      n
+                 *
+                 * This means to check whether we reached a starting point, e.g., the first instruction
+                 * of a try block, we need to compare the code unit counter before consuming the next instruction.
+                 *
+                 * However, if we want to check some end point, e.g., the end of a try block, we need to compare
+                 * the code unit counter after the consumption of the next instruction.
+                 */
+
+                // the starting point is before the actual instruction
+                if (consumedCodeUnits == tryBlock.getStartCodeAddress()) {
+                    startInstructionTryBlock = instruction;
+                    // the end point is after the actual instruction
+                } else if (consumedCodeUnits + instruction.getCodeUnits() == tryBlock.getStartCodeAddress()
+                        + tryBlock.getCodeUnitCount()) {
+                    endInstructionTryBlock = instruction;
+                    break;
+                }
+
+                consumedCodeUnits += instruction.getCodeUnits();
+            }
+
+            // the instruction indices describe the range of the try block
+            int startOfTryBlock = startInstructionTryBlock.getLocation().getIndex();
+            int endOfTryBlock = endInstructionTryBlock.getLocation().getIndex();
+
+            LOGGER.fine("First instruction within try block: "
+                    + startInstructionTryBlock.getOpcode() + "(" + startOfTryBlock + ")");
+            LOGGER.fine("Last instruction within try block: "
+                    + endInstructionTryBlock.getOpcode() + "(" + endOfTryBlock + ")");
+
+            Range tryBlockRange = new Range(startOfTryBlock, endOfTryBlock);
+            tryBlocks.add(tryBlockRange);
+        }
+        return tryBlocks;
     }
 
     /**

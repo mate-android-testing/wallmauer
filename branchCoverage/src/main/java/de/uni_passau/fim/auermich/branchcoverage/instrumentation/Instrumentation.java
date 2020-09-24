@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchcoverage.BranchCoverage;
 import de.uni_passau.fim.auermich.branchcoverage.analysis.Analyzer;
 import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
 import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -12,6 +13,8 @@ import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.BuilderOffsetInstruction;
+import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
 import org.jf.dexlib2.iface.*;
@@ -38,16 +41,24 @@ public final class Instrumentation {
     /**
      * Instruments the given branch with the tracer functionality.
      *
-     * @param methodInformation Stores all relevant information about the given method.
-     * @param index             The position where we insert our instrumented code.
-     * @param id                The id which identifies the given branch, i.e. packageName->className->method->branchID.
-     * @param elseBranch        Whether the location where we instrument refers to an else branch.
+     * @param methodInformation    Stores all relevant information about the given method.
+     * @param instrumentationPoint Describes the position of the branch.
+     * @param id                   The id which identifies the given branch, i.e. packageName->className->method->branchID.
+     * @param elseBranch           Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
-    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index, final String id, boolean elseBranch) {
+    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
+                                                                         InstrumentationPoint instrumentationPoint,
+                                                                         final String id, boolean elseBranch) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // the location of try blocks
+        Set<Range> tryBlocks = methodInformation.getTryBlocks();
+
+        // the position of the branch
+        int index = instrumentationPoint.getPosition();
 
         // we require one parameter containing the unique branch id
         int freeRegisterID = methodInformation.getFreeRegisters().get(0);
@@ -62,25 +73,105 @@ public final class Instrumentation {
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchcoverage/tracer/Tracer;", "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
-        if (elseBranch) {
-            mutableMethodImplementation.addInstruction(++index, constString);
-            mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+        // check whether the branch is located within a try block
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
 
             /*
-             * We cannot directly insert our instructions after the else-branch label (those instructions
-             * would fall between the goto and else-branch label). Instead we need to insert our
-             * instructions after the first instructions there, and swap them back afterwards.
+            * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
+            * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+            * but we consider here any try block. The problem arises from the fact that an invoke instruction
+            * within a try block introduces an additional edge to corresponding catch blocks, although it may
+            * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+            * might be two-fold (conflicted), which is rejected by the verifier, see
+            * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+            *
+            * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+            * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the
+            * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+            * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+            * that we don't insert our label after the pseudo instructions packed-switch-data, sparse-switch-data
+            * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+            *
+            * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+            * Automated Black-box Android Testing', see section 4.3.
              */
-            mutableMethodImplementation.swapInstructions(index - 2, index - 1);
-            mutableMethodImplementation.swapInstructions(index - 1, index);
+
+            // determine position where label + tracer functionality belongs to
+            int freeLabelPosition = getFreeLabelPosition(methodInformation);
+
+            // insert goto to jump to method end
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(freeLabelPosition);
+            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
+
+            if (elseBranch) {
+                mutableMethodImplementation.addInstruction(index + 1, jumpForward);
+                mutableMethodImplementation.swapInstructions(index, index + 1);
+            } else {
+                mutableMethodImplementation.addInstruction(index, jumpForward);
+            }
+
+            // create label at branch after forward jump
+            Label branchLabel = mutableMethodImplementation.newLabelForIndex(index + 1);
+
+            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            mutableMethodImplementation.addInstruction(freeLabelPosition + 1, constString);
+            mutableMethodImplementation.addInstruction(freeLabelPosition + 2, invokeStaticRange);
+
+            // insert goto to jump back to branch
+            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
+            mutableMethodImplementation.addInstruction(freeLabelPosition + 3, jumpBackward);
+
         } else {
-            mutableMethodImplementation.addInstruction(index, constString);
-            mutableMethodImplementation.addInstruction(index + 1, invokeStaticRange);
+            if (elseBranch) {
+                mutableMethodImplementation.addInstruction(++index, constString);
+                mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+
+                /*
+                 * We cannot directly insert our instructions after the else-branch label (those instructions
+                 * would fall between the goto and else-branch label). Instead we need to insert our
+                 * instructions after the first instructions there, and swap them back afterwards.
+                 */
+                mutableMethodImplementation.swapInstructions(index - 2, index - 1);
+                mutableMethodImplementation.swapInstructions(index - 1, index);
+            } else {
+                mutableMethodImplementation.addInstruction(index, constString);
+                mutableMethodImplementation.addInstruction(index + 1, invokeStaticRange);
+            }
         }
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
         return mutableMethodImplementation;
+    }
+
+    /**
+     * Returns a possible position for a new label near the end of a method.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @return Returns a possible position for a new label.
+     */
+    private static int getFreeLabelPosition(MethodInformation methodInformation) {
+
+        MutableMethodImplementation mutableImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        List<BuilderInstruction> instructions = new ArrayList<>(mutableImplementation.getInstructions());
+        Collections.reverse(instructions);
+
+        // search for possible label position at the end of method
+        for(BuilderInstruction instruction : instructions) {
+
+            // the bytecode verifier ensures that those instructions must be at the end and unreachable by control flow
+            EnumSet<Opcode> opcodes = EnumSet.of(Opcode.PACKED_SWITCH_PAYLOAD,
+                    Opcode.SPARSE_SWITCH_PAYLOAD, Opcode.FILL_ARRAY_DATA);
+
+            if (!opcodes.contains(instruction.getOpcode())) {
+                // valid position for new label after instruction (hence + 1)
+                LOGGER.info("Position of new label: " + instruction.getLocation().getIndex() + 1);
+                return instruction.getLocation().getIndex() + 1;
+            }
+        }
+        throw new IllegalStateException("No free label position found for method: " + methodInformation.getMethodID());
     }
 
     /**
@@ -122,7 +213,7 @@ public final class Instrumentation {
              * and later swap those instructions.
              */
             boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-            mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, shiftInstruction);
+            mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
         }
 
         // update implementation
