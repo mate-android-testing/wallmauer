@@ -2,29 +2,26 @@ package de.uni_passau.fim.auermich.branchcoverage.instrumentation;
 
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchcoverage.BranchCoverage;
-import de.uni_passau.fim.auermich.branchcoverage.analysis.Analyzer;
 import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
 import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.jf.dexlib2.Format;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.BuilderOffsetInstruction;
 import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.*;
-import org.jf.dexlib2.immutable.ImmutableMethod;
-import org.jf.dexlib2.immutable.ImmutableMethodParameter;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction21c;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction22x;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction3rc;
+import org.jf.dexlib2.iface.DexFile;
+import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -35,8 +32,7 @@ import java.util.stream.IntStream;
  */
 public final class Instrumentation {
 
-    private static final Logger LOGGER = Logger.getLogger(Instrumentation.class
-            .getName());
+    private static final Logger LOGGER = LogManager.getLogger(Instrumentation.class);
 
     /**
      * Instruments the given branch with the tracer functionality.
@@ -237,7 +233,7 @@ public final class Instrumentation {
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
         Map<Integer, RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
-        LOGGER.fine(paramRegisterMap.toString());
+        LOGGER.info(paramRegisterMap.toString());
 
         List<Integer> newRegisters = methodInformation.getNewRegisters();
         List<Integer> paramRegisters = methodInformation.getParamRegisters();

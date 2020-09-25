@@ -16,14 +16,14 @@ import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.TryBlock;
 import org.jf.dexlib2.util.MethodUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 public final class Analyzer {
 
-    private static final Logger LOGGER = Logger.getLogger(Analyzer.class
-            .getName());
+    private static final Logger LOGGER = LogManager.getLogger(Analyzer.class);
 
     /**
      * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
@@ -78,6 +78,8 @@ public final class Analyzer {
 
         Set<Range> tryBlocks = new TreeSet<>();
 
+        LOGGER.info("Number of try blocks: " + methodImplementation.getTryBlocks().size());
+
         // TODO: this can be done in one pass over the instructions
         for (TryBlock<? extends ExceptionHandler> tryBlock : methodImplementation.getTryBlocks()) {
 
@@ -127,9 +129,9 @@ public final class Analyzer {
             int startOfTryBlock = startInstructionTryBlock.getLocation().getIndex();
             int endOfTryBlock = endInstructionTryBlock.getLocation().getIndex();
 
-            LOGGER.fine("First instruction within try block: "
+            LOGGER.info("First instruction within try block: "
                     + startInstructionTryBlock.getOpcode() + "(" + startOfTryBlock + ")");
-            LOGGER.fine("Last instruction within try block: "
+            LOGGER.info("Last instruction within try block: "
                     + endInstructionTryBlock.getOpcode() + "(" + endOfTryBlock + ")");
 
             Range tryBlockRange = new Range(startOfTryBlock, endOfTryBlock);

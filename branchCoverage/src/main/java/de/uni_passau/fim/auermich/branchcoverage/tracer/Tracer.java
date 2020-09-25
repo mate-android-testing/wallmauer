@@ -29,7 +29,7 @@ public class Tracer extends BroadcastReceiver {
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
 
-    // the logger instance
+    // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
     private static final Logger LOGGER = Logger.getLogger(Tracer.class
             .getName());
 

@@ -3,15 +3,11 @@ package de.uni_passau.fim.auermich.branchcoverage.instrumentation;
 import org.jf.dexlib2.builder.BuilderInstruction;
 
 import java.util.Objects;
-import java.util.logging.Logger;
 
 /**
  * Defines an instrumentation point, i.e. a location within a method.
  */
 public final class InstrumentationPoint implements Comparable<InstrumentationPoint> {
-
-    private static final Logger LOGGER = Logger.getLogger(InstrumentationPoint.class
-            .getName());
 
     private final BuilderInstruction instruction;
     private final int position;

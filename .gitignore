@@ -1,4 +1,4 @@
-
+*.log
 branches.txt
 
 # Created by https://www.gitignore.io/api/intellij+all

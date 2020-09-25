@@ -1,5 +1,7 @@
 package de.uni_passau.fim.auermich.branchcoverage.xml;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -13,13 +15,11 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.util.Objects;
-import java.util.logging.Logger;
 
 public class ManifestParser {
 
     // the logger instance
-    private static final Logger LOGGER = Logger.getLogger(
-            ManifestParser.class.getName());
+    private static final Logger LOGGER = LogManager.getLogger(ManifestParser.class);
 
     private final String MANIFEST;
 
@@ -55,7 +55,7 @@ public class ManifestParser {
                 Element element = (Element) node;
 
                 if (!element.hasAttribute("package")) {
-                    LOGGER.severe("Couldn't derive package name!");
+                    LOGGER.warn("Couldn't derive package name!");
                     return false;
                 } else {
                     // we need to add a missing slash to the packageName
@@ -103,10 +103,10 @@ public class ManifestParser {
                     }
                 }
             }
-            LOGGER.severe("Couldn't derive name of main-activity");
+            LOGGER.warn("Couldn't derive name of main-activity");
         } catch (Exception e) {
-            LOGGER.severe("Couldn't parse AndroidManifest.xml");
-            LOGGER.severe(e.getMessage());
+            LOGGER.warn("Couldn't parse AndroidManifest.xml");
+            LOGGER.warn(e.getMessage());
         }
         return false;
     }
@@ -167,8 +167,8 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.severe("Couldn't parse AndroidManifest.xml");
-            LOGGER.severe(e.getMessage());
+            LOGGER.warn("Couldn't parse AndroidManifest.xml");
+            LOGGER.warn(e.getMessage());
         }
         return false;
     }
@@ -218,8 +218,8 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.severe("Couldn't parse AndroidManifest.xml");
-            LOGGER.severe(e.getMessage());
+            LOGGER.warn("Couldn't parse AndroidManifest.xml");
+            LOGGER.warn(e.getMessage());
         }
         return false;
     }
@@ -273,8 +273,8 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.severe("Couldn't parse AndroidManifest.xml");
-            LOGGER.severe(e.getMessage());
+            LOGGER.warn("Couldn't parse AndroidManifest.xml");
+            LOGGER.warn(e.getMessage());
         }
         return false;
     }
