@@ -12,10 +12,7 @@ import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction21c;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction22x;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction3rc;
+import org.jf.dexlib2.builder.instruction.*;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
@@ -96,19 +93,17 @@ public final class Instrumentation {
             LOGGER.debug("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
                     "(" + instrumentationPoint.getPosition() + ")");
 
-            // determine position where label + tracer functionality belongs to
-            int freeLabelPosition = getFreeLabelPosition(methodInformation);
+            // the label + tracer functionality comes after the last instruction
+            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
             // insert goto to jump to method end
-            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(freeLabelPosition);
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
 
             if (elseBranch) {
-                LOGGER.debug("Else branch within try block!");
                 mutableMethodImplementation.addInstruction(index + 1, jumpForward);
                 mutableMethodImplementation.swapInstructions(index, index + 1);
             } else {
-                LOGGER.debug("If branch within try block!");
                 mutableMethodImplementation.addInstruction(index, jumpForward);
             }
 
@@ -116,12 +111,12 @@ public final class Instrumentation {
             Label branchLabel = mutableMethodImplementation.newLabelForIndex(index + 1);
 
             // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
-            mutableMethodImplementation.addInstruction(freeLabelPosition + 1, constString);
-            mutableMethodImplementation.addInstruction(freeLabelPosition + 2, invokeStaticRange);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 1, constString);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 2, invokeStaticRange);
 
             // insert goto to jump back to branch
             BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
-            mutableMethodImplementation.addInstruction(freeLabelPosition + 3, jumpBackward);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
 
         } else {
             if (elseBranch) {
@@ -147,11 +142,18 @@ public final class Instrumentation {
     }
 
     /**
+     * UPDATE: Although certain instructions are not allowed to be reachable by the control flow,
+     * e.g. PACKED_SWITCH_PAYLOAD, they don't need to be at the end of the method!
+     * Thus, we can always insert instructions after those pseudo-instructions.
+     *
      * Returns a possible position for a new label near the end of a method.
+     * Note that a single instruction can only have one label. If we try to define
+     * an additional label, the old label is shared/re-used (verify this behaviour!).
      *
      * @param methodInformation Encapsulates a method.
      * @return Returns a possible position for a new label.
      */
+    @SuppressWarnings("unused")
     private static int getFreeLabelPosition(MethodInformation methodInformation) {
 
         MutableMethodImplementation mutableImplementation =
@@ -163,7 +165,7 @@ public final class Instrumentation {
         // search for possible label position at the end of method
         for(BuilderInstruction instruction : instructions) {
 
-            // the bytecode verifier ensures that those instructions must be at the end and unreachable by control flow
+            // the bytecode verifier ensures that those instructions must be unreachable by control flow
             EnumSet<Opcode> opcodes = EnumSet.of(Opcode.PACKED_SWITCH_PAYLOAD,
                     Opcode.SPARSE_SWITCH_PAYLOAD, Opcode.FILL_ARRAY_DATA);
 
@@ -186,14 +188,10 @@ public final class Instrumentation {
      */
     public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
 
-        MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
-
         LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
-        mutableImplementation = new MutableMethodImplementation(
-                Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount()));
+        Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
@@ -215,11 +213,8 @@ public final class Instrumentation {
              * and later swap those instructions.
              */
             boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-            mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
         }
-
-        // update implementation
-        methodInformation.setMethodImplementation(mutableImplementation);
     }
 
     /**
