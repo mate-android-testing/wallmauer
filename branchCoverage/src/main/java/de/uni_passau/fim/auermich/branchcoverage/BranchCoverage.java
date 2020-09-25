@@ -34,7 +34,6 @@ public class BranchCoverage {
     // the logger instance
     private static final Logger LOGGER = LogManager.getLogger(BranchCoverage.class);
 
-
     // the package name declared in the AndroidManifest file
     public static String packageName;
 

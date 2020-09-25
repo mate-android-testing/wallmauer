@@ -6,6 +6,8 @@ import brut.androlib.ApkOptions;
 import brut.common.BrutException;
 import brut.directory.ExtFile;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Format;
 import org.jf.dexlib2.Opcodes;
@@ -23,7 +25,6 @@ import javax.annotation.Nonnull;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -31,8 +32,8 @@ public final class Utility {
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
 
-    private static final Logger LOGGER = Logger.getLogger(Utility.class
-            .getName());
+    private static final Logger LOGGER = LogManager.getLogger(Utility.class);
+
 
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
@@ -139,8 +140,8 @@ public final class Utility {
             // the dir where the decoded content can be found
             return outputDir;
         } catch (BrutException | IOException e) {
-            LOGGER.warning("Failed to decode APK file!");
-            LOGGER.warning(e.getMessage());
+            LOGGER.warn("Failed to decode APK file!");
+            LOGGER.warn(e.getMessage());
             throw new IllegalStateException("Decoding APK failed");
         }
     }
@@ -162,8 +163,8 @@ public final class Utility {
         try {
             new Androlib(apkOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
         } catch (BrutException e) {
-            LOGGER.warning("Failed to build APK file!");
-            LOGGER.warning(e.getMessage());
+            LOGGER.warn("Failed to build APK file!");
+            LOGGER.warn(e.getMessage());
         }
     }
 

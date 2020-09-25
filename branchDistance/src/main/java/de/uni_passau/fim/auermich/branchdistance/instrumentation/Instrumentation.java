@@ -4,14 +4,18 @@ import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.branchdistance.utility.Range;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Format;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
 import org.jf.dexlib2.iface.*;
@@ -21,7 +25,6 @@ import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -32,8 +35,7 @@ import java.util.stream.IntStream;
  */
 public final class Instrumentation {
 
-    private static final Logger LOGGER = Logger.getLogger(Instrumentation.class
-            .getName());
+    private static final Logger LOGGER = LogManager.getLogger(Instrumentation.class);
 
     /**
      * Adds a basic lifecycle method to the given activity or fragment class. This already
@@ -161,18 +163,26 @@ public final class Instrumentation {
      * Instruments the given branch with the tracer functionality.
      *
      * @param methodInformation Stores all relevant information about the given method.
-     * @param index             The position where we insert our instrumented code.
+     * @param index             Describes the location where we need to instrument.
      * @param id                The id which identifies the given branch, i.e. packageName->className->method->branchID.
      * @param elseBranch        Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
-    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation, int index, final String id, boolean elseBranch) {
+    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
+                                                                         int index,
+                                                                         final String id, boolean elseBranch) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
+        // the location of try blocks
+        Set<Range> tryBlocks = methodInformation.getTryBlocks();
+
         // we require one parameter containing the unique branch id
         int freeRegisterID = methodInformation.getFreeRegisters().get(0);
+
+        // the position of the instrumentation point
+        final int instrumentationPoint  = index;
 
         // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
         BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
@@ -184,20 +194,71 @@ public final class Instrumentation {
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
-        if (elseBranch) {
-            mutableMethodImplementation.addInstruction(++index, constString);
-            mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+        // check whether the branch is located within a try block
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint))) {
 
             /*
-             * We cannot directly insert our instructions after the else-branch label (those instructions
-             * would fall between the goto and else-branch label). Instead we need to insert our
-             * instructions after the first instructions there, and swap them back afterwards.
+             * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
+             * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+             * but we consider here any try block. The problem arises from the fact that an invoke instruction
+             * within a try block introduces an additional edge to corresponding catch blocks, although it may
+             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+             * might be two-fold (conflicted), which is rejected by the verifier, see
+             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+             *
+             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+             * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the
+             * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+             * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+             * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
+             * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+             *
+             * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+             * Automated Black-box Android Testing', see section 4.3.
              */
-            mutableMethodImplementation.swapInstructions(index - 2, index - 1);
-            mutableMethodImplementation.swapInstructions(index - 1, index);
+
+            LOGGER.debug("Instrumentation point within try block!");
+
+            // the label + tracer functionality comes after the last instruction
+            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
+
+            // insert goto to jump to method end
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
+            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
+
+            if (elseBranch) {
+                mutableMethodImplementation.addInstruction(index + 1, jumpForward);
+                mutableMethodImplementation.swapInstructions(index, index + 1);
+            } else {
+                mutableMethodImplementation.addInstruction(index, jumpForward);
+            }
+
+            // create label at branch after forward jump
+            Label branchLabel = mutableMethodImplementation.newLabelForIndex(index + 1);
+
+            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 1, constString);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 2, invokeStaticRange);
+
+            // insert goto to jump back to branch
+            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
         } else {
-            mutableMethodImplementation.addInstruction(index, constString);
-            mutableMethodImplementation.addInstruction(index + 1, invokeStaticRange);
+            if (elseBranch) {
+                mutableMethodImplementation.addInstruction(++index, constString);
+                mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
+
+                /*
+                 * We cannot directly insert our instructions after the else-branch label (those instructions
+                 * would fall between the goto and else-branch label). Instead we need to insert our
+                 * instructions after the first instructions there, and swap them back afterwards.
+                 */
+                mutableMethodImplementation.swapInstructions(index - 2, index - 1);
+                mutableMethodImplementation.swapInstructions(index - 1, index);
+            } else {
+                mutableMethodImplementation.addInstruction(index, constString);
+                mutableMethodImplementation.addInstruction(index + 1, invokeStaticRange);
+            }
         }
 
         // update implementation
@@ -211,18 +272,14 @@ public final class Instrumentation {
      * and exit is instrumented.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
-     * @param dexFile The dex file containing the method.
+     * @param dexFile           The dex file containing the method.
      */
     public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
-
-        MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
 
         LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
-        mutableImplementation = new MutableMethodImplementation(
-                Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount()));
+        Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
@@ -249,7 +306,7 @@ public final class Instrumentation {
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
                     // instrument branch with trace
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
-                    mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, true);
+                    insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, true);
                 }
 
             } else {
@@ -262,12 +319,9 @@ public final class Instrumentation {
                  * and later swap those instructions.
                  */
                 boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-                mutableImplementation = insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, shiftInstruction);
+                insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, shiftInstruction);
             }
         }
-
-        // update implementation
-        methodInformation.setMethodImplementation(mutableImplementation);
 
         instrumentMethodEntry(methodInformation, dexFile);
         instrumentMethodExit(methodInformation);
@@ -399,7 +453,7 @@ public final class Instrumentation {
     /**
      * Inserts code to invoke the branch distance computation for an if statement that has
      * two primitive arguments, e.g. if-eq v0, v1. We simply call '
-     *      branchDistance(int op_type, int argument1, int argument2)'.
+     * branchDistance(int op_type, int argument1, int argument2)'.
      *
      * @param methodInformation Encapsulates a method.
      * @param instructionIndex  The instruction index of the if statement.
@@ -474,7 +528,7 @@ public final class Instrumentation {
      * @param registerA         The register id of the argument register.
      */
     private static void handleObjectUnaryComparison(MethodInformation methodInformation, int instructionIndex,
-                                                        int operation, int registerA) {
+                                                    int operation, int registerA) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -524,7 +578,7 @@ public final class Instrumentation {
     /**
      * Inserts code to invoke the branch distance computation for an if statement that has
      * two object arguments, e.g. if-eq v0, v1. We simply call '
-     *      branchDistance(int op_type, Object argument1, Object argument2)'.
+     * branchDistance(int op_type, Object argument1, Object argument2)'.
      *
      * @param methodInformation Encapsulates a method.
      * @param instructionIndex  The instruction index of the if statement.
@@ -533,7 +587,7 @@ public final class Instrumentation {
      * @param registerB         The register id of the second argument register.
      */
     private static void handleObjectBinaryComparison(MethodInformation methodInformation, int instructionIndex,
-                                                        int operation, int registerA, int registerB) {
+                                                     int operation, int registerA, int registerB) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -653,7 +707,7 @@ public final class Instrumentation {
      * Instruments the method entry, i.e. before the first or the first instruction within a catch block a trace is inserted.
      *
      * @param methodInformation Encapsulates the method to be instrumented.
-     * @param dexFile The dex file containing the method.
+     * @param dexFile           The dex file containing the method.
      */
     private static void instrumentMethodEntry(MethodInformation methodInformation, DexFile dexFile) {
 
@@ -665,12 +719,12 @@ public final class Instrumentation {
 
         for (Integer entryInstructionID : entryInstructionIDs) {
             /*
-            * We need to treat method entries similar to else branches in order to avoid that
-            * label/instruction issue. Moreover, a method entry that is not the first instruction
-            * (it is the first instruction of the catch block) needs a special treatment. The bytecode
-            * verifier ensures that the move-exception instruction must be the first instruction of
-            * the catch block, thus we can't insert any instruction before move-exception. Instead,
-            * we have to insert our trace after the move-exception instruction.
+             * We need to treat method entries similar to else branches in order to avoid that
+             * label/instruction issue. Moreover, a method entry that is not the first instruction
+             * (it is the first instruction of the catch block) needs a special treatment. The bytecode
+             * verifier ensures that the move-exception instruction must be the first instruction of
+             * the catch block, thus we can't insert any instruction before move-exception. Instead,
+             * we have to insert our trace after the move-exception instruction.
              */
             if (entryInstructionID > 0) {
                 entryInstructionID++;
@@ -739,7 +793,7 @@ public final class Instrumentation {
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
         Map<Integer, RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
-        LOGGER.fine(paramRegisterMap.toString());
+        LOGGER.debug(paramRegisterMap.toString());
 
         List<Integer> newRegisters = methodInformation.getNewRegisters();
         List<Integer> paramRegisters = methodInformation.getParamRegisters();

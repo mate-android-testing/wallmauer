@@ -7,6 +7,10 @@ import de.uni_passau.fim.auermich.branchdistance.instrumentation.Instrumentation
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import de.uni_passau.fim.auermich.branchdistance.xml.ManifestParser;
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.jf.baksmali.Baksmali;
 import org.jf.baksmali.BaksmaliOptions;
 import org.jf.dexlib2.DexFileFactory;
@@ -25,15 +29,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class BranchDistance {
 
     // the logger instance
-    private static final Logger LOGGER = Logger.getLogger(BranchDistance.class
-            .getName());
+    private static final Logger LOGGER = LogManager.getLogger(BranchDistance.class);
 
     // the package name declared in the AndroidManifest file
     public static String packageName;
@@ -48,7 +49,7 @@ public class BranchDistance {
     public static String decodedAPKPath;
 
     // dex op code specified in header of classes.dex file
-    public static final int OPCODE_API = 28;
+    public static int OPCODE_API = 28;
 
     /*
     * Defines the number of additional registers. We require one additional register
@@ -94,7 +95,7 @@ public class BranchDistance {
      */
     public static void main(String[] args) throws IOException, URISyntaxException {
 
-        LOGGER.setLevel(Level.ALL);
+        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
 
         if (args.length != 1) {
             LOGGER.info("Expect exactly one argument: path to the APK file");
@@ -111,7 +112,7 @@ public class BranchDistance {
 
             // process directly apk file (support for multi-dex)
             MultiDexContainer<? extends DexBackedDexFile> apk
-                    = DexFileFactory.loadDexContainer(apkFile, Opcodes.forApi(OPCODE_API));
+                    = DexFileFactory.loadDexContainer(apkFile, null);
 
             // decode the APK file
             decodedAPKPath = Utility.decodeAPK(apkFile);
@@ -120,7 +121,7 @@ public class BranchDistance {
 
             // retrieve package name and main activity
             if (!manifest.parseManifest()) {
-                LOGGER.warning("Couldn't retrieve MainActivity and/or PackageName!");
+                LOGGER.warn("Couldn't retrieve MainActivity and/or PackageName!");
                 return;
             }
 
@@ -135,8 +136,8 @@ public class BranchDistance {
                 try {
                     instrument(apk.getEntry(dexFile).getDexFile(), dexFile, exclusionPattern);
                 } catch (IOException e) {
-                    LOGGER.warning("Failure loading dexFile");
-                    LOGGER.warning(e.getMessage());
+                    LOGGER.warn("Failure loading dexFile");
+                    LOGGER.warn(e.getMessage());
                 }
             });
 
@@ -144,20 +145,20 @@ public class BranchDistance {
             if (!manifest.addBroadcastReceiverTag(
                     "de.uni_passau.fim.auermich.branchdistance.tracer.Tracer",
                     "STORE_TRACES")) {
-                LOGGER.warning("Couldn't insert broadcast receiver tag!");
+                LOGGER.warn("Couldn't insert broadcast receiver tag!");
                 return;
             }
 
             // mark app as debuggable
             if (!manifest.addDebuggableFlag()) {
-                LOGGER.warning("Couldn't mark app as debuggable!");
+                LOGGER.warn("Couldn't mark app as debuggable!");
                 return;
             }
 
             // add external storage write permission
             if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")
                     || !manifest.addPermissionTag("android.permission.READ_EXTERNAL_STORAGE")) {
-                LOGGER.warning("Couldn't add read/write permission for external storage!");
+                LOGGER.warn("Couldn't add read/write permission for external storage!");
                 return;
             }
 
@@ -212,6 +213,11 @@ public class BranchDistance {
     private static void instrument(DexFile dexFile, String dexFileName, Pattern exclusionPattern) throws  IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
+
+        LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
+
+        // set the opcode api level
+        OPCODE_API = dexFile.getOpcodes().api;
 
         // the set of classes we write into the instrumented classes.dex file
         List<ClassDef> classes = Lists.newArrayList();
@@ -286,6 +292,9 @@ public class BranchDistance {
 
                     // determine where we need to instrument
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
+
+                    // determine the location of try blocks
+                    methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
 
                     // determine the number of branches per class
                     numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);

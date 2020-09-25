@@ -4,6 +4,9 @@ package de.uni_passau.fim.auermich.branchdistance.analysis;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.branchdistance.utility.Range;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
@@ -19,13 +22,11 @@ import org.jf.dexlib2.util.MethodUtil;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public final class Analyzer {
 
-    private static final Logger LOGGER = Logger.getLogger(Analyzer.class
-            .getName());
+    private static final Logger LOGGER = LogManager.getLogger(Analyzer.class);
 
     /**
      * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
@@ -68,6 +69,85 @@ public final class Analyzer {
 
         LOGGER.info(instrumentationPoints.toString());
         return instrumentationPoints;
+    }
+
+    /**
+     * Returns a sorted set of try blocks. Each try block is identified by its start and end index.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @return Returns ranges describing the start and end of try blocks.
+     */
+    public static Set<Range> getTryBlocks(MethodInformation methodInformation) {
+
+        LOGGER.info("Retrieving try blocks of method...");
+
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+
+        MutableMethodImplementation mutableMethodImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        Set<Range> tryBlocks = new TreeSet<>();
+
+        LOGGER.info("Number of try blocks: " + methodImplementation.getTryBlocks().size());
+
+        // TODO: this can be done in one pass over the instructions
+        for (TryBlock<? extends ExceptionHandler> tryBlock : methodImplementation.getTryBlocks()) {
+
+            LOGGER.info("Try block size: " + tryBlock.getCodeUnitCount() + " code units");
+            LOGGER.info("Try block start address: " + tryBlock.getStartCodeAddress());
+            LOGGER.info("Associated catch blocks: " + tryBlock.getExceptionHandlers().size());
+
+            int consumedCodeUnits = 0;
+            BuilderInstruction startInstructionTryBlock = null;
+            BuilderInstruction endInstructionTryBlock = null;
+
+            for (BuilderInstruction instruction : mutableMethodImplementation.getInstructions()) {
+
+                /*
+                 * The relation between a code unit and an instruction is as follows:
+                 *
+                 * code unit | instruction
+                 *      0
+                 *               instr1
+                 *      k
+                 *               instr2
+                 *      n
+                 *
+                 * This means to check whether we reached a starting point, e.g., the first instruction
+                 * of a try block, we need to compare the code unit counter before consuming the next instruction.
+                 *
+                 * However, if we want to check some end point, e.g., the end of a try block, we need to compare
+                 * the code unit counter after the consumption of the next instruction.
+                 */
+
+                // the starting point is before the actual instruction
+                if (consumedCodeUnits == tryBlock.getStartCodeAddress()) {
+                    startInstructionTryBlock = instruction;
+                }
+
+                // the end point is after the actual instruction
+                if (consumedCodeUnits + instruction.getCodeUnits() == tryBlock.getStartCodeAddress()
+                        + tryBlock.getCodeUnitCount()) {
+                    endInstructionTryBlock = instruction;
+                    break;
+                }
+
+                consumedCodeUnits += instruction.getCodeUnits();
+            }
+
+            // the instruction indices describe the range of the try block
+            int startOfTryBlock = startInstructionTryBlock.getLocation().getIndex();
+            int endOfTryBlock = endInstructionTryBlock.getLocation().getIndex();
+
+            LOGGER.info("First instruction within try block: "
+                    + startInstructionTryBlock.getOpcode() + "(" + startOfTryBlock + ")");
+            LOGGER.info("Last instruction within try block: "
+                    + endInstructionTryBlock.getOpcode() + "(" + endOfTryBlock + ")");
+
+            Range tryBlockRange = new Range(startOfTryBlock, endOfTryBlock);
+            tryBlocks.add(tryBlockRange);
+        }
+        return tryBlocks;
     }
 
     /**
