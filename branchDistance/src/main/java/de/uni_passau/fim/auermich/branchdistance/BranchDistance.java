@@ -51,6 +51,9 @@ public class BranchDistance {
     // dex op code specified in header of classes.dex file
     public static int OPCODE_API = 28;
 
+    // the maximal number of methods per class
+    public static final int METHOD_LIMIT = 65536;
+
     /*
     * Defines the number of additional registers. We require one additional register
     * for storing the unique branch id. Then, we need two additional registers for holding
@@ -342,6 +345,13 @@ public class BranchDistance {
             } else {
                 // add modified class including its method to the list of classes
                 Utility.addInstrumentedClass(classes, methods, classDef);
+            }
+
+            LOGGER.debug("Number of methods in class: " + methods.size());
+
+            if (methods.size() > METHOD_LIMIT) {
+                LOGGER.error("Number of methods per class exceeds limit!");
+                throw new IllegalStateException("Method limit per class exceeded!");
             }
 
             // write out the number of branches per class
