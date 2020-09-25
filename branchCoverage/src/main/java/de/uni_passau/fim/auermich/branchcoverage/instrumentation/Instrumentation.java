@@ -92,6 +92,10 @@ public final class Instrumentation {
             * Automated Black-box Android Testing', see section 4.3.
              */
 
+            LOGGER.debug("Instrumentation point within try block!");
+            LOGGER.debug("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
+                    "(" + instrumentationPoint.getPosition() + ")");
+
             // determine position where label + tracer functionality belongs to
             int freeLabelPosition = getFreeLabelPosition(methodInformation);
 
@@ -100,9 +104,11 @@ public final class Instrumentation {
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
 
             if (elseBranch) {
+                LOGGER.debug("Else branch within try block!");
                 mutableMethodImplementation.addInstruction(index + 1, jumpForward);
                 mutableMethodImplementation.swapInstructions(index, index + 1);
             } else {
+                LOGGER.debug("If branch within try block!");
                 mutableMethodImplementation.addInstruction(index, jumpForward);
             }
 
