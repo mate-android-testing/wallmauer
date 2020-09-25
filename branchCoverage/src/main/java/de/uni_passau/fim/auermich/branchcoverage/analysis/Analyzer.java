@@ -81,6 +81,10 @@ public final class Analyzer {
         // TODO: this can be done in one pass over the instructions
         for (TryBlock<? extends ExceptionHandler> tryBlock : methodImplementation.getTryBlocks()) {
 
+            LOGGER.info("Try block size: " + tryBlock.getCodeUnitCount() + " code units");
+            LOGGER.info("Try block start address: " + tryBlock.getStartCodeAddress());
+            LOGGER.info("Associated catch blocks: " + tryBlock.getExceptionHandlers().size());
+
             int consumedCodeUnits = 0;
             BuilderInstruction startInstructionTryBlock = null;
             BuilderInstruction endInstructionTryBlock = null;
@@ -107,8 +111,10 @@ public final class Analyzer {
                 // the starting point is before the actual instruction
                 if (consumedCodeUnits == tryBlock.getStartCodeAddress()) {
                     startInstructionTryBlock = instruction;
-                    // the end point is after the actual instruction
-                } else if (consumedCodeUnits + instruction.getCodeUnits() == tryBlock.getStartCodeAddress()
+                }
+
+                // the end point is after the actual instruction
+                if (consumedCodeUnits + instruction.getCodeUnits() == tryBlock.getStartCodeAddress()
                         + tryBlock.getCodeUnitCount()) {
                     endInstructionTryBlock = instruction;
                     break;
