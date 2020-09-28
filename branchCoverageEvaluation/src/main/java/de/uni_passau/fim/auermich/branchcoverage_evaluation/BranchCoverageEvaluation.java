@@ -74,8 +74,8 @@ public class BranchCoverageEvaluation {
             // compute branch coverage per class
             for (String key : branches.keySet()) {
 
+                float coveredBranches = visitedBranches.getOrDefault(key, 0);
                 float totalBranches = branches.get(key);
-                float coveredBranches = visitedBranches.get(key);
                 LOGGER.info("We have for the class " + key + " a branch coverage of: " + coveredBranches / totalBranches * 100 + "%");
             }
         }
