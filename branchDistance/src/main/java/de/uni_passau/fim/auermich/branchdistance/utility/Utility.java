@@ -6,6 +6,9 @@ import brut.androlib.ApkOptions;
 import brut.common.BrutException;
 import brut.directory.ExtFile;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
+import lanchon.multidexlib2.BasicDexFileNamer;
+import lanchon.multidexlib2.DexIO;
+import lanchon.multidexlib2.MultiDexIO;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.DexFileFactory;
@@ -169,14 +172,56 @@ public final class Utility {
     }
 
     /**
-     * Writes the assembled classes to a dex file.
+     * Writes a merged dex file to a directory. Under the scene, the dex file is split
+     * into multiple dex files if the method reference limit would be violated.
+     *
+     * @param filePath The directory where the dex files should be written to.
+     * @param classes The classes that should be contained within the dex file.
+     * @param opCode The API opcode level, e.g. API 28 (Android).
+     * @throws IOException Should never happen.
+     */
+    public static void writeMultiDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
+
+        // TODO: directly update merged dex file instance instead of creating new dex file instance here
+        DexFile dexFile = new DexFile() {
+            @Nonnull
+            @Override
+            public Set<? extends ClassDef> getClasses() {
+                return new AbstractSet<ClassDef>() {
+                    @Nonnull
+                    @Override
+                    public Iterator<ClassDef> iterator() {
+                        return classes.iterator();
+                    }
+
+                    @Override
+                    public int size() {
+                        return classes.size();
+                    }
+                };
+            }
+
+            @Nonnull
+            @Override
+            public Opcodes getOpcodes() {
+                return Opcodes.forApi(opCode);
+            }
+        };
+
+        MultiDexIO.writeDexFile(true, new File(filePath), new BasicDexFileNamer(),
+                dexFile, DexIO.DEFAULT_MAX_DEX_POOL_SIZE, null);
+    }
+
+    /**
+     * Writes the assembled classes to a single dex file.
      *
      * @param filePath The path of the newly created dex file.
      * @param classes The classes that should be contained within the dex file.
      * @param opCode The API opcode level, e.g. API 28 (Android).
      * @throws IOException Should never happen.
      */
-    public static void writeToDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
+    @SuppressWarnings("unused")
+    public static void writeToDexFile2(String filePath, List<ClassDef> classes, int opCode) throws IOException {
 
         DexFileFactory.writeDexFile(filePath, new DexFile() {
             @Nonnull

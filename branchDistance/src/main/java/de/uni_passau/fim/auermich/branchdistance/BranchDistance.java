@@ -6,6 +6,8 @@ import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchdistance.instrumentation.Instrumentation;
 import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
 import de.uni_passau.fim.auermich.branchdistance.xml.ManifestParser;
+import lanchon.multidexlib2.BasicDexFileNamer;
+import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -25,22 +27,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class BranchDistance {
 
     // the logger instance
     private static final Logger LOGGER = LogManager.getLogger(BranchDistance.class);
-
-    // the package name declared in the AndroidManifest file
-    public static String packageName;
-
-    // the name of the mainActivity declared in the AndroidManifest file
-    public static String mainActivity;
 
     // the path to the APK file
     public static String apkPath;
@@ -51,26 +44,20 @@ public class BranchDistance {
     // dex op code specified in header of classes.dex file
     public static int OPCODE_API = 28;
 
-    // the maximal number of methods per class
-    public static final int METHOD_LIMIT = 65536;
-
     /*
-    * Defines the number of additional registers. We require one additional register
-    * for storing the unique branch id. Then, we need two additional registers for holding
-    * the arguments of if instructions. In addition, we may need two further registers
-    * for the shifting of the param registers, since the register type must be consistent
-    * within a try-catch block, otherwise the verification process fails.
+     * Defines the number of additional registers. We require one additional register
+     * for storing the unique branch id. Then, we need two additional registers for holding
+     * the arguments of if instructions. In addition, we may need two further registers
+     * for the shifting of the param registers, since the register type must be consistent
+     * within a try-catch block, otherwise the verification process fails.
      */
     public static final int ADDITIONAL_REGISTERS = 3;
 
-    // the dex conform mainActivity name, uses '/' instead of '.'
-    public static String mainActivityDex;
-
     /*
-    * We can't instrument methods with more than 256 registers in total,
-    * since certain instructions (which we make use of) only allow parameters with
-    * register IDs < 256 (some even < 16). As we need two additional register,
-    * the register count before instrumentation must be < 255.
+     * We can't instrument methods with more than 256 registers in total,
+     * since certain instructions (which we make use of) only allow parameters with
+     * register IDs < 256 (some even < 16). As we need two additional register,
+     * the register count before instrumentation must be < 255.
      */
     private static final int MAX_TOTAL_REGISTERS = 255;
 
@@ -93,7 +80,7 @@ public class BranchDistance {
      * Invokes the instrumentation process on a given app.
      *
      * @param args A single commandline argument specifying the path to the APK file.
-     * @throws IOException Should never happen.
+     * @throws IOException        Should never happen.
      * @throws URISyntaxException Should never happen.
      */
     public static void main(String[] args) throws IOException, URISyntaxException {
@@ -113,36 +100,23 @@ public class BranchDistance {
             // the APK file
             File apkFile = new File(apkPath);
 
-            // process directly apk file (support for multi-dex)
-            MultiDexContainer<? extends DexBackedDexFile> apk
-                    = DexFileFactory.loadDexContainer(apkFile, null);
-
             // decode the APK file
             decodedAPKPath = Utility.decodeAPK(apkFile);
 
+            /*
+             * TODO: Directly read from APK file if possible (exception so far)
+             * Multidexlib2 provides a merged dex file. So, you don't have to care about
+             * multiple dex files at all. When writing this merged dex file to a directory,
+             * the dex file is split into multiple dex files such that the method reference
+             * constraint is not violated.
+             */
+            DexFile mergedDex = MultiDexIO.readDexFile(true, new File(decodedAPKPath),
+                    new BasicDexFileNamer(), null, null);
+
+            // instrument + write merged dex file to directory
+            instrument(mergedDex, exclusionPattern);
+
             ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
-
-            // retrieve package name and main activity
-            if (!manifest.parseManifest()) {
-                LOGGER.warn("Couldn't retrieve MainActivity and/or PackageName!");
-                return;
-            }
-
-            mainActivity = manifest.getMainActivity();
-            packageName = manifest.getPackageName();
-
-            // convert the MainActivity to dex format
-            mainActivityDex = "L" + mainActivity.replaceAll("\\.", "/") + ";";
-
-            // instrument all the dex files included in the APK file
-            apk.getDexEntryNames().forEach(dexFile -> {
-                try {
-                    instrument(apk.getEntry(dexFile).getDexFile(), dexFile, exclusionPattern);
-                } catch (IOException e) {
-                    LOGGER.warn("Failure loading dexFile");
-                    LOGGER.warn(e.getMessage());
-                }
-            });
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
@@ -167,21 +141,28 @@ public class BranchDistance {
 
             // we insert into the last classes.dex file our tracer functionality
 
+            /*
+             * It seems like multidexlib2 can't handle an APK directly as input. Since we
+             * decode the APK anyways, this doesn't matter.
+             */
+            MultiDexContainer<? extends DexBackedDexFile> apk =
+                    MultiDexIO.readMultiDexContainer(true, new File(decodedAPKPath),
+                            new BasicDexFileNamer(), null, null);
+
             // the path to the last dex file, e.g. classes3.dex
             String lastDexFile = decodedAPKPath + File.separator
-                    + apk.getDexEntryNames().get(apk.getDexEntryNames().size()-1);
+                    + apk.getDexEntryNames().get(apk.getDexEntryNames().size() - 1);
 
             // the output directory for baksmali d
             File smaliFolder = new File(decodedAPKPath + File.separator + "out");
 
             // baksmali d classes.dex -o out
             Baksmali.disassembleDexFile(DexFileFactory.loadDexFile(lastDexFile,
-                    Opcodes.forApi(OPCODE_API)),smaliFolder, 1, new BaksmaliOptions());
+                    Opcodes.forApi(OPCODE_API)), smaliFolder, 1, new BaksmaliOptions());
 
             // the location of the tracer directory
             File tracerFolder = Paths.get(smaliFolder.getAbsolutePath(), "de", "uni_passau",
                     "fim", "auermich", "branchdistance", "tracer").toFile();
-            // TODO: verify that mkdirs doesn't overwrite pre-existing sub-directories/files
             tracerFolder.mkdirs();
 
             // copy from resource folder Tracer.smali to smali folder
@@ -206,14 +187,13 @@ public class BranchDistance {
     }
 
     /**
-     * Instruments the classes respectively methods within a dex file.
+     * Instruments the classes respectively methods within a (merged) dex file.
      *
-     * @param dexFile The dexFile containing the classes and methods.
-     * @param dexFileName The name of the dexFile.
+     * @param dexFile          The dexFile containing the classes and methods.
      * @param exclusionPattern A pattern describing classes that should be excluded from instrumentation.
      * @throws IOException Should never happen.
      */
-    private static void instrument(DexFile dexFile, String dexFileName, Pattern exclusionPattern) throws  IOException {
+    private static void instrument(DexFile dexFile, Pattern exclusionPattern) throws IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
 
@@ -291,7 +271,7 @@ public class BranchDistance {
                     LOGGER.info("Instrumenting method " + method.getName() + " of class " + classDef.toString());
 
                     // determine the new local registers and free register IDs
-                    Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
+                    Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
 
                     // determine where we need to instrument
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
@@ -312,9 +292,9 @@ public class BranchDistance {
                     modifiedMethod = true;
 
                     /*
-                    * We need to shift param registers by two positions to the left,
-                    * e.g. move p1, p2, such that the last (two) param register(s) is/are
-                    * free for use. We need two regs for wide types which span over 2 regs.
+                     * We need to shift param registers by two positions to the left,
+                     * e.g. move p1, p2, such that the last (two) param register(s) is/are
+                     * free for use. We need two regs for wide types which span over 2 regs.
                      */
                     if (methodInformation.getParamRegisterCount() > 0) {
                         Instrumentation.shiftParamRegisters(methodInformation);
@@ -347,19 +327,12 @@ public class BranchDistance {
                 Utility.addInstrumentedClass(classes, methods, classDef);
             }
 
-            LOGGER.debug("Number of methods in class: " + methods.size());
-
-            if (methods.size() > METHOD_LIMIT) {
-                LOGGER.error("Number of methods per class exceeds limit!");
-                throw new IllegalStateException("Method limit per class exceeded!");
-            }
-
             // write out the number of branches per class
             Utility.writeBranches(classDef.getType(), numberOfBranches);
         }
 
-        // assemble modified dex files
-        Utility.writeToDexFile(decodedAPKPath + File.separator + dexFileName, classes, OPCODE_API);
+        // write modified (merged) dex file to directory
+        Utility.writeMultiDexFile(decodedAPKPath, classes, OPCODE_API);
     }
 
 }
