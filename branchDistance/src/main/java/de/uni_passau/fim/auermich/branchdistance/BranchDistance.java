@@ -25,14 +25,19 @@ import org.jf.smali.SmaliOptions;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 
+/**
+ * Defines the entry point, i.e. the command line interface, of the branch distance
+ * instrumentation.
+ */
 public class BranchDistance {
 
-    // the logger instance
     private static final Logger LOGGER = LogManager.getLogger(BranchDistance.class);
 
     // the path to the APK file
@@ -41,7 +46,7 @@ public class BranchDistance {
     // the output path of the decoded APK
     public static String decodedAPKPath;
 
-    // dex op code specified in header of classes.dex file
+    // the API opcode level defined in the dex header (can be derived automatically)
     public static int OPCODE_API = 28;
 
     /*
@@ -77,13 +82,13 @@ public class BranchDistance {
     }
 
     /**
-     * Invokes the instrumentation process on a given app.
+     * Defines the command-line entry point. To invoke the branch distance instrumentation,
+     * solely the APK is required as input.
      *
      * @param args A single commandline argument specifying the path to the APK file.
      * @throws IOException        Should never happen.
-     * @throws URISyntaxException Should never happen.
      */
-    public static void main(String[] args) throws IOException, URISyntaxException {
+    public static void main(String[] args) throws IOException {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
 
@@ -287,7 +292,7 @@ public class BranchDistance {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
                     }
 
-                    // instrument branches + if stmts
+                    // instrument branches, if stmts as well as method entry and exit
                     Instrumentation.modifyMethod(methodInformation, dexFile);
                     modifiedMethod = true;
 

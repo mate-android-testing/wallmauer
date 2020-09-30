@@ -1,6 +1,7 @@
 package de.uni_passau.fim.auermich.branchdistance.utility;
 
 import brut.androlib.Androlib;
+import brut.androlib.AndrolibException;
 import brut.androlib.ApkDecoder;
 import brut.androlib.ApkOptions;
 import brut.common.BrutException;
@@ -82,9 +83,8 @@ public final class Utility {
      *
      * @return The pattern representing classes that should not be instrumented.
      * @throws IOException        If the file containing excluded classes is not available.
-     * @throws URISyntaxException If the file is not present.
      */
-    public static Pattern readExcludePatterns() throws IOException, URISyntaxException {
+    public static Pattern readExcludePatterns() throws IOException {
 
         ClassLoader classLoader = ClassLoader.getSystemClassLoader();
         InputStream inputStream = classLoader.getResourceAsStream(EXCLUSION_PATTERN_FILE);
@@ -115,7 +115,6 @@ public final class Utility {
     public static String decodeAPK(File apkPath) {
 
         try {
-            // ApkDecoder decoder = new ApkDecoder(new Androlib());
             ApkDecoder decoder = new ApkDecoder(apkPath);
 
             // path where we want to decode the APK
@@ -128,12 +127,19 @@ public final class Utility {
             // whether to decode classes.dex into smali files: -s
             decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
 
-            // whether to decode the AndroidManifest.xml
-            // decoder.setForceDecodeManifest(ApkDecoder.FORCE_DECODE_MANIFEST_FULL);
+            /*
+            * Although the decoding of only the AndroidManifest works and even
+            * the building of the APK works, the installing of the APK fails.
+            * See https://github.com/iBotPeaches/Apktool/issues/2374 for more details.
+            * Thus, we need to fully decode the resources right now. Hopefully
+            * this bug can be fixed in the future, decoding/encoding resources is a
+            * time consuming task.
+             */
 
-            // whether to decode resources: -r
-            // TODO: there seems to be some problem with the AndroidManifest if we don't fully decode resources
+            // decode no resources: -r
             // decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
+            // decode only the manifest: --force-manifest
+            // decoder.setForceDecodeManifest(ApkDecoder.FORCE_DECODE_MANIFEST_FULL);
 
             // overwrites existing dir: -f
             decoder.setForceDelete(true);
@@ -162,6 +168,7 @@ public final class Utility {
         ApkOptions apkOptions = new ApkOptions();
         // apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
+        // apkOptions.forceBuildAll = true;
 
         try {
             new Androlib(apkOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
