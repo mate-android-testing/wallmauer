@@ -53,11 +53,13 @@ public class Tracer extends BroadcastReceiver {
      * @param identifier Uniquely identifies the given branch.
      */
     public static void trace(String identifier) {
-        executionPath.add(identifier);
+        synchronized (Tracer.class) {
+            executionPath.add(identifier);
 
-        if (executionPath.size() == CACHE_SIZE) {
-            write();
-            executionPath.clear();
+            if (executionPath.size() == CACHE_SIZE) {
+                write();
+                executionPath.clear();
+            }
         }
     }
 
