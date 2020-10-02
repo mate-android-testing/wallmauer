@@ -37,8 +37,12 @@ public class Range implements Comparable<Range> {
      * @return Returns {@code true} if the value falls into the range, otherwise
      *      {@code false} is returned.
      */
-    public boolean contains(int value) {
+    public boolean containsStrict(int value) {
         return start < value && value <= end;
+    }
+
+    public boolean contains(int value) {
+        return start <= value && value <= end;
     }
 
     public int getStart() {

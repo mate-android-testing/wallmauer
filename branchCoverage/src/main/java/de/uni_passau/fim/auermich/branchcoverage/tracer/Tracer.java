@@ -130,19 +130,13 @@ public class Tracer extends BroadcastReceiver {
             e.printStackTrace();
         }
 
-        // FIXME: handle empty traces file -> check size() before accessing first/last element
-        int size = executionPath.size();
-        System.out.println("Size: " + size);
-        System.out.println("First entry afterwards: " + executionPath.get(0));
-        System.out.println("Last entry afterwards: " + executionPath.get(executionPath.size() - 1));
-
         // signal that we finished writing out traces
         try {
             String filePath = "data/data/" + packageName;
             File info = new File(filePath, "info.txt");
             FileWriter writer = new FileWriter(info);
 
-            writer.append(String.valueOf(size));
+            writer.append(String.valueOf(executionPath.size()));
             writer.flush();
             writer.close();
 

@@ -58,16 +58,20 @@ public class Tracer extends BroadcastReceiver {
     }
 
     // unary operation - object types
-    public static void computeBranchDistance(int operation, Object argument) {
+    public static void computeBranchDistance(String operation, Object argument) {
         computeBranchDistance(operation, argument, null);
     }
 
     // binary operation - object types
-    public static void computeBranchDistance(int operation, Object argument1, Object argument2) {
+    public static void computeBranchDistance(String operation, Object argument1, Object argument2) {
 
         int distance = 0;
 
-        switch (operation) {
+        String[] tokens = operation.split(":");
+        int opcode = Integer.parseInt(tokens[0]);
+        final String identifier = tokens[1];
+
+        switch (opcode) {
             case 0: // if-eqz, if-eq
                 if (argument1 == argument2) {
                     distance = 0;
@@ -87,23 +91,26 @@ public class Tracer extends BroadcastReceiver {
                 throw new UnsupportedOperationException("Comparison operator " + operation + " not yet supported!");
         }
 
-        // TODO: do we need to identify the if stmt as well here?
-        final String identifier = "BRANCH DISTANCE: " + distance;
-        System.out.println("BRANCH_DISTANCE: " + identifier);
-        trace(identifier);
+        final String trace = identifier + ":" + distance;
+        System.out.println("BRANCH_DISTANCE: " + distance);
+        trace(trace);
     }
 
     // unary operation - primitive types
-    public static void computeBranchDistance(int operation, int argument) {
+    public static void computeBranchDistance(String operation, int argument) {
         computeBranchDistance(operation, argument, 0);
     }
 
     // binary operation - primitive types
-    public static void computeBranchDistance(int operation, int argument1, int argument2) {
+    public static void computeBranchDistance(String operation, int argument1, int argument2) {
 
         int distance = 0;
 
-        switch (operation) {
+        String[] tokens = operation.split(":");
+        int opcode = Integer.parseInt(tokens[0]);
+        final String identifier = tokens[1];
+
+        switch (opcode) {
             case 0: // if-eqz, if-eq
             case 1: // if-nez, if-ne
                 distance = Math.abs(argument1 - argument2);
@@ -120,10 +127,9 @@ public class Tracer extends BroadcastReceiver {
                 throw new UnsupportedOperationException("Comparison operator not yet supported!");
         }
 
-        // TODO: do we need to identify the if stmt as well here?
-        final String identifier = "BRANCH DISTANCE: " + distance;
-        System.out.println("BRANCH_DISTANCE: " + identifier);
-        trace(identifier);
+        final String trace = identifier + ":" + distance;
+        System.out.println("BRANCH_DISTANCE: " + distance);
+        trace(trace);
     }
 
     /**
@@ -133,11 +139,13 @@ public class Tracer extends BroadcastReceiver {
      * @param identifier Uniquely identifies the given branch.
      */
     public static void trace(String identifier) {
-        executionPath.add(identifier);
+        synchronized (Tracer.class) {
+            executionPath.add(identifier);
 
-        if (executionPath.size() == CACHE_SIZE) {
-            write();
-            executionPath.clear();
+            if (executionPath.size() == CACHE_SIZE) {
+                write();
+                executionPath.clear();
+            }
         }
     }
 
@@ -208,19 +216,13 @@ public class Tracer extends BroadcastReceiver {
             e.printStackTrace();
         }
 
-        // FIXME: handle empty traces file -> check size() before accessing first/last element
-        int size = executionPath.size();
-        System.out.println("Size: " + size);
-        System.out.println("First entry afterwards: " + executionPath.get(0));
-        System.out.println("Last entry afterwards: " + executionPath.get(executionPath.size() - 1));
-
         // signal that we finished writing out traces
         try {
             String filePath = "data/data/" + packageName;
             File info = new File(filePath, "info.txt");
             FileWriter writer = new FileWriter(info);
 
-            writer.append(String.valueOf(size));
+            writer.append(String.valueOf(executionPath.size()));
             writer.flush();
             writer.close();
 

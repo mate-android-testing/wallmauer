@@ -109,7 +109,9 @@ public class BranchDistance {
             decodedAPKPath = Utility.decodeAPK(apkFile);
 
             /*
-             * TODO: Directly read from APK file if possible (exception so far)
+             * TODO: Directly read from APK file if possible (exception so far). This
+             *  should be fixed with the next release, check the github page of (multi)dexlib2.
+             *
              * Multidexlib2 provides a merged dex file. So, you don't have to care about
              * multiple dex files at all. When writing this merged dex file to a directory,
              * the dex file is split into multiple dex files such that the method reference

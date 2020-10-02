@@ -207,7 +207,7 @@ public final class Instrumentation {
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
         // check whether the instrumentation point (the original position) lies within a try block
-        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
+        if (tryBlocks.stream().anyMatch(range -> range.containsStrict(instrumentationPoint.getPosition()))) {
 
             /*
              * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
@@ -351,7 +351,7 @@ public final class Instrumentation {
                 new MutableMethodImplementation(methodInformation.getMethodImplementation());
 
         // get the if instruction
-        int instructionIndex = instrumentationPoint.getPosition();
+        int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
         AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
 
         // map op code to internal operation code
@@ -370,9 +370,9 @@ public final class Instrumentation {
 
             // check whether we deal with primitive or object types
             if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
-                handlePrimitiveUnaryComparison(methodInformation, instructionIndex, operation, registerA);
+                handlePrimitiveUnaryComparison(methodInformation, instrumentationPoint, operation, registerA);
             } else {
-                handleObjectUnaryComparison(methodInformation, instructionIndex, operation, registerA);
+                handleObjectUnaryComparison(methodInformation, instrumentationPoint, operation, registerA);
             }
 
         } else {
@@ -395,9 +395,74 @@ public final class Instrumentation {
             }};
 
             if (!referenceTypes.contains(registerTypeA.category) && !referenceTypes.contains(registerTypeB.category)) {
-                handlePrimitiveBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
+                handlePrimitiveBinaryComparison(methodInformation, instrumentationPoint, operation, registerA, registerB);
             } else if (referenceTypes.contains(registerTypeA.category) && referenceTypes.contains(registerTypeB.category)) {
-                handleObjectBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
+                handleObjectBinaryComparison(methodInformation, instrumentationPoint, operation, registerA, registerB);
+            } else {
+                throw new IllegalStateException("Comparing objects with primitives!");
+            }
+        }
+    }
+
+    /**
+     * Inserts instructions before every if stmt in order to invoke the branch distance computation.
+     *
+     * @param methodInformation    Encapsulates the method.
+     * @param instrumentationPoint Encapsulates information about the if stmt.
+     */
+    private static void computeBranchDistance2(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
+
+        MutableMethodImplementation mutableImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        // get the if instruction
+        int instructionIndex = instrumentationPoint.getPosition();
+        AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
+
+        // map op code to internal operation code
+        int operation = mapOpCodeToOperation(instruction.getOriginalInstruction().getOpcode());
+
+        if (instruction.getOriginalInstruction().getOpcode().format == Format.Format21t) {
+            // unary operation -> if-eqz v0
+            BuilderInstruction21t instruction21t = (BuilderInstruction21t) instrumentationPoint.getInstruction();
+            int registerA = instruction21t.getRegisterA();
+
+            RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
+
+            LOGGER.info("Method: " + methodInformation.getMethodID());
+            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
+
+            // check whether we deal with primitive or object types
+            if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
+                // handlePrimitiveUnaryComparison(methodInformation, instructionIndex, operation, registerA);
+            } else {
+                // handleObjectUnaryComparison(methodInformation, instructionIndex, operation, registerA);
+            }
+
+        } else {
+            // binary operation -> if-eq v0, v1
+            BuilderInstruction22t instruction22t = (BuilderInstruction22t) instrumentationPoint.getInstruction();
+            int registerA = instruction22t.getRegisterA();
+            int registerB = instruction22t.getRegisterB();
+
+            RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
+            RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
+
+            LOGGER.info("Method: " + methodInformation.getMethodID());
+            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
+
+            Set<Byte> referenceTypes = new HashSet<Byte>() {{
+                add(RegisterType.REFERENCE);
+                add(RegisterType.UNINIT_REF);
+            }};
+
+            if (!referenceTypes.contains(registerTypeA.category) && !referenceTypes.contains(registerTypeB.category)) {
+                // handlePrimitiveBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
+            } else if (referenceTypes.contains(registerTypeA.category) && referenceTypes.contains(registerTypeB.category)) {
+                // handleObjectBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
             } else {
                 throw new IllegalStateException("Comparing objects with primitives!");
             }
@@ -409,11 +474,11 @@ public final class Instrumentation {
      * a single primitive argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, int argument)'.
      *
      * @param methodInformation Encapsulates a method.
-     * @param instructionIndex  The instruction index of the if statement.
+     * @param instrumentationPoint  Wrapper for if instruction and its index.
      * @param operation         The operation id, e.g. 0 for if-eqz.
      * @param registerA         The register id of the argument register.
      */
-    private static void handlePrimitiveUnaryComparison(MethodInformation methodInformation, int instructionIndex,
+    private static void handlePrimitiveUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                        int operation, int registerA) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
@@ -422,7 +487,9 @@ public final class Instrumentation {
         // the location of try blocks
         Set<Range> tryBlocks = methodInformation.getTryBlocks();
 
-        final int instrumentationPoint = instructionIndex;
+        int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
+        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+        final String operationParam = operation + ":" + trace;
 
         // we require one parameter for the operation identifier
         int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
@@ -430,25 +497,22 @@ public final class Instrumentation {
         // we need another free register for the single argument of the if instruction
         int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
 
-        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
-        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+        // const/4 vA, #+B - stores the operation type identifier + trace, e.g. 0:<trace-id> for if-eqz
+        BuilderInstruction21c operationID = new BuilderInstruction21c(Opcode.CONST_STRING, firstFreeRegister,
+                new ImmutableStringReference(operationParam));
 
         // we need to move the content of single if instruction argument to the second free register
         // this enables us to us it with the invoke-static range instruction
         BuilderInstruction32x move = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
-
-        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
-        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
-        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
 
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 2,
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
                         "computeBranchDistance",
-                        Lists.newArrayList("II"), "V"));
+                        Lists.newArrayList("Ljava/lang/String;", "I"), "V"));
 
-        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
+        // TODO: I have the fear that using the newly created registers for both branches (strings) and arguments (any type)
         //  could break the verification process. As far as I remember, the type of a register must be consistent
         //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
         //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
@@ -456,8 +520,49 @@ public final class Instrumentation {
 
         // check whether if stmt is located within a try block
         // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
-        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint))) {
-            // TODO: introduce same mechanism as used in branchcoverage
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
+            /*
+             * The bytecode verifier doesn't allow us to insert our functionality directly within
+             * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+             * but we consider here any try block. The problem arises from the fact that an invoke instruction
+             * within a try block introduces an additional edge to corresponding catch blocks, although it may
+             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+             * might be two-fold (conflicted), which is rejected by the verifier, see
+             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+             *
+             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+             * inserting the functionality directly, we insert a goto instruction, which jumps to the end of the
+             * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+             * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+             * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
+             * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+             *
+             * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+             * Automated Black-box Android Testing', see section 4.3.
+             */
+
+            // the label + tracer functionality comes after the last instruction
+            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
+
+            // insert goto to jump to method end
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
+            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
+
+            // consider always as an 'else branch', the if stmt could be the target of a goto instruction
+            mutableMethodImplementation.addInstruction(instructionIndex + 1, jumpForward);
+            mutableMethodImplementation.swapInstructions(instructionIndex, instructionIndex + 1);
+
+            // create label at branch after forward jump
+            Label branchLabel = mutableMethodImplementation.newLabelForIndex(instructionIndex + 1);
+
+            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 1, operationID);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 2, move);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 3, invokeStaticRange);
+
+            // insert goto to jump back to branch
+            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 4, jumpBackward);
         } else {
 
             mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
@@ -479,16 +584,23 @@ public final class Instrumentation {
      * branchDistance(int op_type, int argument1, int argument2)'.
      *
      * @param methodInformation Encapsulates a method.
-     * @param instructionIndex  The instruction index of the if statement.
+     * @param instrumentationPoint  Wrapper for if instruction and its index.
      * @param operation         The operation id, e.g. 0 for if-eq v0, v1.
      * @param registerA         The register id of the first argument register.
      * @param registerB         The register id of the second argument register.
      */
-    private static void handlePrimitiveBinaryComparison(MethodInformation methodInformation, int instructionIndex,
+    private static void handlePrimitiveBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                         int operation, int registerA, int registerB) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // the location of try blocks
+        Set<Range> tryBlocks = methodInformation.getTryBlocks();
+
+        int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
+        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+        final String operationParam = operation + ":" + trace;
 
         // we require one parameter for the operation identifier
         int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
@@ -499,8 +611,9 @@ public final class Instrumentation {
         // we need another free register for the second argument of the if instruction
         int thirdFreeRegister = methodInformation.getFreeRegisters().get(2);
 
-        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
-        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+        // const/4 vA, #+B - stores the operation type identifier + trace, e.g. 0:<trace-id> for if-eqz
+        BuilderInstruction21c operationID = new BuilderInstruction21c(Opcode.CONST_STRING, firstFreeRegister,
+                new ImmutableStringReference(operationParam));
 
         // we need to move the content of the first if instruction argument to the second free register
         // this enables us to us it with the invoke-static range instruction
@@ -510,32 +623,77 @@ public final class Instrumentation {
         // this enables us to us it with the invoke-static range instruction
         BuilderInstruction32x moveB = new BuilderInstruction32x(Opcode.MOVE_16, thirdFreeRegister, registerB);
 
-        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
-        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
-        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
-
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 3,
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
                         "computeBranchDistance",
-                        Lists.newArrayList("III"), "V"));
+                        Lists.newArrayList("Ljava/lang/String;", "I", "I"), "V"));
 
-        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
+        // TODO: I have the fear that using the newly created registers for both branches (strings) and arguments (any type)
         //  could break the verification process. As far as I remember, the type of a register must be consistent
         //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
         //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
         //  solely for the operation opcode and the max 2 args of if stmts.
 
-        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
-        mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
-        mutableMethodImplementation.addInstruction(++instructionIndex, moveB);
-        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+        // check whether if stmt is located within a try block
+        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
+            /*
+             * The bytecode verifier doesn't allow us to insert our functionality directly within
+             * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+             * but we consider here any try block. The problem arises from the fact that an invoke instruction
+             * within a try block introduces an additional edge to corresponding catch blocks, although it may
+             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+             * might be two-fold (conflicted), which is rejected by the verifier, see
+             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+             *
+             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+             * inserting the functionality directly, we insert a goto instruction, which jumps to the end of the
+             * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+             * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+             * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
+             * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+             *
+             * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+             * Automated Black-box Android Testing', see section 4.3.
+             */
 
-        mutableMethodImplementation.swapInstructions(instructionIndex - 4, instructionIndex - 3);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+            // the label + tracer functionality comes after the last instruction
+            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
+
+            // insert goto to jump to method end
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
+            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
+
+            // consider always as an 'else branch', the if stmt could be the target of a goto instruction
+            mutableMethodImplementation.addInstruction(instructionIndex + 1, jumpForward);
+            mutableMethodImplementation.swapInstructions(instructionIndex, instructionIndex + 1);
+
+            // create label at branch after forward jump
+            Label branchLabel = mutableMethodImplementation.newLabelForIndex(instructionIndex + 1);
+
+            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 1, operationID);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 2, moveA);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 3, moveB);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 4, invokeStaticRange);
+
+            // insert goto to jump back to branch
+            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 5, jumpBackward);
+        } else {
+
+            mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+            mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
+            mutableMethodImplementation.addInstruction(++instructionIndex, moveB);
+            mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+            mutableMethodImplementation.swapInstructions(instructionIndex - 4, instructionIndex - 3);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+        }
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
@@ -546,15 +704,22 @@ public final class Instrumentation {
      * a single object argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, Object argument)'.
      *
      * @param methodInformation Encapsulates a method.
-     * @param instructionIndex  The instruction index of the if statement.
+     * @param instrumentationPoint  Wrapper for if instruction and its index.
      * @param operation         The operation id, e.g. 0 for if-eqz.
      * @param registerA         The register id of the argument register.
      */
-    private static void handleObjectUnaryComparison(MethodInformation methodInformation, int instructionIndex,
+    private static void handleObjectUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                     int operation, int registerA) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // the location of try blocks
+        Set<Range> tryBlocks = methodInformation.getTryBlocks();
+
+        int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
+        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+        final String operationParam = operation + ":" + trace;
 
         // we require one parameter for the operation identifier
         int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
@@ -562,23 +727,20 @@ public final class Instrumentation {
         // we need another free register for the single argument of the if instruction
         int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
 
-        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
-        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+        // const/4 vA, #+B - stores the operation type identifier + trace, e.g. 0:<trace-id> for if-eqz
+        BuilderInstruction21c operationID = new BuilderInstruction21c(Opcode.CONST_STRING, firstFreeRegister,
+                new ImmutableStringReference(operationParam));
 
         // we need to move the content of single if instruction argument to the second free register
         // this enables us to us it with the invoke-static range instruction
         BuilderInstruction32x move = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, secondFreeRegister, registerA);
-
-        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
-        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
-        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
 
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 2,
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
                         "computeBranchDistance",
-                        Lists.newArrayList("ILjava/lang/Object;"), "V"));
+                        Lists.newArrayList("Ljava/lang/String;", "Ljava/lang/Object;"), "V"));
 
         // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
         //  could break the verification process. As far as I remember, the type of a register must be consistent
@@ -586,13 +748,61 @@ public final class Instrumentation {
         //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
         //  solely for the operation opcode and the max 2 args of if stmts.
 
-        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
-        mutableMethodImplementation.addInstruction(++instructionIndex, move);
-        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+        // check whether if stmt is located within a try block
+        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
+            /*
+             * The bytecode verifier doesn't allow us to insert our functionality directly within
+             * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+             * but we consider here any try block. The problem arises from the fact that an invoke instruction
+             * within a try block introduces an additional edge to corresponding catch blocks, although it may
+             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+             * might be two-fold (conflicted), which is rejected by the verifier, see
+             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+             *
+             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+             * inserting the functionality directly, we insert a goto instruction, which jumps to the end of the
+             * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+             * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+             * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
+             * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+             *
+             * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+             * Automated Black-box Android Testing', see section 4.3.
+             */
 
-        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+            // the label + tracer functionality comes after the last instruction
+            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
+
+            // insert goto to jump to method end
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
+            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
+
+            // consider always as an 'else branch', the if stmt could be the target of a goto instruction
+            mutableMethodImplementation.addInstruction(instructionIndex + 1, jumpForward);
+            mutableMethodImplementation.swapInstructions(instructionIndex, instructionIndex + 1);
+
+            // create label at branch after forward jump
+            Label branchLabel = mutableMethodImplementation.newLabelForIndex(instructionIndex + 1);
+
+            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 1, operationID);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 2, move);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 3, invokeStaticRange);
+
+            // insert goto to jump back to branch
+            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 4, jumpBackward);
+        } else {
+
+            mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+            mutableMethodImplementation.addInstruction(++instructionIndex, move);
+            mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+            mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+        }
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
@@ -604,16 +814,23 @@ public final class Instrumentation {
      * branchDistance(int op_type, Object argument1, Object argument2)'.
      *
      * @param methodInformation Encapsulates a method.
-     * @param instructionIndex  The instruction index of the if statement.
+     * @param instrumentationPoint  Wrapper for if instruction and its index.
      * @param operation         The operation id, e.g. 0 for if-eq v0, v1.
      * @param registerA         The register id of the first argument register.
      * @param registerB         The register id of the second argument register.
      */
-    private static void handleObjectBinaryComparison(MethodInformation methodInformation, int instructionIndex,
+    private static void handleObjectBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                      int operation, int registerA, int registerB) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // the location of try blocks
+        Set<Range> tryBlocks = methodInformation.getTryBlocks();
+
+        int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
+        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+        final String operationParam = operation + ":" + trace;
 
         // we require one parameter for the operation identifier
         int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
@@ -624,8 +841,9 @@ public final class Instrumentation {
         // we need another free register for the second argument of the if instruction
         int thirdFreeRegister = methodInformation.getFreeRegisters().get(2);
 
-        // const/4 vA, #+B - stores the operation type identifier, e.g. 0 for if-eqz
-        BuilderInstruction31i operationID = new BuilderInstruction31i(Opcode.CONST, firstFreeRegister, operation);
+        // const/4 vA, #+B - stores the operation type identifier + trace, e.g. 0:<trace-id> for if-eqz
+        BuilderInstruction21c operationID = new BuilderInstruction21c(Opcode.CONST_STRING, firstFreeRegister,
+                new ImmutableStringReference(operationParam));
 
         // we need to move the content of the first if instruction argument to the second free register
         // this enables us to us it with the invoke-static range instruction
@@ -635,16 +853,13 @@ public final class Instrumentation {
         // this enables us to us it with the invoke-static range instruction
         BuilderInstruction32x moveB = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, thirdFreeRegister, registerB);
 
-        // FIXME: invoke-static can only handle register IDs < 16, so any free register above v15 is unusable
-        // IDEA: USE 3 ADDITIONAL_REGISTERS and move the arguments of if-instruction into those registers
-        // 1 for operation code,  1 for argument 1,  for argument 2 (only for binary)
-
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 3,
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
                         "computeBranchDistance",
-                        Lists.newArrayList("ILjava/lang/Object;Ljava/lang/Object;"), "V"));
+                        Lists.newArrayList("Ljava/lang/String;", "Ljava/lang/Object;", "Ljava/lang/Object;"),
+                        "V"));
 
         // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
         //  could break the verification process. As far as I remember, the type of a register must be consistent
@@ -652,15 +867,64 @@ public final class Instrumentation {
         //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
         //  solely for the operation opcode and the max 2 args of if stmts.
 
-        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
-        mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
-        mutableMethodImplementation.addInstruction(++instructionIndex, moveB);
-        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+        // check whether if stmt is located within a try block
+        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
+            /*
+             * The bytecode verifier doesn't allow us to insert our functionality directly within
+             * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+             * but we consider here any try block. The problem arises from the fact that an invoke instruction
+             * within a try block introduces an additional edge to corresponding catch blocks, although it may
+             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+             * might be two-fold (conflicted), which is rejected by the verifier, see
+             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+             *
+             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+             * inserting the functionality directly, we insert a goto instruction, which jumps to the end of the
+             * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+             * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+             * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
+             * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+             *
+             * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+             * Automated Black-box Android Testing', see section 4.3.
+             */
 
-        mutableMethodImplementation.swapInstructions(instructionIndex - 4, instructionIndex - 3);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+            // the label + tracer functionality comes after the last instruction
+            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
+
+            // insert goto to jump to method end
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
+            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
+
+            // consider always as an 'else branch', the if stmt could be the target of a goto instruction
+            mutableMethodImplementation.addInstruction(instructionIndex + 1, jumpForward);
+            mutableMethodImplementation.swapInstructions(instructionIndex, instructionIndex + 1);
+
+            // create label at branch after forward jump
+            Label branchLabel = mutableMethodImplementation.newLabelForIndex(instructionIndex + 1);
+
+            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 1, operationID);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 2, moveA);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 3, moveB);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 4, invokeStaticRange);
+
+            // insert goto to jump back to branch
+            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
+            mutableMethodImplementation.addInstruction(afterLastInstruction + 5, jumpBackward);
+        } else {
+
+            mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+            mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
+            mutableMethodImplementation.addInstruction(++instructionIndex, moveB);
+            mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+            mutableMethodImplementation.swapInstructions(instructionIndex - 4, instructionIndex - 3);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+        }
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
