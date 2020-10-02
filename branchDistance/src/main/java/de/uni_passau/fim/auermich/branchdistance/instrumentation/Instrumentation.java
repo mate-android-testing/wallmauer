@@ -408,6 +408,11 @@ public final class Instrumentation {
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
+        // the location of try blocks
+        Set<Range> tryBlocks = methodInformation.getTryBlocks();
+
+        final int instrumentationPoint = instructionIndex;
+
         // we require one parameter for the operation identifier
         int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
 
@@ -438,13 +443,20 @@ public final class Instrumentation {
         //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
         //  solely for the operation opcode and the max 2 args of if stmts.
 
-        mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
-        mutableMethodImplementation.addInstruction(++instructionIndex, move);
-        mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+        // check whether if stmt is located within a try block
+        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint))) {
+            // TODO: introduce same mechanism as used in branchcoverage
+        } else {
 
-        mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
-        mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+            mutableMethodImplementation.addInstruction(++instructionIndex, operationID);
+            mutableMethodImplementation.addInstruction(++instructionIndex, move);
+            mutableMethodImplementation.addInstruction(++instructionIndex, invokeStaticRange);
+
+            mutableMethodImplementation.swapInstructions(instructionIndex - 3, instructionIndex - 2);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 2, instructionIndex - 1);
+            mutableMethodImplementation.swapInstructions(instructionIndex - 1, instructionIndex);
+        }
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
