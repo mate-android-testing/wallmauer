@@ -281,6 +281,12 @@ public class BranchDistance {
                     // determine where we need to instrument
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
+                    // determine the method entry points
+                    methodInformation.setMethodEntries(Analyzer.trackMethodEntries(methodInformation, dexFile));
+
+                    // determine the method exit points
+                    methodInformation.setMethodExits(Analyzer.trackMethodExits(methodInformation));
+
                     // determine the location of try blocks
                     methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
 
@@ -293,7 +299,7 @@ public class BranchDistance {
                     }
 
                     // instrument branches, if stmts as well as method entry and exit
-                    Instrumentation.modifyMethod(methodInformation, dexFile);
+                    Instrumentation.modifyMethod(methodInformation);
                     modifiedMethod = true;
 
                     /*

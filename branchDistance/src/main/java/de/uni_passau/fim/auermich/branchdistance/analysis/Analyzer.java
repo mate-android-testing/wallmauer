@@ -7,6 +7,7 @@ import de.uni_passau.fim.auermich.branchdistance.instrumentation.Instrumentation
 import de.uni_passau.fim.auermich.branchdistance.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
@@ -17,12 +18,10 @@ import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.TryBlock;
-import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.util.MethodUtil;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public final class Analyzer {
 
@@ -68,6 +67,69 @@ public final class Analyzer {
         }
 
         LOGGER.info(instrumentationPoints.toString());
+        return instrumentationPoints;
+    }
+
+    /**
+     * Tracks the method entries for the instrumentation process. Note that this information must
+     * be requested prior to the actual instrumentation as the trace identifier must conform
+     * with the original position of the underlying instruction.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @param dexFile The dex file containing the method.
+     * @return Returns the method entries as instrumentation points.
+     */
+    public static Set<InstrumentationPoint> trackMethodEntries(MethodInformation methodInformation, DexFile dexFile) {
+
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
+
+        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                true, ClassPath.NOT_ART), methodInformation.getMethod(),
+                null, false);
+
+        MutableMethodImplementation mutableMethodImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
+
+        for (AnalyzedInstruction analyzedInstruction : analyzer.getAnalyzedInstructions()) {
+            if (analyzedInstruction.isBeginningInstruction()) {
+                instrumentationPoints.add(new InstrumentationPoint(instructions.get(
+                                analyzedInstruction.getInstructionIndex()), InstrumentationPoint.Type.ENTRY_STMT));
+            }
+        }
+
+        return instrumentationPoints;
+    }
+
+    /**
+     * Tracks the method exits for the instrumentation process. Note that this information must
+     * be requested prior to the actual instrumentation as the trace identifier must conform
+     * with the original position of the underlying instruction.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @return Returns the method exits as instrumentation points.
+     */
+    public static Set<InstrumentationPoint> trackMethodExits(MethodInformation methodInformation) {
+
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
+
+        MutableMethodImplementation mutableImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+
+        for (BuilderInstruction instruction : mutableImplementation.getInstructions()) {
+            if (instruction.getOpcode() == Opcode.RETURN
+                    || instruction.getOpcode() == Opcode.RETURN_VOID
+                    || instruction.getOpcode() == Opcode.RETURN_OBJECT
+                    || instruction.getOpcode() == Opcode.RETURN_WIDE
+                    || instruction.getOpcode() == Opcode.RETURN_VOID_BARRIER
+                    || instruction.getOpcode() == Opcode.RETURN_VOID_NO_BARRIER
+                    || instruction.getOpcode() == Opcode.THROW
+                    || instruction.getOpcode() == Opcode.THROW_VERIFICATION_ERROR) {
+                instrumentationPoints.add(new InstrumentationPoint(instruction, InstrumentationPoint.Type.EXIT_STMT));
+            }
+        }
+
         return instrumentationPoints;
     }
 
@@ -266,21 +328,24 @@ public final class Analyzer {
     }
 
     /**
-     * Tracks the first instruction, more precisely its instruction id, of each try and catch block.
+     * Tracks the first instruction of each try and catch block for the instrumentation process.
      *
      * @param methodInformation The method information.
-     * @return Returns a sorted list of instruction ids describing the beginning of each try and catch block.
+     * @return Returns a set of instrumentation points describing the beginning of each try and catch block.
      */
-    public static List<Integer> analyzeTryCatchBlocks(MethodInformation methodInformation) {
+    public static Set<InstrumentationPoint> analyzeTryCatchBlocks(MethodInformation methodInformation) {
 
-        Set<Integer> tryCatchBlockIDs = new HashSet<>();
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
+
+        MutableMethodImplementation mutableMethodImplementation =
+                new MutableMethodImplementation(methodInformation.getMethodImplementation());
 
         MethodImplementation implementation = methodInformation.getMethodImplementation();
         int consumedCodeUnits = 0;
 
         for (TryBlock<? extends ExceptionHandler> tryBlock : implementation.getTryBlocks()) {
 
-            List<Instruction> instructions = Lists.newArrayList(implementation.getInstructions());
+            List<BuilderInstruction> instructions = Lists.newArrayList(mutableMethodImplementation.getInstructions());
 
             for (int index = 0; index < instructions.size(); index++) {
 
@@ -304,7 +369,8 @@ public final class Analyzer {
                 // the starting point is before the actual instruction
                 if (consumedCodeUnits == tryBlock.getStartCodeAddress()) {
                     // reached the beginning of the try block
-                    tryCatchBlockIDs.add(index);
+                    instrumentationPoints.add(new InstrumentationPoint(instructions.get(index),
+                            InstrumentationPoint.Type.TRY_BLOCK_STMT));
                 }
                 consumedCodeUnits += instructions.get(index).getCodeUnits();
             }
@@ -322,7 +388,8 @@ public final class Analyzer {
                 for (int index = 0; index < instructions.size(); index++) {
                     if (ctrCodeUnits.get() == h.getHandlerCodeAddress()) {
                         // reached the beginning of the catch block
-                        tryCatchBlockIDs.add(index);
+                        instrumentationPoints.add(new InstrumentationPoint(instructions.get(index),
+                                InstrumentationPoint.Type.CATCH_BLOCK_STMT));
                         break;
                     }
                     ctrCodeUnits.set(ctrCodeUnits.get() + instructions.get(index).getCodeUnits());
@@ -330,8 +397,8 @@ public final class Analyzer {
             });
         }
 
-        // ensure ascending order
-        return tryCatchBlockIDs.stream().sorted().collect(Collectors.toList());
+        // TODO: check whether there is any particular order required
+        return instrumentationPoints;
     }
 
     /**

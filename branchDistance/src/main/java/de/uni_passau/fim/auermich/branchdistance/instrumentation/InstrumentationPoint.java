@@ -1,7 +1,6 @@
 package de.uni_passau.fim.auermich.branchdistance.instrumentation;
 
 import org.jf.dexlib2.builder.BuilderInstruction;
-
 import java.util.Objects;
 
 /**
@@ -10,7 +9,10 @@ import java.util.Objects;
 public final class InstrumentationPoint implements Comparable<InstrumentationPoint> {
 
     private final BuilderInstruction instruction;
+
+    // original position of instruction
     private final int position;
+
     private final Type type;
 
     public InstrumentationPoint(BuilderInstruction instruction, Type type) {
@@ -53,6 +55,19 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         return Objects.hash(position, type);
     }
 
+    /**
+     * Defines a natural ordering between the instrumentation points. This is only necessary
+     * since the first instruction at a branch could coincide with an if statement. In such a case,
+     * we want to have the trace information closer to the statement at the branch. Thus, we need
+     * to rank an if statement instrumentation point naturally lower (insert prior to) than the
+     * branch statement instrumentation point.
+     * NOTE: We don't consider here method entry/exit instrumentation points as we handle them
+     * separately from the branch instrumentation points. That means, there is no way that a
+     * branch instrumentation point could coincide with a method entry/exit statement.
+     *
+     * @param other The other instrumentation point to compare against.
+     * @return Returns a natural ordering between two instrumentation points.
+     */
     @Override
     public int compareTo(InstrumentationPoint other) {
         int comparePosition = Integer.compare(this.position, other.position);
@@ -84,6 +99,10 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     public enum Type {
         IF_BRANCH,
         ELSE_BRANCH,
+        ENTRY_STMT,
+        EXIT_STMT,
+        TRY_BLOCK_STMT,
+        CATCH_BLOCK_STMT,
         IF_STMT;
     }
 }

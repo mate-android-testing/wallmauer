@@ -160,16 +160,17 @@ public final class Instrumentation {
     }
 
     /**
-     * Instruments the given branch with the tracer functionality.
+     * Inserts the tracer functionality at the given instrumentation point.
      *
      * @param methodInformation Stores all relevant information about the given method.
-     * @param index             Describes the location where we need to instrument.
-     * @param id                The id which identifies the given branch, i.e. packageName->className->method->branchID.
+     * @param instrumentationPoint Describes where to insert the tracer invocation.
+     * @param id                The id which identifies the given instrumentation point,
+     *                          e.g. packageName->className->method->branchID.
      * @param elseBranch        Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
-                                                                         int index,
+                                                                         InstrumentationPoint instrumentationPoint,
                                                                          final String id, boolean elseBranch) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
@@ -181,8 +182,19 @@ public final class Instrumentation {
         // we require one parameter containing the unique branch id
         int freeRegisterID = methodInformation.getFreeRegisters().get(0);
 
-        // the position of the instrumentation point
-        final int instrumentationPoint  = index;
+        // the up-to-date position of the instrumentation point
+        int index = instrumentationPoint.getInstruction().getLocation().getIndex();
+
+        /*
+         * A method entry that is not the first instruction (it is the first instruction of a catch block)
+         * needs a special treatment. The bytecode verifier ensures that the move-exception instruction must
+         * be the first instruction of the catch block, thus we can't insert any instruction before move-exception.
+         * Instead, we have to insert our trace after the move-exception instruction and thus have to increase
+         * the index by one.
+         */
+        if (instrumentationPoint.getType() == InstrumentationPoint.Type.ENTRY_STMT && index > 0) {
+            index++;
+        }
 
         // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
         BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
@@ -194,8 +206,8 @@ public final class Instrumentation {
                 new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
-        // check whether the branch is located within a try block
-        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint))) {
+        // check whether the instrumentation point (the original position) lies within a try block
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
 
             /*
              * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
@@ -272,9 +284,8 @@ public final class Instrumentation {
      * and exit is instrumented.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
-     * @param dexFile           The dex file containing the method.
      */
-    public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
+    public static void modifyMethod(MethodInformation methodInformation) {
 
         LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
@@ -306,7 +317,7 @@ public final class Instrumentation {
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
                     // instrument branch with trace
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
-                    insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, true);
+                    insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
                 }
 
             } else {
@@ -319,11 +330,11 @@ public final class Instrumentation {
                  * and later swap those instructions.
                  */
                 boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-                insertInstrumentationCode(methodInformation, instrumentationPoint.getPosition(), trace, shiftInstruction);
+                insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
             }
         }
 
-        instrumentMethodEntry(methodInformation, dexFile);
+        instrumentMethodEntry(methodInformation);
         instrumentMethodExit(methodInformation);
         // instrumentTryCatchBlocks(methodInformation);
     }
@@ -694,6 +705,7 @@ public final class Instrumentation {
      *
      * @param methodInformation Encapsulates the method to be instrumented.
      */
+    @SuppressWarnings("unused")
     private static void instrumentTryCatchBlocks(MethodInformation methodInformation) {
 
         /*
@@ -705,45 +717,50 @@ public final class Instrumentation {
          *   Probably we need to find a trade-off here.
          */
 
-        List<Integer> tryCatchBlocks = Analyzer.analyzeTryCatchBlocks(methodInformation);
-        Collections.reverse(tryCatchBlocks);
+        // TODO: call this before and save outcome in method information object (keep track of original position)
+        Analyzer.analyzeTryCatchBlocks(methodInformation);
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
+        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
-        for (Integer tryCatchBlock : tryCatchBlocks) {
-            insertInstrumentationCode(methodInformation, tryCatchBlock,
-                    methodInformation.getMethodID() + "->tryCatchBlock" + tryCatchBlock, false);
+        /*
+         * Traverse the try-catch blocks backwards, i.e. the last try-catch block comes first, in order
+         * to avoid inherent index/position updates while instrumenting.
+         */
+        while (iterator.hasNext()) {
+
+            InstrumentationPoint instrumentationPoint = iterator.next();
+            final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+
+            // TODO: check whether try/catch blocks have the label issue
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
         }
-
     }
 
     /**
      * Instruments the method entry, i.e. before the first or the first instruction within a catch block a trace is inserted.
      *
      * @param methodInformation Encapsulates the method to be instrumented.
-     * @param dexFile           The dex file containing the method.
      */
-    private static void instrumentMethodEntry(MethodInformation methodInformation, DexFile dexFile) {
+    private static void instrumentMethodEntry(MethodInformation methodInformation) {
 
-        // request entry instructions in place, otherwise instructions ids are out of date
-        List<Integer> entryInstructionIDs = Analyzer.trackEntryInstructions(methodInformation, dexFile);
-        Collections.reverse(entryInstructionIDs);
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getMethodEntries());
+        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
-        final String trace = methodInformation.getMethodID() + "->entry";
+        /*
+         * Traverse the method entries backwards, i.e. the last method entry comes first, in order
+         * to avoid inherent index/position updates while instrumenting.
+         */
+        while (iterator.hasNext()) {
 
-        for (Integer entryInstructionID : entryInstructionIDs) {
+            InstrumentationPoint instrumentationPoint = iterator.next();
+            final String trace = methodInformation.getMethodID() + "->entry->" + instrumentationPoint.getPosition();
+
             /*
              * We need to treat method entries similar to else branches in order to avoid that
-             * label/instruction issue. Moreover, a method entry that is not the first instruction
-             * (it is the first instruction of the catch block) needs a special treatment. The bytecode
-             * verifier ensures that the move-exception instruction must be the first instruction of
-             * the catch block, thus we can't insert any instruction before move-exception. Instead,
-             * we have to insert our trace after the move-exception instruction.
+             * label/instruction issue.
              */
-            if (entryInstructionID > 0) {
-                entryInstructionID++;
-            }
-            insertInstrumentationCode(methodInformation, entryInstructionID, trace, true);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
         }
-
     }
 
     /**
@@ -753,40 +770,26 @@ public final class Instrumentation {
      */
     private static void instrumentMethodExit(MethodInformation methodInformation) {
 
-        MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getMethodExits());
+        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
-        List<Integer> returnOrThrowStmtIndices = new ArrayList<>();
+        /*
+         * Traverse the method exits backwards, i.e. the last method exit comes first, in order
+         * to avoid inherent index/position updates while instrumenting.
+         */
+        while (iterator.hasNext()) {
 
-        // collect the indices of the return or throw statements
-        for (BuilderInstruction instruction : mutableImplementation.getInstructions()) {
-            if (instruction.getOpcode() == Opcode.RETURN
-                    || instruction.getOpcode() == Opcode.RETURN_VOID
-                    || instruction.getOpcode() == Opcode.RETURN_OBJECT
-                    || instruction.getOpcode() == Opcode.RETURN_WIDE
-                    || instruction.getOpcode() == Opcode.RETURN_VOID_BARRIER
-                    || instruction.getOpcode() == Opcode.RETURN_VOID_NO_BARRIER
-                    || instruction.getOpcode() == Opcode.THROW
-                    || instruction.getOpcode() == Opcode.THROW_VERIFICATION_ERROR) {
-                returnOrThrowStmtIndices.add(instruction.getLocation().getIndex());
-            }
-        }
+            InstrumentationPoint instrumentationPoint = iterator.next();
+            final String trace = methodInformation.getMethodID() + "->exit->" + instrumentationPoint.getPosition();
 
-        // backwards traverse the return instructions -> no shifting issue
-        Collections.reverse(returnOrThrowStmtIndices);
-
-        final String trace = methodInformation.getMethodID() + "->exit";
-
-        for (Integer returnOrThrowStmtIndex : returnOrThrowStmtIndices) {
             /*
              * If a label is attached to a return statement, which is often the case, the insertion
              * between the label and the return statement is not directly possible. Instead, we
              * need to use the same approach as for else branches.
              */
-            insertInstrumentationCode(methodInformation, returnOrThrowStmtIndex, trace, true);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
         }
     }
-
 
     /**
      * Inserts move instructions at the method entry in order to shift the parameter registers by

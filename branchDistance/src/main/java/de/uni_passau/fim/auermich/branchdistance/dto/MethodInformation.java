@@ -59,12 +59,34 @@ public class MethodInformation {
     // describes the ranges of try blocks
     private Set<Range> tryBlocks = new TreeSet<>();
 
+    // describes the method entry points
+    private Set<InstrumentationPoint> methodEntries;
+
+    // describes the method exits
+    private Set<InstrumentationPoint> methodExits;
+
     public MethodInformation(String methodID, ClassDef classDef, Method method, DexFile dexFile) {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
         methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
+    }
+
+    public Set<InstrumentationPoint> getMethodEntries() {
+        return methodEntries;
+    }
+
+    public void setMethodEntries(Set<InstrumentationPoint> methodEntries) {
+        this.methodEntries = methodEntries;
+    }
+
+    public Set<InstrumentationPoint> getMethodExits() {
+        return methodExits;
+    }
+
+    public void setMethodExits(Set<InstrumentationPoint> methodExits) {
+        this.methodExits = methodExits;
     }
 
     public AnalyzedInstruction getInstructionAtIndex(int index) {
