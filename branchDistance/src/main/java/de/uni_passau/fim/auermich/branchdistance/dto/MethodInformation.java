@@ -8,6 +8,7 @@ import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import java.util.*;
 
@@ -24,7 +25,7 @@ public class MethodInformation {
     private final ClassDef classDef;
 
     // a reference to the actual method
-    private final Method method;
+    private Method method;
 
     // a reference to the dex file
     private final DexFile dexFile;
@@ -53,6 +54,8 @@ public class MethodInformation {
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
 
+    private List<AnalyzedInstruction> analyzedInstructions;
+
     // contains the locations where we need to instrument
     private Set<InstrumentationPoint> instrumentationPoints;
 
@@ -71,6 +74,13 @@ public class MethodInformation {
         this.method = method;
         methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
+
+        if (methodImplementation != null) {
+            MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                    true, ClassPath.NOT_ART), method,
+                    null, false);
+            this.analyzedInstructions = analyzer.getAnalyzedInstructions();
+        }
     }
 
     public Set<InstrumentationPoint> getMethodEntries() {
@@ -89,13 +99,14 @@ public class MethodInformation {
         this.methodExits = methodExits;
     }
 
+    /**
+     * Returns the analyzed instruction of the original, unmodified method at the given index.
+     *
+     * @param index The instruction index.
+     * @return Returns an analyzed instruction at the given index.
+     */
     public AnalyzedInstruction getInstructionAtIndex(int index) {
-
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions().get(index);
+        return analyzedInstructions.get(index);
     }
 
     public Set<Range> getTryBlocks() {
@@ -104,15 +115,6 @@ public class MethodInformation {
 
     public void setTryBlocks(Set<Range> tryBlocks) {
         this.tryBlocks = tryBlocks;
-    }
-
-    public List<AnalyzedInstruction> getInstructions() {
-
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions();
     }
 
     public Set<InstrumentationPoint> getInstrumentationPoints() {
@@ -149,6 +151,19 @@ public class MethodInformation {
 
     public void setMethodImplementation(MethodImplementation methodImplementation) {
         this.methodImplementation = methodImplementation;
+        // whenever the method implementation changes also the method object has to be updated
+        updateMethod(methodImplementation);
+    }
+
+    private void updateMethod(MethodImplementation methodImplementation) {
+        this.method = new ImmutableMethod(
+                method.getDefiningClass(),
+                method.getName(),
+                method.getParameters(),
+                method.getReturnType(),
+                method.getAccessFlags(),
+                method.getAnnotations(),
+                methodImplementation);
     }
 
     public int getTotalRegisterCount() {

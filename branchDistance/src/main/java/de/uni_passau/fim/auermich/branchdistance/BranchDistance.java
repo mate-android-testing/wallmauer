@@ -146,7 +146,12 @@ public class BranchDistance {
                 return;
             }
 
-            // we insert into the last classes.dex file our tracer functionality
+            /*
+            * We insert into the last classes.dex file our tracer functionality.
+            * It would be nice if a smali file could be directly loaded as a class def instance.
+            * Then, we could avoid the need to disassemble and re-assemble the dex file.
+            * Follow https://github.com/JesusFreke/smali/issues/757 for updates.
+             */
 
             /*
              * It seems like multidexlib2 can't handle an APK directly as input. Since we
@@ -301,7 +306,7 @@ public class BranchDistance {
                     }
 
                     // instrument branches, if stmts as well as method entry and exit
-                    Instrumentation.modifyMethod(methodInformation);
+                    Instrumentation.modifyMethod(methodInformation, dexFile);
                     modifiedMethod = true;
 
                     /*

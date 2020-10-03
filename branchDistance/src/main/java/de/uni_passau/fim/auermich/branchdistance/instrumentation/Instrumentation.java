@@ -284,8 +284,9 @@ public final class Instrumentation {
      * and exit is instrumented.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
+     * @param dexFile The dex file containing the method.
      */
-    public static void modifyMethod(MethodInformation methodInformation) {
+    public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
 
         LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
@@ -334,7 +335,7 @@ public final class Instrumentation {
             }
         }
 
-        instrumentMethodEntry(methodInformation);
+        instrumentMethodEntry(methodInformation, dexFile);
         instrumentMethodExit(methodInformation);
         // instrumentTryCatchBlocks(methodInformation);
     }
@@ -398,71 +399,6 @@ public final class Instrumentation {
                 handlePrimitiveBinaryComparison(methodInformation, instrumentationPoint, operation, registerA, registerB);
             } else if (referenceTypes.contains(registerTypeA.category) && referenceTypes.contains(registerTypeB.category)) {
                 handleObjectBinaryComparison(methodInformation, instrumentationPoint, operation, registerA, registerB);
-            } else {
-                throw new IllegalStateException("Comparing objects with primitives!");
-            }
-        }
-    }
-
-    /**
-     * Inserts instructions before every if stmt in order to invoke the branch distance computation.
-     *
-     * @param methodInformation    Encapsulates the method.
-     * @param instrumentationPoint Encapsulates information about the if stmt.
-     */
-    private static void computeBranchDistance2(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
-
-        MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
-
-        // get the if instruction
-        int instructionIndex = instrumentationPoint.getPosition();
-        AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
-
-        // map op code to internal operation code
-        int operation = mapOpCodeToOperation(instruction.getOriginalInstruction().getOpcode());
-
-        if (instruction.getOriginalInstruction().getOpcode().format == Format.Format21t) {
-            // unary operation -> if-eqz v0
-            BuilderInstruction21t instruction21t = (BuilderInstruction21t) instrumentationPoint.getInstruction();
-            int registerA = instruction21t.getRegisterA();
-
-            RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
-
-            LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
-            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
-
-            // check whether we deal with primitive or object types
-            if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
-                // handlePrimitiveUnaryComparison(methodInformation, instructionIndex, operation, registerA);
-            } else {
-                // handleObjectUnaryComparison(methodInformation, instructionIndex, operation, registerA);
-            }
-
-        } else {
-            // binary operation -> if-eq v0, v1
-            BuilderInstruction22t instruction22t = (BuilderInstruction22t) instrumentationPoint.getInstruction();
-            int registerA = instruction22t.getRegisterA();
-            int registerB = instruction22t.getRegisterB();
-
-            RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
-            RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
-
-            LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
-            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
-            LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
-
-            Set<Byte> referenceTypes = new HashSet<Byte>() {{
-                add(RegisterType.REFERENCE);
-                add(RegisterType.UNINIT_REF);
-            }};
-
-            if (!referenceTypes.contains(registerTypeA.category) && !referenceTypes.contains(registerTypeB.category)) {
-                // handlePrimitiveBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
-            } else if (referenceTypes.contains(registerTypeA.category) && referenceTypes.contains(registerTypeB.category)) {
-                // handleObjectBinaryComparison(methodInformation, instructionIndex, operation, registerA, registerB);
             } else {
                 throw new IllegalStateException("Comparing objects with primitives!");
             }
@@ -540,6 +476,9 @@ public final class Instrumentation {
              * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
              * Automated Black-box Android Testing', see section 4.3.
              */
+
+            LOGGER.debug("IF-Statement within try block at offset: "
+                    + instrumentationPoint.getInstruction().getLocation().getCodeAddress());
 
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
@@ -659,6 +598,9 @@ public final class Instrumentation {
              * Automated Black-box Android Testing', see section 4.3.
              */
 
+            LOGGER.debug("IF-Statement within try block at offset: "
+                    + instrumentationPoint.getInstruction().getLocation().getCodeAddress());
+
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
@@ -770,6 +712,9 @@ public final class Instrumentation {
              * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
              * Automated Black-box Android Testing', see section 4.3.
              */
+
+            LOGGER.debug("IF-Statement within try block at offset: "
+                    + instrumentationPoint.getInstruction().getLocation().getCodeAddress());
 
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
@@ -890,6 +835,9 @@ public final class Instrumentation {
              * Automated Black-box Android Testing', see section 4.3.
              */
 
+            LOGGER.debug("IF-Statement within try block at offset: "
+                    + instrumentationPoint.getInstruction().getLocation().getCodeAddress());
+
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
@@ -1004,8 +952,27 @@ public final class Instrumentation {
      * Instruments the method entry, i.e. before the first or the first instruction within a catch block a trace is inserted.
      *
      * @param methodInformation Encapsulates the method to be instrumented.
+     * @param dexFile The dex file containing the method.
      */
-    private static void instrumentMethodEntry(MethodInformation methodInformation) {
+    private static void instrumentMethodEntry(MethodInformation methodInformation, DexFile dexFile) {
+
+        /*
+         * The builder instruction wrapped by an instrumentation point is not inherently updated.
+         * This causes that the method location, in particular the instruction index, is out of date.
+         * We need to request the up-to-date instrumentation points again and overwrite the old instructions.
+         * Note that through the backward instrumentation the builder instruction index stays up to date.
+         * See https://github.com/JesusFreke/smali/issues/786 for more details on this issue.
+         */
+        List<InstrumentationPoint> oldInstrumentationPoints = new ArrayList<>(methodInformation.getMethodEntries());
+        List<InstrumentationPoint> newInstrumentationPoints
+                = new ArrayList<>(Analyzer.trackMethodEntries(methodInformation, dexFile));
+
+        for (int i=0; i < oldInstrumentationPoints.size(); i++) {
+            InstrumentationPoint oldPoint = oldInstrumentationPoints.get(i);
+            InstrumentationPoint newPoint = newInstrumentationPoints.get(i);
+            // update old point with new instruction
+            oldPoint.setInstruction(newPoint.getInstruction());
+        }
 
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getMethodEntries());
         Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
@@ -1034,6 +1001,24 @@ public final class Instrumentation {
      */
     private static void instrumentMethodExit(MethodInformation methodInformation) {
 
+        /*
+        * The builder instruction wrapped by an instrumentation point is not inherently updated.
+        * This causes that the method location, in particular the instruction index, is out of date.
+        * We need to request the up-to-date instrumentation points again and overwrite the old instructions.
+        * Note that through the backward instrumentation the builder instruction index stays up to date.
+        * See https://github.com/JesusFreke/smali/issues/786 for more details on this issue.
+         */
+        List<InstrumentationPoint> oldInstrumentationPoints = new ArrayList<>(methodInformation.getMethodExits());
+        List<InstrumentationPoint> newInstrumentationPoints = new ArrayList<>(Analyzer.trackMethodExits(methodInformation));
+
+        for (int i=0; i < oldInstrumentationPoints.size(); i++) {
+            InstrumentationPoint oldPoint = oldInstrumentationPoints.get(i);
+            InstrumentationPoint newPoint = newInstrumentationPoints.get(i);
+            // update old point with new instruction
+            oldPoint.setInstruction(newPoint.getInstruction());
+        }
+
+        // methodInformation.setMethodExits();
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getMethodExits());
         Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
@@ -1045,6 +1030,9 @@ public final class Instrumentation {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->exit->" + instrumentationPoint.getPosition();
+
+            MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+            MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
             /*
              * If a label is attached to a return statement, which is often the case, the insertion

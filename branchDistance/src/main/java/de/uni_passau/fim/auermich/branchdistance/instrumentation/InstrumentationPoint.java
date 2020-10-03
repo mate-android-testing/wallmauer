@@ -8,7 +8,7 @@ import java.util.Objects;
  */
 public final class InstrumentationPoint implements Comparable<InstrumentationPoint> {
 
-    private final BuilderInstruction instruction;
+    private BuilderInstruction instruction;
 
     // original position of instruction
     private final int position;
@@ -21,7 +21,6 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         this.type = type;
     }
 
-
     public int getPosition() {
         return position;
     }
@@ -32,6 +31,10 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     public BuilderInstruction getInstruction() {
         return instruction;
+    }
+
+    public void setInstruction(BuilderInstruction instruction) {
+        this.instruction = instruction;
     }
 
     @Override
