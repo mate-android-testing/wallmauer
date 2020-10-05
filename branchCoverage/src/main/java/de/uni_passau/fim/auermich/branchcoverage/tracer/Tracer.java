@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -83,6 +84,15 @@ public class Tracer extends BroadcastReceiver {
             br.close();
             writer.close();
 
+        } catch (IndexOutOfBoundsException e) {
+            Map<Thread, StackTraceElement[]> threadStackTraces = Thread.getAllStackTraces();
+            for (Thread thread: threadStackTraces.keySet()) {
+                StackTraceElement[] stackTrace = threadStackTraces.get(thread);
+                LOGGER.info("Thread[" + thread.getId() + "]: " + thread);
+                for (StackTraceElement stackTraceElement : stackTrace) {
+                    LOGGER.info(String.valueOf(stackTraceElement));
+                }
+            }
         } catch (IOException e) {
             LOGGER.info("Writing to external storage failed.");
             e.printStackTrace();
