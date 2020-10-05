@@ -6,25 +6,21 @@ import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchcoverage.instrumentation.Instrumentation;
 import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
 import de.uni_passau.fim.auermich.branchcoverage.xml.ManifestParser;
+import lanchon.multidexlib2.BasicDexFileNamer;
+import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.jf.baksmali.Baksmali;
-import org.jf.baksmali.BaksmaliOptions;
-import org.jf.dexlib2.DexFileFactory;
-import org.jf.dexlib2.Opcodes;
-import org.jf.dexlib2.dexbacked.DexBackedDexFile;
-import org.jf.dexlib2.iface.*;
-import org.jf.smali.Smali;
-import org.jf.smali.SmaliOptions;
+import org.jf.dexlib2.iface.ClassDef;
+import org.jf.dexlib2.iface.DexFile;
+import org.jf.dexlib2.iface.Method;
+import org.jf.dexlib2.iface.MethodImplementation;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -33,12 +29,6 @@ public class BranchCoverage {
 
     // the logger instance
     private static final Logger LOGGER = LogManager.getLogger(BranchCoverage.class);
-
-    // the package name declared in the AndroidManifest file
-    public static String packageName;
-
-    // the name of the mainActivity declared in the AndroidManifest file
-    public static String mainActivity;
 
     // the path to the APK file
     public static String apkPath;
@@ -55,9 +45,6 @@ public class BranchCoverage {
      * wide types.
      */
     public static final int ADDITIONAL_REGISTERS = 2;
-
-    // the dex conform mainActivity name, uses '/' instead of '.'
-    public static String mainActivityDex;
 
     /*
      * We can't instrument methods with more than 256 registers in total,
@@ -106,12 +93,22 @@ public class BranchCoverage {
             // the APK file
             File apkFile = new File(apkPath);
 
-            // process directly apk file (support for multi-dex)
-            MultiDexContainer<? extends DexBackedDexFile> apk
-                    = DexFileFactory.loadDexContainer(apkFile, null);
-
             // decode the APK file
             decodedAPKPath = Utility.decodeAPK(apkFile);
+
+            /*
+             * TODO: Directly read from APK file if possible (exception so far). This
+             *  should be fixed with the next release, check the github page of (multi)dexlib2.
+             *
+             * Multidexlib2 provides a merged dex file. So, you don't have to care about
+             * multiple dex files at all. When writing this merged dex file to a directory,
+             * the dex file is split into multiple dex files such that the method reference
+             * constraint is not violated.
+             */
+            DexFile mergedDex = MultiDexIO.readDexFile(true, new File(decodedAPKPath),
+                    new BasicDexFileNamer(), null, null);
+
+            instrument(mergedDex, exclusionPattern);
 
             ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
 
@@ -120,22 +117,6 @@ public class BranchCoverage {
                 LOGGER.warn("Couldn't retrieve MainActivity and/or PackageName!");
                 return;
             }
-
-            mainActivity = manifest.getMainActivity();
-            packageName = manifest.getPackageName();
-
-            // convert the MainActivity to dex format
-            mainActivityDex = "L" + mainActivity.replaceAll("\\.", "/") + ";";
-
-            // instrument all the dex files included in the APK file
-            apk.getDexEntryNames().forEach(dexFile -> {
-                try {
-                    instrument(apk.getEntry(dexFile).getDexFile(), dexFile, exclusionPattern);
-                } catch (IOException e) {
-                    LOGGER.warn("Failure loading dexFile");
-                    LOGGER.warn(e.getMessage());
-                }
-            });
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
@@ -158,35 +139,6 @@ public class BranchCoverage {
                 return;
             }
 
-            // we insert into the last classes.dex file our tracer functionality
-
-            // the path to the last dex file, e.g. classes3.dex
-            String lastDexFile = decodedAPKPath + File.separator
-                    + apk.getDexEntryNames().get(apk.getDexEntryNames().size() - 1);
-
-            // the output directory for baksmali d
-            File smaliFolder = new File(decodedAPKPath + File.separator + "out");
-
-            // baksmali d classes.dex -o out
-            Baksmali.disassembleDexFile(DexFileFactory.loadDexFile(lastDexFile,
-                    Opcodes.forApi(OPCODE_API)), smaliFolder, 1, new BaksmaliOptions());
-
-            // the location of the tracer directory
-            File tracerFolder = Paths.get(smaliFolder.getAbsolutePath(), "de", "uni_passau",
-                    "fim", "auermich", "branchcoverage", "tracer").toFile();
-            // TODO: verify that mkdirs doesn't overwrite pre-existing sub-directories/files
-            tracerFolder.mkdirs();
-
-            // copy from resource folder Tracer.smali to smali folder
-            InputStream inputStream = BranchCoverage.class.getClassLoader().getResourceAsStream("Tracer.smali");
-            File tracerFile = new File(tracerFolder, "Tracer.smali");
-            FileUtils.copyInputStreamToFile(inputStream, tracerFile);
-
-            // smali a out -o classes.dex
-            SmaliOptions smaliOptions = new SmaliOptions();
-            smaliOptions.outputDexFile = lastDexFile;
-            Smali.assemble(smaliOptions, smaliFolder.getAbsolutePath());
-
             // the output name of the APK
             File outputAPKFile = new File(apkPath.replace(".apk", "-instrumented.apk"));
 
@@ -199,14 +151,13 @@ public class BranchCoverage {
     }
 
     /**
-     * Instruments the classes respectively methods within a dex file.
+     * Instruments the classes respectively methods within a (merged) dex file.
      *
      * @param dexFile The dexFile containing the classes and methods.
-     * @param dexFileName The name of the dexFile.
      * @param exclusionPattern A pattern describing classes that should be excluded from instrumentation.
      * @throws IOException Should never happen.
      */
-    private static void instrument(DexFile dexFile, String dexFileName, Pattern exclusionPattern) throws  IOException {
+    private static void instrument(DexFile dexFile, Pattern exclusionPattern) throws  IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
 
@@ -306,7 +257,11 @@ public class BranchCoverage {
             Utility.writeBranches(classDef.getType(), numberOfBranches);
         }
 
-        // assemble modified dex files
-        Utility.writeToDexFile(decodedAPKPath + File.separator + dexFileName, classes, OPCODE_API);
+        // insert tracer class
+        ClassDef tracerClass = Utility.loadTracer(OPCODE_API);
+        classes.add(tracerClass);
+
+        // write modified (merged) dex file to directory
+        Utility.writeMultiDexFile(decodedAPKPath, classes, OPCODE_API);
     }
 }

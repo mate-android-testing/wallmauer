@@ -5,7 +5,14 @@ import brut.androlib.ApkDecoder;
 import brut.androlib.ApkOptions;
 import brut.common.BrutException;
 import brut.directory.ExtFile;
+import com.google.common.base.Charsets;
+import com.google.common.io.ByteSource;
+import de.uni_passau.fim.auermich.branchcoverage.BranchCoverage;
 import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
+import lanchon.multidexlib2.BasicDexFileNamer;
+import lanchon.multidexlib2.DexIO;
+import lanchon.multidexlib2.MultiDexIO;
+import org.antlr.runtime.RecognitionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.DexFileFactory;
@@ -19,6 +26,7 @@ import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
+import org.jf.smali.SmaliTestUtils;
 
 import javax.annotation.Nonnull;
 import java.io.*;
@@ -36,9 +44,33 @@ public final class Utility {
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
 
-
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
+    }
+
+    /**
+     * Loads the tracer functionality directly from a smali file.
+     *
+     * @param apiLevel The api opcode level.
+     * @return Returns a class def representing the tracer smali file.
+     */
+    public static ClassDef loadTracer(int apiLevel) {
+
+        InputStream inputStream = BranchCoverage.class.getClassLoader().getResourceAsStream("Tracer.smali");
+
+        ByteSource byteSource = new ByteSource() {
+            @Override
+            public InputStream openStream() throws IOException {
+                return inputStream;
+            }
+        };
+
+        try {
+            String smaliCode = byteSource.asCharSource(Charsets.UTF_8).read();
+            return SmaliTestUtils.compileSmali(smaliCode, apiLevel);
+        } catch (IOException | RecognitionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -171,6 +203,47 @@ public final class Utility {
     }
 
     /**
+     * Writes a merged dex file to a directory. Under the scene, the dex file is split
+     * into multiple dex files if the method reference limit would be violated.
+     *
+     * @param filePath The directory where the dex files should be written to.
+     * @param classes The classes that should be contained within the dex file.
+     * @param opCode The API opcode level, e.g. API 28 (Android).
+     * @throws IOException Should never happen.
+     */
+    public static void writeMultiDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
+
+        // TODO: directly update merged dex file instance instead of creating new dex file instance here
+        DexFile dexFile = new DexFile() {
+            @Nonnull
+            @Override
+            public Set<? extends ClassDef> getClasses() {
+                return new AbstractSet<ClassDef>() {
+                    @Nonnull
+                    @Override
+                    public Iterator<ClassDef> iterator() {
+                        return classes.iterator();
+                    }
+
+                    @Override
+                    public int size() {
+                        return classes.size();
+                    }
+                };
+            }
+
+            @Nonnull
+            @Override
+            public Opcodes getOpcodes() {
+                return Opcodes.forApi(opCode);
+            }
+        };
+
+        MultiDexIO.writeDexFile(true, new File(filePath), new BasicDexFileNamer(),
+                dexFile, DexIO.DEFAULT_MAX_DEX_POOL_SIZE, null);
+    }
+
+    /**
      * Produces a .dex file containing the given list of classes.
      *
      * @param filePath The path of the .dex file.
@@ -178,6 +251,7 @@ public final class Utility {
      * @param opCode The API opcode level.
      * @throws IOException Should never happen.
      */
+    @SuppressWarnings("unused")
     public static void writeToDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
 
         DexFileFactory.writeDexFile(filePath, new DexFile() {
