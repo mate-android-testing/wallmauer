@@ -18,9 +18,23 @@ allprojects {
 subprojects {
     apply plugin: 'java'
 
+    // includes the libs dir as a flat directory
+    repositories {
+        flatDir {
+            dir rootProject.file('libs')
+        }
+    }
+
+    dependencies {
+        // since the libs dir is flat, we can access the dependency by its name (don't specify .jar extension)
+        compile name: 'apktool-cli-all'
+        compile name: 'android'
+    }
+
     ext {
         depends = [
                 log4j: 'org.apache.logging.log4j:log4j-core:2.13.3',
+                mdexlib2: 'com.github.lanchon.dexpatcher:multidexlib2:2.3.4.r2',
         ]
     }
 }

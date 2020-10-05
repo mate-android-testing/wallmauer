@@ -22,10 +22,6 @@ task customFatJar(type: Jar) {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 
-    // https://mvnrepository.com/artifact/com.github.lanchon.dexpatcher/multidexlib2
-    compile group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4.r2'
-
-    compile fileTree(dir: 'libs', include: '*.jar')
-
+    compile depends.mdexlib2
     compile depends.log4j
 }
