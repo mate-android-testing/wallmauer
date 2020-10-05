@@ -6,10 +6,14 @@ import brut.androlib.ApkDecoder;
 import brut.androlib.ApkOptions;
 import brut.common.BrutException;
 import brut.directory.ExtFile;
+import com.google.common.base.Charsets;
+import com.google.common.io.ByteSource;
+import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
+import org.antlr.runtime.RecognitionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.DexFileFactory;
@@ -24,10 +28,13 @@ import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
+import org.jf.smali.SmaliTestUtils;
 
 import javax.annotation.Nonnull;
 import java.io.*;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -41,6 +48,31 @@ public final class Utility {
 
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
+    }
+
+    /**
+     * Loads the tracer functionality directly from a smali file.
+     *
+     * @param apiLevel The api opcode level.
+     * @return Returns a class def representing the tracer smali file.
+     */
+    public static ClassDef loadTracer(int apiLevel) {
+
+        InputStream inputStream = BranchDistance.class.getClassLoader().getResourceAsStream("Tracer.smali");
+
+        ByteSource byteSource = new ByteSource() {
+            @Override
+            public InputStream openStream() throws IOException {
+                return inputStream;
+            }
+        };
+
+        try {
+            String smaliCode = byteSource.asCharSource(Charsets.UTF_8).read();
+            return SmaliTestUtils.compileSmali(smaliCode, apiLevel);
+        } catch (IOException | RecognitionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

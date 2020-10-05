@@ -146,47 +146,6 @@ public class BranchDistance {
                 return;
             }
 
-            /*
-            * We insert into the last classes.dex file our tracer functionality.
-            * It would be nice if a smali file could be directly loaded as a class def instance.
-            * Then, we could avoid the need to disassemble and re-assemble the dex file.
-            * Follow https://github.com/JesusFreke/smali/issues/757 for updates.
-             */
-
-            /*
-             * It seems like multidexlib2 can't handle an APK directly as input. Since we
-             * decode the APK anyways, this doesn't matter.
-             */
-            MultiDexContainer<? extends DexBackedDexFile> apk =
-                    MultiDexIO.readMultiDexContainer(true, new File(decodedAPKPath),
-                            new BasicDexFileNamer(), null, null);
-
-            // the path to the last dex file, e.g. classes3.dex
-            String lastDexFile = decodedAPKPath + File.separator
-                    + apk.getDexEntryNames().get(apk.getDexEntryNames().size() - 1);
-
-            // the output directory for baksmali d
-            File smaliFolder = new File(decodedAPKPath + File.separator + "out");
-
-            // baksmali d classes.dex -o out
-            Baksmali.disassembleDexFile(DexFileFactory.loadDexFile(lastDexFile,
-                    Opcodes.forApi(OPCODE_API)), smaliFolder, 1, new BaksmaliOptions());
-
-            // the location of the tracer directory
-            File tracerFolder = Paths.get(smaliFolder.getAbsolutePath(), "de", "uni_passau",
-                    "fim", "auermich", "branchdistance", "tracer").toFile();
-            tracerFolder.mkdirs();
-
-            // copy from resource folder Tracer.smali to smali folder
-            InputStream inputStream = BranchDistance.class.getClassLoader().getResourceAsStream("Tracer.smali");
-            File tracerFile = new File(tracerFolder, "Tracer.smali");
-            FileUtils.copyInputStreamToFile(inputStream, tracerFile);
-
-            // smali a out -o classes.dex
-            SmaliOptions smaliOptions = new SmaliOptions();
-            smaliOptions.outputDexFile = lastDexFile;
-            Smali.assemble(smaliOptions, smaliFolder.getAbsolutePath());
-
             // the output name of the APK
             File outputAPKFile = new File(apkPath.replace(".apk", "-instrumented.apk"));
 
@@ -348,6 +307,10 @@ public class BranchDistance {
             // write out the number of branches per class
             Utility.writeBranches(classDef.getType(), numberOfBranches);
         }
+
+        // insert tracer class
+        ClassDef tracerClass = Utility.loadTracer(OPCODE_API);
+        classes.add(tracerClass);
 
         // write modified (merged) dex file to directory
         Utility.writeMultiDexFile(decodedAPKPath, classes, OPCODE_API);
