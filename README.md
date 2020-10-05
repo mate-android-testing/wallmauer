@@ -3,28 +3,28 @@
 
 The instrumentation library offers three modules responsible for:
 
-BranchCoverage Instrumentation
-BranchCoverage Evaluation
-BranchDistance Instrumentation
+* BranchCoverage Instrumentation
+* BranchCoverage Evaluation
+* BranchDistance Instrumentation
 
 # BranchDistance Instrumentation:
 
 The android.jar as well as the apktool-cli-all.jar contain both an implementation of the XmlPullParser library, which
 leads to a conflict, if the Android API is selected. In this case the following exception occurs:
 
-INFO: Decoding AndroidManifest.xml with resources...
-Exception in thread "main" java.lang.RuntimeException: Stub!
-	at org.xmlpull.v1.XmlPullParserFactory.newInstance(XmlPullParserFactory.java:117)
-	at org.xmlpull.v1.wrapper.XmlPullWrapperFactory.<init>(XmlPullWrapperFactory.java:52)
-	at org.xmlpull.v1.wrapper.XmlPullWrapperFactory.newInstance(XmlPullWrapperFactory.java:29)
-	at brut.androlib.res.decoder.XmlPullStreamDecoder.decode(XmlPullStreamDecoder.java:50)
-	at brut.androlib.res.decoder.XmlPullStreamDecoder.decodeManifest(XmlPullStreamDecoder.java:154)
-	at brut.androlib.res.decoder.ResFileDecoder.decodeManifest(ResFileDecoder.java:162)
-	at brut.androlib.res.AndrolibResources.decodeManifestWithResources(AndrolibResources.java:204)
-	at brut.androlib.Androlib.decodeManifestWithResources(Androlib.java:136)
-	at brut.androlib.ApkDecoder.decode(ApkDecoder.java:122)
-	at de.uni_passau.fim.Utility.decodeAPK(Utility.java:184)
-	at de.uni_passau.fim.BranchDistance.main(BranchDistance.java:194)
+INFO: Decoding AndroidManifest.xml with resources... <br>
+Exception in thread "main" java.lang.RuntimeException: Stub! <br>
+	at org.xmlpull.v1.XmlPullParserFactory.newInstance(XmlPullParserFactory.java:117) <br>
+	at org.xmlpull.v1.wrapper.XmlPullWrapperFactory.<init>(XmlPullWrapperFactory.java:52) <br>
+	at org.xmlpull.v1.wrapper.XmlPullWrapperFactory.newInstance(XmlPullWrapperFactory.java:29) <br>
+	at brut.androlib.res.decoder.XmlPullStreamDecoder.decode(XmlPullStreamDecoder.java:50) <br>
+	at brut.androlib.res.decoder.XmlPullStreamDecoder.decodeManifest(XmlPullStreamDecoder.java:154) <br>
+	at brut.androlib.res.decoder.ResFileDecoder.decodeManifest(ResFileDecoder.java:162) <br>
+	at brut.androlib.res.AndrolibResources.decodeManifestWithResources(AndrolibResources.java:204) <br>
+	at brut.androlib.Androlib.decodeManifestWithResources(Androlib.java:136) <br>
+	at brut.androlib.ApkDecoder.decode(ApkDecoder.java:122) <br>
+	at de.uni_passau.fim.Utility.decodeAPK(Utility.java:184) <br>
+	at de.uni_passau.fim.BranchDistance.main(BranchDistance.java:194) <br>
 	
 To fix this issue, I had to manually remove class files from the android.jar.
 
