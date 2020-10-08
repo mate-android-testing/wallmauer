@@ -42,8 +42,11 @@ public class Tracer extends BroadcastReceiver {
 
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
             String packageName = intent.getStringExtra("packageName");
-            write(packageName);
-            executionPath.clear();
+            // it seems like previous invocations of the tracer can interfere with the following
+            synchronized (Tracer.class) {
+                write(packageName);
+                executionPath.clear();
+            }
         }
     }
 

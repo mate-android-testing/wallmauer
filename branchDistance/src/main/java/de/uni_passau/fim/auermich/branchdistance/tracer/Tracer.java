@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 public class Tracer extends BroadcastReceiver {
 
     // tracks the execution path (prefer List to MultiMap since no external dependencies are required)
-    // TODO: use synchronized list if really necessary to avoid synchronized block
+    // TODO: check whether the variable should be declared as volatile
     private static List<String> executionPath = Collections.synchronizedList(new ArrayList<>());
 
     // the output file containing the covered branches
@@ -52,8 +52,11 @@ public class Tracer extends BroadcastReceiver {
 
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
             String packageName = intent.getStringExtra("packageName");
-            write(packageName);
-            executionPath.clear();
+            // it seems like previous invocations of the tracer can interfere with the following
+            synchronized (Tracer.class) {
+                write(packageName);
+                executionPath.clear();
+            }
         }
     }
 
