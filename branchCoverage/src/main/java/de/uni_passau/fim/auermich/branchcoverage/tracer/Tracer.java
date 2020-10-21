@@ -88,6 +88,7 @@ public class Tracer extends BroadcastReceiver {
             writer.close();
 
         } catch (IndexOutOfBoundsException e) {
+            LOGGER.info("Synchronization issue!");
             Map<Thread, StackTraceElement[]> threadStackTraces = Thread.getAllStackTraces();
             for (Thread thread: threadStackTraces.keySet()) {
                 StackTraceElement[] stackTrace = threadStackTraces.get(thread);
