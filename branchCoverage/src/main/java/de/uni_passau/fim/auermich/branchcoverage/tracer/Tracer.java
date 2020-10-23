@@ -86,7 +86,7 @@ public class Tracer extends BroadcastReceiver {
             }
 
             // keep track of collected traces per test case / trace file
-            numberOfTraces.addAndGet(CACHE_SIZE);
+            LOGGER.info("Accumulated traces size: " + numberOfTraces.addAndGet(CACHE_SIZE));
 
             br.flush();
             br.close();
@@ -121,11 +121,11 @@ public class Tracer extends BroadcastReceiver {
         File sdCard = Environment.getExternalStorageDirectory();
         File traces = new File(sdCard, TRACES_FILE);
 
-        System.out.println("Size: " + executionPath.size());
+        LOGGER.info("Remaining Traces Size: " + executionPath.size());
 
         if (!executionPath.isEmpty()) {
-            System.out.println("First entry: " + executionPath.get(0));
-            System.out.println("Last entry: " + executionPath.get(executionPath.size() - 1));
+            // LOGGER.info("First entry: " + executionPath.get(0));
+            // LOGGER.info("Last entry: " + executionPath.get(executionPath.size() - 1));
         }
 
         // write out remaining traces
@@ -156,6 +156,7 @@ public class Tracer extends BroadcastReceiver {
             FileWriter writer = new FileWriter(info);
 
             writer.append(String.valueOf(numberOfTraces.addAndGet(executionPath.size())));
+            LOGGER.info("Total number of traces: " + numberOfTraces.get());
 
             // reset traces counter
             numberOfTraces.set(0);
