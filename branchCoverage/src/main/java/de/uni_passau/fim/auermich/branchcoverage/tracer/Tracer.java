@@ -29,7 +29,7 @@ public class Tracer extends BroadcastReceiver {
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
 
-    // keeps track of the total number of generated traces per test case
+    // keeps track of the total number of generated traces per test case / trace file
     private static AtomicInteger numberOfTraces = new AtomicInteger(0);
 
     // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
@@ -85,7 +85,7 @@ public class Tracer extends BroadcastReceiver {
                 br.newLine();
             }
 
-            // keep track of collected traces per test case
+            // keep track of collected traces per test case / trace file
             numberOfTraces.addAndGet(CACHE_SIZE);
 
             br.flush();
