@@ -9,12 +9,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 /**
@@ -29,6 +28,9 @@ public class Tracer extends BroadcastReceiver {
 
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
+
+    // keeps track of the total number of generated traces per test case
+    private static AtomicInteger numberOfTraces = new AtomicInteger(0);
 
     // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
     private static final Logger LOGGER = Logger.getLogger(Tracer.class
@@ -82,6 +84,9 @@ public class Tracer extends BroadcastReceiver {
                 br.write(pathNode);
                 br.newLine();
             }
+
+            // keep track of collected traces per test case
+            numberOfTraces.addAndGet(CACHE_SIZE);
 
             br.flush();
             br.close();
@@ -150,7 +155,11 @@ public class Tracer extends BroadcastReceiver {
             File info = new File(filePath, "info.txt");
             FileWriter writer = new FileWriter(info);
 
-            writer.append(String.valueOf(executionPath.size()));
+            writer.append(String.valueOf(numberOfTraces.addAndGet(executionPath.size())));
+
+            // reset traces counter
+            numberOfTraces.set(0);
+
             writer.flush();
             writer.close();
 
