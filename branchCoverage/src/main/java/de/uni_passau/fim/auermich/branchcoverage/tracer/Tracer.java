@@ -30,6 +30,7 @@ public class Tracer extends BroadcastReceiver {
     private static final String TRACES_FILE = "traces.txt";
 
     // keeps track of the total number of generated traces per test case / trace file
+    // FIXME: doesn't reflect updates in onReceive() method for yet unknown reasons
     private static AtomicInteger numberOfTraces = new AtomicInteger(0);
 
     // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
@@ -40,10 +41,10 @@ public class Tracer extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        LOGGER.info("Received Broadcast");
 
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
             String packageName = intent.getStringExtra("packageName");
+            LOGGER.info("Received Broadcast");
             // it seems like previous invocations of the tracer can interfere with the following
             synchronized (Tracer.class) {
                 write(packageName);
@@ -124,8 +125,8 @@ public class Tracer extends BroadcastReceiver {
         LOGGER.info("Remaining Traces Size: " + executionPath.size());
 
         if (!executionPath.isEmpty()) {
-            // LOGGER.info("First entry: " + executionPath.get(0));
-            // LOGGER.info("Last entry: " + executionPath.get(executionPath.size() - 1));
+            LOGGER.info("First entry: " + executionPath.get(0));
+            LOGGER.info("Last entry: " + executionPath.get(executionPath.size() - 1));
         }
 
         // write out remaining traces
