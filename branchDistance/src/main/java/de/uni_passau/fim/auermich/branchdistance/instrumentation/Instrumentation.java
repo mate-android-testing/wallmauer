@@ -318,6 +318,14 @@ public final class Instrumentation {
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
                     // instrument branch with trace
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
+
+                    /*
+                     * We need to distinguish between a branch and an if stmt trace. This is required
+                     * to use a uniformed tracer in combination with MATE. Otherwise, the branch
+                     * coverage evaluation procedure would count the trace as an additional branch.
+                     */
+                    trace = methodInformation.getMethodID() + "->if->" + instrumentationPoint.getPosition();
+
                     insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
                 }
 
