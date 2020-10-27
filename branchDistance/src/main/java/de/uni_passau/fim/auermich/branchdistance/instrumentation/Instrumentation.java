@@ -37,6 +37,9 @@ public final class Instrumentation {
 
     private static final Logger LOGGER = LogManager.getLogger(Instrumentation.class);
 
+    // the location of the tracer class
+    private static final String TRACER = "Lde/uni_passau/fim/auermich/tracer/Tracer;";
+
     /**
      * Adds a basic lifecycle method to the given activity or fragment class. This already
      * includes the instrumentation of the method.
@@ -79,7 +82,7 @@ public final class Instrumentation {
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                     0, 1,
-                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                    new ImmutableMethodReference(TRACER, "trace",
                             Lists.newArrayList("Ljava/lang/String;"), "V")));
 
 
@@ -96,7 +99,7 @@ public final class Instrumentation {
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                     0, 1,
-                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                    new ImmutableMethodReference(TRACER, "trace",
                             Lists.newArrayList("Ljava/lang/String;"), "V")));
 
             // we have to add return-statement as well, though void!
@@ -116,7 +119,7 @@ public final class Instrumentation {
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                     0, 1,
-                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                    new ImmutableMethodReference(TRACER, "trace",
                             Lists.newArrayList("Ljava/lang/String;"), "V")));
 
             // call super method (we have one register for this reference + one register for each parameter)
@@ -135,7 +138,7 @@ public final class Instrumentation {
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                     0, 1,
-                    new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                    new ImmutableMethodReference(TRACER, "trace",
                             Lists.newArrayList("Ljava/lang/String;"), "V")));
 
             // only onCreateView(..) returns Landroid/view/View; which is stored in v1
@@ -203,7 +206,7 @@ public final class Instrumentation {
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 freeRegisterID, 1,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;", "trace",
+                new ImmutableMethodReference(TRACER, "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
         // check whether the instrumentation point (the original position) lies within a try block
@@ -452,7 +455,7 @@ public final class Instrumentation {
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 2,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                new ImmutableMethodReference(TRACER,
                         "computeBranchDistance",
                         Lists.newArrayList("Ljava/lang/String;", "I"), "V"));
 
@@ -573,7 +576,7 @@ public final class Instrumentation {
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 3,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                new ImmutableMethodReference(TRACER,
                         "computeBranchDistance",
                         Lists.newArrayList("Ljava/lang/String;", "I", "I"), "V"));
 
@@ -688,7 +691,7 @@ public final class Instrumentation {
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 2,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                new ImmutableMethodReference(TRACER,
                         "computeBranchDistance",
                         Lists.newArrayList("Ljava/lang/String;", "Ljava/lang/Object;"), "V"));
 
@@ -809,7 +812,7 @@ public final class Instrumentation {
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 firstFreeRegister, 3,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/branchdistance/tracer/Tracer;",
+                new ImmutableMethodReference(TRACER,
                         "computeBranchDistance",
                         Lists.newArrayList("Ljava/lang/String;", "Ljava/lang/Object;", "Ljava/lang/Object;"),
                         "V"));

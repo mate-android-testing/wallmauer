@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchdistance.tracer;
+package de.uni_passau.fim.auermich.tracer;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -14,6 +14,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 /**
@@ -23,11 +25,14 @@ import java.util.logging.Logger;
 public class Tracer extends BroadcastReceiver {
 
     // tracks the execution path (prefer List to MultiMap since no external dependencies are required)
-    // TODO: check whether the variable should be declared as volatile
     private static List<String> executionPath = Collections.synchronizedList(new ArrayList<>());
 
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
+
+    // keeps track of the total number of generated traces per test case / trace file
+    // FIXME: doesn't reflect updates in onReceive() method for yet unknown reasons
+    private static AtomicInteger numberOfTraces = new AtomicInteger(0);
 
     // the logger instance
     private static final Logger LOGGER = Logger.getLogger(Tracer.class
@@ -48,10 +53,10 @@ public class Tracer extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        LOGGER.info("Received Broadcast");
 
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
             String packageName = intent.getStringExtra("packageName");
+            LOGGER.info("Received Broadcast");
             // it seems like previous invocations of the tracer can interfere with the following
             synchronized (Tracer.class) {
                 write(packageName);
@@ -95,7 +100,7 @@ public class Tracer extends BroadcastReceiver {
         }
 
         final String trace = identifier + ":" + distance;
-        System.out.println("BRANCH_DISTANCE: " + distance);
+        LOGGER.info("BRANCH_DISTANCE: " + distance);
         trace(trace);
     }
 
@@ -131,7 +136,7 @@ public class Tracer extends BroadcastReceiver {
         }
 
         final String trace = identifier + ":" + distance;
-        System.out.println("BRANCH_DISTANCE: " + distance);
+        LOGGER.info("BRANCH_DISTANCE: " + distance);
         trace(trace);
     }
 
@@ -168,11 +173,25 @@ public class Tracer extends BroadcastReceiver {
                 br.newLine();
             }
 
+            // keep track of collected traces per test case / trace file
+            LOGGER.info("Accumulated traces size: " + numberOfTraces.addAndGet(CACHE_SIZE));
+
             br.flush();
             br.close();
             writer.close();
 
-        } catch (IOException e) {
+        } catch (IndexOutOfBoundsException e) {
+            LOGGER.info("Synchronization issue!");
+            Map<Thread, StackTraceElement[]> threadStackTraces = Thread.getAllStackTraces();
+            for (Thread thread : threadStackTraces.keySet()) {
+                StackTraceElement[] stackTrace = threadStackTraces.get(thread);
+                LOGGER.info("Thread[" + thread.getId() + "]: " + thread);
+                for (StackTraceElement stackTraceElement : stackTrace) {
+                    LOGGER.info(String.valueOf(stackTraceElement));
+                }
+            }
+        }
+        catch (IOException e) {
             LOGGER.info("Writing to external storage failed.");
             e.printStackTrace();
         }
@@ -191,11 +210,11 @@ public class Tracer extends BroadcastReceiver {
         File sdCard = Environment.getExternalStorageDirectory();
         File traces = new File(sdCard, TRACES_FILE);
 
-        System.out.println("Size: " + executionPath.size());
+        LOGGER.info("Size: " + executionPath.size());
 
         if (!executionPath.isEmpty()) {
-            System.out.println("First entry: " + executionPath.get(0));
-            System.out.println("Last entry: " + executionPath.get(executionPath.size() - 1));
+            LOGGER.info("First entry: " + executionPath.get(0));
+            LOGGER.info("Last entry: " + executionPath.get(executionPath.size() - 1));
         }
 
         // write out remaining traces
@@ -225,7 +244,12 @@ public class Tracer extends BroadcastReceiver {
             File info = new File(filePath, "info.txt");
             FileWriter writer = new FileWriter(info);
 
-            writer.append(String.valueOf(executionPath.size()));
+            writer.append(String.valueOf(numberOfTraces.addAndGet(executionPath.size())));
+            LOGGER.info("Total number of traces: " + numberOfTraces.get());
+
+            // reset traces counter
+            numberOfTraces.set(0);
+
             writer.flush();
             writer.close();
 

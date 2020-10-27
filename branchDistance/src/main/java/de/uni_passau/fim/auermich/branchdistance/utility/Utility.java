@@ -1,7 +1,6 @@
 package de.uni_passau.fim.auermich.branchdistance.utility;
 
 import brut.androlib.Androlib;
-import brut.androlib.AndrolibException;
 import brut.androlib.ApkDecoder;
 import brut.androlib.ApkOptions;
 import brut.common.BrutException;
@@ -32,9 +31,6 @@ import org.jf.smali.SmaliTestUtils;
 
 import javax.annotation.Nonnull;
 import java.io.*;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Pattern;
 

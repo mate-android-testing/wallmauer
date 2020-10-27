@@ -13,19 +13,13 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.jf.baksmali.Baksmali;
-import org.jf.baksmali.BaksmaliOptions;
-import org.jf.dexlib2.DexFileFactory;
-import org.jf.dexlib2.Opcodes;
-import org.jf.dexlib2.dexbacked.DexBackedDexFile;
-import org.jf.dexlib2.iface.*;
-import org.jf.smali.Smali;
-import org.jf.smali.SmaliOptions;
+import org.jf.dexlib2.iface.ClassDef;
+import org.jf.dexlib2.iface.DexFile;
+import org.jf.dexlib2.iface.Method;
+import org.jf.dexlib2.iface.MethodImplementation;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -127,7 +121,7 @@ public class BranchDistance {
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
-                    "de.uni_passau.fim.auermich.branchdistance.tracer.Tracer",
+                    "de.uni_passau.fim.auermich.tracer.Tracer",
                     "STORE_TRACES")) {
                 LOGGER.warn("Couldn't insert broadcast receiver tag!");
                 return;
