@@ -120,7 +120,7 @@ public class BranchCoverage {
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
-                    "de.uni_passau.fim.auermich.branchcoverage.tracer.Tracer",
+                    "de.uni_passau.fim.auermich.tracer.Tracer",
                     "STORE_TRACES")) {
                 LOGGER.warn("Couldn't insert broadcast receiver tag!");
                 return;

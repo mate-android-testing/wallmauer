@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.tracer;
+package de.uni_passau.fim.auermich.tracer;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
