@@ -21,7 +21,5 @@ task customFatJar(type: Jar) {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
-
-    compile depends.mdexlib2
     compile depends.log4j
 }

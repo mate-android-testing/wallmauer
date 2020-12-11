@@ -163,6 +163,7 @@ public class MethodInformation {
                 method.getReturnType(),
                 method.getAccessFlags(),
                 method.getAnnotations(),
+                null,
                 methodImplementation);
     }
 

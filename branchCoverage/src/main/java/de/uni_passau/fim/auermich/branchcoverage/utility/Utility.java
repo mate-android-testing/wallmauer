@@ -328,6 +328,7 @@ public final class Utility {
                 method.getReturnType(),
                 method.getAccessFlags(),
                 method.getAnnotations(),
+                null, // necessary for dexlib2 2.4.0
                 modifiedImplementation));
     }
 

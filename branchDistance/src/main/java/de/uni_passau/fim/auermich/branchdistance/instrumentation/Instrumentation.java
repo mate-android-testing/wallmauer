@@ -159,6 +159,7 @@ public final class Instrumentation {
                 returnType,
                 4,
                 null,
+                null,
                 implementation));
     }
 

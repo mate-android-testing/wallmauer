@@ -76,7 +76,7 @@ public class BranchCoverage {
      * @throws IOException        Should never happen.
      * @throws URISyntaxException Should never happen.
      */
-    public static void main(String[] args) throws IOException, URISyntaxException {
+    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
 
