@@ -81,14 +81,14 @@ public final class Utility {
      *                   is specified, the default location ('dist' directory)
      *                   and the original APK name is used.
      */
-    public static void buildAPK(String decodedAPKPath, File outputFile) {
+    public static void buildAPK(File decodedAPKPath, File outputFile) {
 
         ApkOptions apkOptions = new ApkOptions();
         // apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
 
         try {
-            new Androlib(apkOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
+            new Androlib(apkOptions).build(new ExtFile(decodedAPKPath), outputFile);
         } catch (BrutException e) {
             LOGGER.warn("Failed to build APK file!");
             LOGGER.warn(e.getMessage());
@@ -98,18 +98,18 @@ public final class Utility {
     /**
      * Decodes a given APK using apktool.
      */
-    public static String decodeAPK(File apkPath) {
+    public static File decodeAPK(File apkPath) {
 
         try {
             // ApkDecoder decoder = new ApkDecoder(new Androlib());
             ApkDecoder decoder = new ApkDecoder(apkPath);
 
-            // path where we want to decode the APK
-            String parentDir = apkPath.getParent();
-            String outputDir = parentDir + File.separator + "decodedAPK";
+            // path where we want to decode the APK (the same directory as the APK)
+            File parentDir = apkPath.getParentFile();
+            File outputDir = new File(parentDir, "decodedAPK");
 
             LOGGER.info("Decoding Output Dir: " + outputDir);
-            decoder.setOutDir(new File(outputDir));
+            decoder.setOutDir(outputDir);
 
             // whether to decode classes.dex into smali files: -s
             decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
@@ -211,7 +211,7 @@ public final class Utility {
      * @param opCode The API opcode level, e.g. API 28 (Android).
      * @throws IOException Should never happen.
      */
-    public static void writeMultiDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
+    public static void writeMultiDexFile(File filePath, List<ClassDef> classes, int opCode) throws IOException {
 
         // TODO: directly update merged dex file instance instead of creating new dex file instance here
         DexFile dexFile = new DexFile() {
@@ -239,7 +239,7 @@ public final class Utility {
             }
         };
 
-        MultiDexIO.writeDexFile(true, new File(filePath), new BasicDexFileNamer(),
+        MultiDexIO.writeDexFile(true, filePath, new BasicDexFileNamer(),
                 dexFile, DexIO.DEFAULT_MAX_DEX_POOL_SIZE, null);
     }
 
