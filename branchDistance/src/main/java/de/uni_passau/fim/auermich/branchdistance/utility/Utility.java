@@ -345,6 +345,7 @@ public final class Utility {
                 method.getReturnType(),
                 method.getAccessFlags(),
                 method.getAnnotations(),
+                null,
                 modifiedImplementation));
     }
 

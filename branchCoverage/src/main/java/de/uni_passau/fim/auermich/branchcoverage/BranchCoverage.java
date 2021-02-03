@@ -34,7 +34,7 @@ public class BranchCoverage {
     public static String apkPath;
 
     // the output path of the decoded APK
-    public static String decodedAPKPath;
+    public static File decodedAPKPath;
 
     // dex op code specified in header of classes.dex file
     public static int OPCODE_API = 28;
@@ -74,9 +74,8 @@ public class BranchCoverage {
      *
      * @param args The path to the APK file.
      * @throws IOException        Should never happen.
-     * @throws URISyntaxException Should never happen.
      */
-    public static void main(String[] args) throws IOException, URISyntaxException {
+    public static void main(String[] args) throws IOException {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
 
@@ -105,7 +104,7 @@ public class BranchCoverage {
              * the dex file is split into multiple dex files such that the method reference
              * constraint is not violated.
              */
-            DexFile mergedDex = MultiDexIO.readDexFile(true, new File(decodedAPKPath),
+            DexFile mergedDex = MultiDexIO.readDexFile(true, decodedAPKPath,
                     new BasicDexFileNamer(), null, null);
 
             instrument(mergedDex, exclusionPattern);
@@ -146,7 +145,7 @@ public class BranchCoverage {
             Utility.buildAPK(decodedAPKPath, outputAPKFile);
 
             // remove the decoded APK files
-            FileUtils.deleteDirectory(new File(decodedAPKPath));
+            FileUtils.deleteDirectory(decodedAPKPath);
         }
     }
 
