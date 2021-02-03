@@ -20,7 +20,6 @@ import org.jf.dexlib2.iface.MethodImplementation;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
