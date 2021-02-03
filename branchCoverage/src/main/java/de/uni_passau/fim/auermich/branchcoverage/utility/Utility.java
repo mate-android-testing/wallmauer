@@ -175,9 +175,8 @@ public final class Utility {
      *
      * @return The pattern representing classes that should not be instrumented.
      * @throws IOException        If the file containing excluded classes is not available.
-     * @throws URISyntaxException If the file is not present.
      */
-    public static Pattern readExcludePatterns() throws IOException, URISyntaxException {
+    public static Pattern readExcludePatterns() throws IOException {
 
         ClassLoader classLoader = ClassLoader.getSystemClassLoader();
         InputStream inputStream = classLoader.getResourceAsStream(EXCLUSION_PATTERN_FILE);

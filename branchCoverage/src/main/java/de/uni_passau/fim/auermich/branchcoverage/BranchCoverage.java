@@ -74,9 +74,8 @@ public class BranchCoverage {
      *
      * @param args The path to the APK file.
      * @throws IOException        Should never happen.
-     * @throws URISyntaxException Should never happen.
      */
-    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
+    public static void main(String[] args) throws IOException {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
 
