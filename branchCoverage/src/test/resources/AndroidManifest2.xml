@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" android:compileSdkVersion="28" android:compileSdkVersionCodename="9" android:installLocation="auto" package="com.simplemobiletools.calendar" platformBuildVersionCode="129" platformBuildVersionName="4.2.1">
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.READ_CALENDAR"/>
+    <uses-permission android:name="android.permission.WRITE_CALENDAR"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:label="@string/app_launcher_name" android:name="com.simplemobiletools.calendar.App" android:roundIcon="@mipmap/ic_launcher" android:theme="@style/AppTheme">
+        <activity android:launchMode="singleTask" android:name="com.simplemobiletools.calendar.activities.SplashActivity" android:theme="@style/SplashTheme"/>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_grey_black" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Grey_black" android:roundIcon="@mipmap/ic_launcher_grey_black" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_blue_grey" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Blue_grey" android:roundIcon="@mipmap/ic_launcher_blue_grey" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_brown" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Brown" android:roundIcon="@mipmap/ic_launcher_brown" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_deep_orange" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Deep_orange" android:roundIcon="@mipmap/ic_launcher_deep_orange" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="true" android:icon="@mipmap/ic_launcher" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Orange" android:roundIcon="@mipmap/ic_launcher" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_amber" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Amber" android:roundIcon="@mipmap/ic_launcher_amber" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_yellow" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Yellow" android:roundIcon="@mipmap/ic_launcher_yellow" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_lime" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Lime" android:roundIcon="@mipmap/ic_launcher_lime" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_light_green" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Light_green" android:roundIcon="@mipmap/ic_launcher_light_green" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_green" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Green" android:roundIcon="@mipmap/ic_launcher_green" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_teal" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Teal" android:roundIcon="@mipmap/ic_launcher_teal" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_cyan" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Cyan" android:roundIcon="@mipmap/ic_launcher_cyan" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_light_blue" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Light_blue" android:roundIcon="@mipmap/ic_launcher_light_blue" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_blue" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Blue" android:roundIcon="@mipmap/ic_launcher_blue" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_indigo" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Indigo" android:roundIcon="@mipmap/ic_launcher_indigo" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_deep_purple" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Deep_purple" android:roundIcon="@mipmap/ic_launcher_deep_purple" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_purple" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Purple" android:roundIcon="@mipmap/ic_launcher_purple" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_pink" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Pink" android:roundIcon="@mipmap/ic_launcher_pink" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:icon="@mipmap/ic_launcher_red" android:name="com.simplemobiletools.calendar.activities.SplashActivity.Red" android:roundIcon="@mipmap/ic_launcher_red" android:targetActivity="com.simplemobiletools.calendar.activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity android:launchMode="singleTask" android:name="com.simplemobiletools.calendar.activities.MainActivity">
+            <meta-data android:name="android.app.default_searchable" android:resource="@xml/searchable"/>
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="content"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="text/x-vcalendar"/>
+                <data android:mimeType="text/calendar"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="time/epoch"/>
+                <data android:host="com.android.calendar"/>
+                <data android:scheme="content"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="vnd.android.cursor.item/event"/>
+            </intent-filter>
+        </activity>
+        <activity android:name="com.simplemobiletools.calendar.activities.WidgetMonthlyConfigureActivity" android:screenOrientation="portrait" android:theme="@style/MyWidgetConfigTheme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+        <activity android:name="com.simplemobiletools.calendar.activities.WidgetListConfigureActivity" android:screenOrientation="portrait" android:theme="@style/MyWidgetConfigTheme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+        <activity android:label="@string/about" android:name="com.simplemobiletools.commons.activities.AboutActivity" android:parentActivityName="com.simplemobiletools.calendar.activities.MainActivity"/>
+        <activity android:label="@string/customize_colors" android:name="com.simplemobiletools.commons.activities.CustomizationActivity" android:parentActivityName="com.simplemobiletools.calendar.activities.SettingsActivity"/>
+        <activity android:label="@string/third_party_licences" android:name="com.simplemobiletools.commons.activities.LicenseActivity" android:parentActivityName="com.simplemobiletools.commons.activities.AboutActivity"/>
+        <activity android:label="@string/frequently_asked_questions" android:name="com.simplemobiletools.commons.activities.FAQActivity" android:parentActivityName="com.simplemobiletools.commons.activities.AboutActivity"/>
+        <activity android:name="com.simplemobiletools.calendar.activities.EventActivity" android:parentActivityName="com.simplemobiletools.calendar.activities.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.EDIT"/>
+                <action android:name="android.intent.action.INSERT"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="vnd.android.cursor.item/event"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.EDIT"/>
+                <action android:name="android.intent.action.INSERT"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="vnd.android.cursor.dir/event"/>
+            </intent-filter>
+        </activity>
+        <activity android:label="@string/settings" android:name="com.simplemobiletools.calendar.activities.SettingsActivity" android:parentActivityName="com.simplemobiletools.calendar.activities.MainActivity"/>
+        <activity android:label="@string/event_types" android:name="com.simplemobiletools.calendar.activities.ManageEventTypesActivity" android:parentActivityName="com.simplemobiletools.calendar.activities.SettingsActivity"/>
+        <activity android:name="com.simplemobiletools.calendar.activities.SnoozeReminderActivity" android:theme="@style/Theme.Transparent"/>
+        <receiver android:icon="@drawable/img_widget_monthly_preview" android:label="@string/widget_monthly" android:name="com.simplemobiletools.calendar.helpers.MyWidgetMonthlyProvider">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_monthly_info"/>
+        </receiver>
+        <receiver android:icon="@drawable/img_widget_list_preview" android:label="@string/widget_list" android:name="com.simplemobiletools.calendar.helpers.MyWidgetListProvider">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_list_info"/>
+        </receiver>
+        <service android:name="com.simplemobiletools.calendar.services.WidgetService" android:permission="android.permission.BIND_REMOTEVIEWS"/>
+        <service android:name="com.simplemobiletools.calendar.services.SnoozeService"/>
+        <receiver android:name="com.simplemobiletools.calendar.receivers.NotificationReceiver"/>
+        <receiver android:name="com.simplemobiletools.calendar.receivers.CalDAVSyncReceiver"/>
+        <receiver android:name="com.simplemobiletools.calendar.receivers.BootCompletedReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <provider android:authorities="com.simplemobiletools.calendar.provider" android:exported="false" android:grantUriPermissions="true" android:name="android.support.v4.content.FileProvider">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/provider_paths"/>
+        </provider>
+        <receiver android:exported="true" android:name="com.simplemobiletools.commons.receivers.SharedThemeReceiver">
+            <intent-filter>
+                <action android:name="com.simplemobiletools.commons.SHARED_THEME_ACTIVATED"/>
+                <action android:name="com.simplemobiletools.commons.SHARED_THEME_UPDATED"/>
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
