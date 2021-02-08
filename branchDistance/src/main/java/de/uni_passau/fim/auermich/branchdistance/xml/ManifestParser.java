@@ -18,7 +18,6 @@ import java.util.Objects;
 
 public class ManifestParser {
 
-    // the logger instance
     private static final Logger LOGGER = LogManager.getLogger(ManifestParser.class);
 
     private final String MANIFEST;
@@ -65,6 +64,7 @@ public class ManifestParser {
 
             NodeList intentFilters = doc.getElementsByTagName("intent-filter");
             final String NAME_ATTRIBUTE = "android:name";
+            final String ALIAS_NAME_ATTRIBUTE = "android:targetActivity";
 
             // find intent-filter that describes the main activity
             for (int i = 0; i < intentFilters.getLength(); i++) {
@@ -96,6 +96,9 @@ public class ManifestParser {
                                 Element main = (Element) mainActivityNode;
                                 if (main.getTagName().equals("activity")) {
                                     mainActivity = main.getAttribute(NAME_ATTRIBUTE);
+                                    return true;
+                                } else if (main.getTagName().equals("activity-alias")) {
+                                    mainActivity = main.getAttribute(ALIAS_NAME_ATTRIBUTE);
                                     return true;
                                 }
                             }

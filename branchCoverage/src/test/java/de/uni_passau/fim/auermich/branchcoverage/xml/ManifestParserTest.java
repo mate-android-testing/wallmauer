@@ -9,8 +9,11 @@ import static org.junit.Assert.*;
 
 public class ManifestParserTest {
 
+    /**
+     * Tests a sample manifest.
+     */
     @Test
-    public void testValidManifest() {
+    public void testSampleManifest() {
 
         Path resourceDirectory = Paths.get("src","test","resources");
         Path manifestFile = resourceDirectory.resolve("AndroidManifest1.xml");
@@ -22,19 +25,18 @@ public class ManifestParserTest {
     }
 
     /**
-     * This test fails because the supplied AndroidManifest.xml contains some corruption
-     * not yet identified. It seems like the main activity couldn't be extracted.
+     * Tests a manifest where the main activity is defined through an
+     * activity-alias tag.
      */
     @Test
-    public void testFaultyManifest() {
+    public void testActivityAliasManifest() {
 
         Path resourceDirectory = Paths.get("src","test","resources");
         Path manifestFile = resourceDirectory.resolve("AndroidManifest2.xml");
         ManifestParser manifest = new ManifestParser(manifestFile.toString());
 
-        // the parsing fails for the supplied AndroidManifest.xml
-        assertFalse(manifest.parseManifest());
-        manifest.getPackageName();
-        manifest.getMainActivity();
+        assertTrue("Couldn't parse manifest properly!", manifest.parseManifest());
+        assertNotNull("Couldn't parse MainActivity!", manifest.getMainActivity());
+        assertNotNull("Couldn't parse PackageName!", manifest.getPackageName());
     }
 }
