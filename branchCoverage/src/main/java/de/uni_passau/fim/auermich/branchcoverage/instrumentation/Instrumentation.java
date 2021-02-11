@@ -180,7 +180,7 @@ public final class Instrumentation {
 
     /**
      * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. a branch, a trace
-     * statement. In addition, also the method's entry and exit is instrumented.
+     * statement.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
      * @param dexFile           The dex file containing the method.
