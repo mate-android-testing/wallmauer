@@ -179,9 +179,8 @@ public final class Instrumentation {
     }
 
     /**
-     * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. branch or if stmt, a trace
-     * statement. For each if stmt, the branch distance is computed as well. In addition, also method entry
-     * and exit is instrumented.
+     * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. a branch, a trace
+     * statement. In addition, also the method's entry and exit is instrumented.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
      * @param dexFile           The dex file containing the method.
@@ -255,7 +254,8 @@ public final class Instrumentation {
         LOGGER.info("Destination Registers: " + destinationRegisters);
         LOGGER.info("Source Registers: " + sourceRegisters);
 
-        // we need a seperate counter for the insertion location of the instructions, since we skip indices when facing wide tpyes
+        // we need a separate counter for the insertion location of the instructions, since we skip indices
+        // when facing wide types
         int pos = 0;
 
         // use correct move instruction depend on type of source register
@@ -286,8 +286,7 @@ public final class Instrumentation {
                 // add move as first instruction
                 mutableMethodImplementation.addInstruction(pos, move);
                 pos++;
-            } else if (registerType == RegisterType.LONG_HI_TYPE
-                    || registerType == RegisterType.DOUBLE_HI_TYPE) {
+            } else if (registerType == RegisterType.LONG_HI_TYPE || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
                 LOGGER.info("Wide type HIGH_HALF!");
 

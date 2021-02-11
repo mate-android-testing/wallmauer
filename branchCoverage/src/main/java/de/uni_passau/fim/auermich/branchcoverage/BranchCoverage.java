@@ -197,7 +197,7 @@ public class BranchCoverage {
                 MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
                 /* We can only instrument methods with a given register count because
-                 * our instrumentation code uses instructions that only the usage of
+                 * our instrumentation code uses instructions that only allow the usage of
                  * registers with a register ID < MAX_TOTAL_REGISTERS, i.e. the newly
                  * inserted registers aren't allowed to exceed this limit.
                  */
