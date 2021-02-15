@@ -1,11 +1,11 @@
-package de.uni_passau.fim.auermich.branchcoverage;
+package de.uni_passau.fim.auermich.linecoverage;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchcoverage.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchcoverage.instrumentation.Instrumentation;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
-import de.uni_passau.fim.auermich.branchcoverage.xml.ManifestParser;
+import de.uni_passau.fim.auermich.linecoverage.analysis.Analyzer;
+import de.uni_passau.fim.auermich.linecoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.linecoverage.instrumentation.Instrumentation;
+import de.uni_passau.fim.auermich.linecoverage.utility.Utility;
+import de.uni_passau.fim.auermich.linecoverage.xml.ManifestParser;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;
@@ -20,15 +20,14 @@ import org.jf.dexlib2.iface.MethodImplementation;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-public class BranchCoverage {
+public class LineCoverage {
 
     // the logger instance
-    private static final Logger LOGGER = LogManager.getLogger(BranchCoverage.class);
+    private static final Logger LOGGER = LogManager.getLogger(LineCoverage.class);
 
     // the path to the APK file
     public static String apkPath;

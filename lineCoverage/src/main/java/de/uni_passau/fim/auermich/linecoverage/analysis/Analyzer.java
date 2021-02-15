@@ -1,10 +1,10 @@
-package de.uni_passau.fim.auermich.branchcoverage.analysis;
+package de.uni_passau.fim.auermich.linecoverage.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchcoverage.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
+import de.uni_passau.fim.auermich.linecoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.linecoverage.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.linecoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Format;
@@ -22,7 +22,6 @@ import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.util.MethodUtil;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class Analyzer {
@@ -38,11 +37,14 @@ public final class Analyzer {
     public static Set<InstrumentationPoint> trackInstrumentationPointsForBlocks(final MethodInformation methodInformation) {
         final Map<Integer, InstrumentationPoint.Type> instrumentationPoints = new HashMap<>();
         final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
+
+        // each entry refers to the code address of the first instruction within a catch block
         final Set<Integer> catchBlocks = methodInformation.getMethodImplementation().getTryBlocks().stream().flatMap(t -> t.getExceptionHandlers().stream()).map(ExceptionHandler::getHandlerCodeAddress).collect(Collectors.toSet());
         LOGGER.debug("Catch Blocks located at code addresses: " + catchBlocks);
 
         int consumedCodeUnits = 0;
         for (final AnalyzedInstruction instruction : instructions) {
+
             // Instrument if-else branch
             if (isBranchingInstruction(instruction)) {
                 LOGGER.debug("Found if branch: " + instruction.getInstructionIndex());
@@ -51,8 +53,6 @@ public final class Analyzer {
                 instrumentationPoints.put(ifTarget, InstrumentationPoint.Type.IF_BRANCH);
 
                 final int elseTarget = instruction.getSuccessors().stream().mapToInt(AnalyzedInstruction::getInstructionIndex).max().getAsInt();
-                LOGGER.debug(instruction.getSuccessors().stream().map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toList()));
-                LOGGER.debug(List.of(ifTarget, elseTarget));
                 assert instruction.getSuccessors().stream().map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toList()).equals(List.of(ifTarget, elseTarget));
                 LOGGER.debug("Else target: " + elseTarget);
                 instrumentationPoints.put(elseTarget, InstrumentationPoint.Type.ELSE_BRANCH);
@@ -74,7 +74,6 @@ public final class Analyzer {
 
 
             // Instrument the first instruction of each catch-block
-            // each entry refers to the code address of the first instruction within a catch block
             if (!catchBlocks.isEmpty()) {
                 if (catchBlocks.contains(consumedCodeUnits)) {
                     // first instruction of a catch block is a leader instruction
@@ -85,9 +84,10 @@ public final class Analyzer {
             }
 
             // Instrument any other instruction that has more then one successor
-            // For example, every instruction inside a try block has its corresponding catch block as an successor.
+            // For example, every instruction inside a try block which can throw an exception has its corresponding catch block as an successor.
             final Set<Integer> successors = instruction.getSuccessors().stream().map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
             successors.removeAll(instrumentationPoints.keySet());
+            successors.remove(instruction.getInstructionIndex() + 1);
             if (!successors.isEmpty()) {
                 LOGGER.debug("Exceptional flow");
                 LOGGER.debug("From: " + instruction.getInstructionIndex());
@@ -99,7 +99,20 @@ public final class Analyzer {
         }
 
         final List<BuilderInstruction> bInstructions = new MutableMethodImplementation(methodInformation.getMethodImplementation()).getInstructions();
-        final Set<InstrumentationPoint> result = instrumentationPoints.entrySet().stream().map(e -> new InstrumentationPoint(bInstructions.get(e.getKey()), e.getValue())).collect(Collectors.toSet());
+        final List<Integer> covered_instructions = new ArrayList<>(instrumentationPoints.keySet());
+        Collections.sort(covered_instructions);
+        covered_instructions.add(instructions.get(instructions.size() - 1).getInstructionIndex() + 1);
+
+        final Set<InstrumentationPoint> result = new HashSet<>();
+        for(int i = 0; i < covered_instructions.size() - 1; ++i){
+            final int index = covered_instructions.get(i);
+            final BuilderInstruction builderInstruction = bInstructions.get(index);
+            final InstrumentationPoint.Type type = instrumentationPoints.get(index);
+            final int block_size = covered_instructions.get(i + 1) - index;
+            final InstrumentationPoint p = new InstrumentationPoint(builderInstruction,  type, block_size);
+            result.add(p);
+        }
+
         LOGGER.info(result.toString());
         return result;
     }
@@ -128,42 +141,6 @@ public final class Analyzer {
         final Instruction instruction = analyzedInstruction.getInstruction();
         final EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
         return branchingInstructions.contains(instruction.getOpcode().format);
-    }
-
-
-    /**
-     * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
-     *
-     * @param methodInformation Encapsulates a method.
-     * @return Returns the set of instrumentation points.
-     */
-    public static Set<InstrumentationPoint> trackInstrumentationPoints(MethodInformation methodInformation) {
-
-        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
-
-        MutableMethodImplementation mutableMethodImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
-
-        List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
-
-        for (BuilderInstruction instruction : instructions) {
-            // check whether instruction is an if instruction
-            if (instruction instanceof BuilderInstruction21t
-                    || instruction instanceof BuilderInstruction22t) {
-
-                // The if branch starts at the next instruction, which we also need to trace.
-                InstrumentationPoint ifBranch = new InstrumentationPoint(instructions.get(instruction.getLocation().getIndex() + 1), InstrumentationPoint.Type.IF_BRANCH);
-                instrumentationPoints.add(ifBranch);
-
-                // We also need to instrument the else branch.
-                int elseBranchPosition = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
-                InstrumentationPoint elseBranch = new InstrumentationPoint(instructions.get(elseBranchPosition), InstrumentationPoint.Type.ELSE_BRANCH);
-                instrumentationPoints.add(elseBranch);
-            }
-        }
-
-        LOGGER.info(instrumentationPoints.toString());
-        return instrumentationPoints;
     }
 
     /**

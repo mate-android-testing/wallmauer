@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.branch;
+package de.uni_passau.fim.auermich.linecoverage.branch;
 
 
 public class IfBranch extends Branch {

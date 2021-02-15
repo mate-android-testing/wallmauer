@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.instrumentation;
+package de.uni_passau.fim.auermich.linecoverage.instrumentation;
 
 import org.jf.dexlib2.builder.BuilderInstruction;
 
@@ -13,10 +13,17 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private final int position;
     private final Type type;
 
-    public InstrumentationPoint(BuilderInstruction instruction, Type type) {
+    private final int covered_instructions;
+
+    public InstrumentationPoint(BuilderInstruction instruction, Type type, int covered_instructions) {
         this.instruction = instruction;
         this.position = instruction.getLocation().getIndex();
         this.type = type;
+        this.covered_instructions = covered_instructions;
+    }
+
+    public int getCovered_instructions() {
+        return covered_instructions;
     }
 
 

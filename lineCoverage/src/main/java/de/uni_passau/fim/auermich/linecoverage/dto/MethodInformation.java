@@ -1,8 +1,8 @@
-package de.uni_passau.fim.auermich.branchcoverage.dto;
+package de.uni_passau.fim.auermich.linecoverage.dto;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchcoverage.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
+import de.uni_passau.fim.auermich.linecoverage.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.linecoverage.utility.Range;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;

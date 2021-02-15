@@ -1,10 +1,10 @@
-package de.uni_passau.fim.auermich.branchcoverage.instrumentation;
+package de.uni_passau.fim.auermich.linecoverage.instrumentation;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchcoverage.BranchCoverage;
-import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.linecoverage.LineCoverage;
+import de.uni_passau.fim.auermich.linecoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.linecoverage.utility.Range;
+import de.uni_passau.fim.auermich.linecoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Opcode;
@@ -216,7 +216,7 @@ public final class Instrumentation {
         while (iterator.hasNext()) {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
-            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->" + instrumentationPoint.getCovered_instructions();
 
             /*
              * We can't directly insert a statement before the else branch, instead
@@ -259,7 +259,7 @@ public final class Instrumentation {
 
         // compute the list of source registers, which is the param registers shifted by #additionalRegs
         List<Integer> sourceRegisters =
-                paramRegisters.stream().map(elem -> elem + BranchCoverage.ADDITIONAL_REGISTERS).collect(Collectors.toList());
+                paramRegisters.stream().map(elem -> elem + LineCoverage.ADDITIONAL_REGISTERS).collect(Collectors.toList());
 
         LOGGER.info("New Registers: " + newRegisters);
         LOGGER.info("Parameter Registers: " + paramRegisters);

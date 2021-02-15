@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.xml;
+package de.uni_passau.fim.auermich.linecoverage.xml;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
