@@ -7,6 +7,7 @@ version 'unspecified'
 sourceCompatibility = 1.8
 
 repositories {
+    google()
     mavenCentral()
 }
 
@@ -22,4 +23,10 @@ task customFatJar(type: Jar) {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     compile depends.log4j
+}
+
+// useful task that shows were dependencies are locally installed
+// https://stackoverflow.com/questions/21417419/how-to-convert-aar-to-jar
+task showMeCache {
+    configurations.compile.each { println it }
 }
