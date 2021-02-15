@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static androidx.core.content.PermissionChecker.PERMISSION_GRANTED;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 /**
  * Provides the functionality to trace branches for
