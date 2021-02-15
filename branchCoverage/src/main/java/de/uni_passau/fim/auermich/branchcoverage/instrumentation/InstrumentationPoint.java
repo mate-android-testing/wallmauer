@@ -64,7 +64,11 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     }
 
     public enum Type {
+        METHOD_START,
+        CATCH_BLOCK_START,
+        EXCEPTIONAL_SUCCESSOR,
         IF_BRANCH,
         ELSE_BRANCH,
+        GOTO_BRANCH,
     }
 }

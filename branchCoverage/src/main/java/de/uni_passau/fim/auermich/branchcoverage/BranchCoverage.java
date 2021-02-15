@@ -210,7 +210,7 @@ public class BranchCoverage {
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
                     // determine the location of the branches
-                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
+                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPointsForBlocks(methodInformation));
 
                     // determine the location of try blocks
                     methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
