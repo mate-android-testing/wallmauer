@@ -43,6 +43,12 @@ public class Tracer extends BroadcastReceiver {
 
     private static final int CACHE_SIZE = 5000;
 
+    /**
+     * Called when a broadcast is received.
+     *
+     * @param context The application context object.
+     * @param intent The intent that represents the broadcast message.
+     */
     @Override
     public void onReceive(Context context, Intent intent) {
 
