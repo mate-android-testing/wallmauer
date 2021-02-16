@@ -3,4 +3,5 @@ include 'branchDistance'
 include 'branchCoverage'
 include 'branchCoverageEvaluation'
 include 'basicBlockCoverage'
+include 'basicBlockCoverageEvaluation'
 
