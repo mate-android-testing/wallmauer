@@ -14,9 +14,9 @@ test {
 
 task customFatJar(type: Jar) {
     manifest {
-        attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchcoverage_evaluation.BranchCoverageEvaluation'
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.basicBlockCoverageEvaluation.BasicBlockCoverageEvaluation'
     }
-    baseName = 'branchCoverageEvaluation'
+    baseName = 'basicBlockCoverageEvaluation'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }

@@ -12,9 +12,9 @@ repositories {
 
 task customFatJar(type: Jar) {
     manifest {
-        attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchcoverage.BranchCoverage'
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.basicBlockCoverage.BasicBlockCoverage'
     }
-    baseName = 'branchCoverage'
+    baseName = 'basicBlockCoverage'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
