@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.linecoverage.xml;
+package de.uni_passau.fim.auermich.basicBlockCoverage.xml;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

@@ -1,10 +1,10 @@
-package de.uni_passau.fim.auermich.linecoverage.instrumentation;
+package de.uni_passau.fim.auermich.basicBlockCoverage.instrumentation;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.linecoverage.LineCoverage;
-import de.uni_passau.fim.auermich.linecoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.linecoverage.utility.Range;
-import de.uni_passau.fim.auermich.linecoverage.utility.Utility;
+import de.uni_passau.fim.auermich.basicBlockCoverage.BasicBlockCoverage;
+import de.uni_passau.fim.auermich.basicBlockCoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.basicBlockCoverage.utility.Range;
+import de.uni_passau.fim.auermich.basicBlockCoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Opcode;
@@ -259,7 +259,7 @@ public final class Instrumentation {
 
         // compute the list of source registers, which is the param registers shifted by #additionalRegs
         List<Integer> sourceRegisters =
-                paramRegisters.stream().map(elem -> elem + LineCoverage.ADDITIONAL_REGISTERS).collect(Collectors.toList());
+                paramRegisters.stream().map(elem -> elem + BasicBlockCoverage.ADDITIONAL_REGISTERS).collect(Collectors.toList());
 
         LOGGER.info("New Registers: " + newRegisters);
         LOGGER.info("Parameter Registers: " + paramRegisters);

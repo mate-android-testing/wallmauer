@@ -1,10 +1,10 @@
-package de.uni_passau.fim.auermich.linecoverage.analysis;
+package de.uni_passau.fim.auermich.basicBlockCoverage.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.linecoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.linecoverage.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.linecoverage.utility.Range;
+import de.uni_passau.fim.auermich.basicBlockCoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.basicBlockCoverage.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.basicBlockCoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Format;

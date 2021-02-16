@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.linecoverage.utility;
+package de.uni_passau.fim.auermich.basicBlockCoverage.utility;
 
 import brut.androlib.Androlib;
 import brut.androlib.ApkDecoder;
@@ -7,8 +7,8 @@ import brut.common.BrutException;
 import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
-import de.uni_passau.fim.auermich.linecoverage.LineCoverage;
-import de.uni_passau.fim.auermich.linecoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.basicBlockCoverage.BasicBlockCoverage;
+import de.uni_passau.fim.auermich.basicBlockCoverage.dto.MethodInformation;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
@@ -55,7 +55,7 @@ public final class Utility {
      */
     public static ClassDef loadTracer(int apiLevel) {
 
-        InputStream inputStream = LineCoverage.class.getClassLoader().getResourceAsStream("Tracer.smali");
+        InputStream inputStream = BasicBlockCoverage.class.getClassLoader().getResourceAsStream("Tracer.smali");
 
         ByteSource byteSource = new ByteSource() {
             @Override

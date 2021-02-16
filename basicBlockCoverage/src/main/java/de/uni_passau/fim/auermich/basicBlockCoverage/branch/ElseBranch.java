@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.linecoverage.branch;
+package de.uni_passau.fim.auermich.basicBlockCoverage.branch;
 
 import org.jf.dexlib2.builder.Label;
 
