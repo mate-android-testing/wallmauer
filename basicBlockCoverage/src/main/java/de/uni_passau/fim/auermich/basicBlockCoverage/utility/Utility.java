@@ -40,6 +40,7 @@ public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
+    public static final String SEPERATOR = "->";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
 
@@ -148,11 +149,9 @@ public final class Utility {
         PrintStream printStream = new PrintStream(outputStream);
 
         if (methodInformation.getInstrumentationPoints().size() > 0) {
-            // we have to save our branchCounter for the later evaluation
-            final String className = methodInformation.getClassDef().getType();
-            final String methodName = methodInformation.getMethod().getName();
+            final String method = methodInformation.getMethod().toString();
             final int instructionCount = methodInformation.getInitialInstructionCount();
-            printStream.println(className+ ":" + methodName + ":" + instructionCount);
+            printStream.println(method + SEPERATOR + instructionCount);
             printStream.flush();
         }
         printStream.close();
