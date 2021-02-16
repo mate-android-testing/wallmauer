@@ -25,37 +25,27 @@ public class MethodInformation {
 
     // a reference to the actual method
     private final Method method;
-
+    private final int initialInstructionCount;
     // a reference to the dex file
     private final DexFile dexFile;
-
     // a list of free/usable register IDs
     private List<Integer> freeRegisters;
-
     // a list of the additional register IDs
     private List<Integer> newRegisters;
-
     // the total register count
     private int totalRegisterCount;
-
     // the number of local registers (v0...vN)
     private int localRegisterCount;
-
     // the number of param registers (p0...pN)
     private int paramRegisterCount;
-
     // the register IDs of the param registers (might be empty)
     private List<Integer> paramRegisters = new ArrayList<>();
-
     // map of param register IDs and its register type if present
     private Optional<Map<Integer, RegisterType>> paramRegisterTypeMap = Optional.empty();
-
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
-
     // contains the locations where we need to instrument
     private Set<InstrumentationPoint> instrumentationPoints;
-
     // describes the ranges of try blocks
     private Set<Range> tryBlocks = new TreeSet<>();
 
@@ -65,6 +55,11 @@ public class MethodInformation {
         this.method = method;
         methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
+        this.initialInstructionCount = getInstructions().size();
+    }
+
+    public int getInitialInstructionCount() {
+        return initialInstructionCount;
     }
 
     public AnalyzedInstruction getInstructionAtIndex(int index) {
@@ -117,8 +112,16 @@ public class MethodInformation {
         return freeRegisters;
     }
 
+    public void setFreeRegisters(List<Integer> freeRegisters) {
+        this.freeRegisters = freeRegisters;
+    }
+
     public List<Integer> getNewRegisters() {
         return newRegisters;
+    }
+
+    public void setNewRegisters(List<Integer> newRegisters) {
+        this.newRegisters = newRegisters;
     }
 
     public MethodImplementation getMethodImplementation() {
@@ -133,36 +136,24 @@ public class MethodInformation {
         return totalRegisterCount;
     }
 
+    public void setTotalRegisterCount(int totalRegisters) {
+        this.totalRegisterCount = totalRegisters;
+    }
+
     public int getLocalRegisterCount() {
         return localRegisterCount;
-    }
-
-    public int getParamRegisterCount() {
-        return paramRegisterCount;
-    }
-
-    public void setFreeRegisters(List<Integer> freeRegisters) {
-        this.freeRegisters = freeRegisters;
-    }
-
-    public void setNewRegisters(List<Integer> newRegisters) {
-        this.newRegisters = newRegisters;
-    }
-
-    public void setTotalRegisterCount(int totalRegisters) {
-        this.totalRegisterCount= totalRegisters;
     }
 
     public void setLocalRegisterCount(int localRegisters) {
         this.localRegisterCount = localRegisters;
     }
 
-    public void setParamRegisterCount(int paramRegisters) {
-        this.paramRegisterCount = paramRegisters;
+    public int getParamRegisterCount() {
+        return paramRegisterCount;
     }
 
-    public void setParamRegisterTypeMap(Optional<Map<Integer, RegisterType>> paramRegisterTypeMap) {
-        this.paramRegisterTypeMap = paramRegisterTypeMap;
+    public void setParamRegisterCount(int paramRegisters) {
+        this.paramRegisterCount = paramRegisters;
     }
 
     public List<Integer> getParamRegisters() {
@@ -175,5 +166,9 @@ public class MethodInformation {
 
     public Optional<Map<Integer, RegisterType>> getParamRegisterTypeMap() {
         return paramRegisterTypeMap;
+    }
+
+    public void setParamRegisterTypeMap(Optional<Map<Integer, RegisterType>> paramRegisterTypeMap) {
+        this.paramRegisterTypeMap = paramRegisterTypeMap;
     }
 }

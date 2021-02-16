@@ -2,5 +2,5 @@ rootProject.name = 'instrumentation'
 include 'branchDistance'
 include 'branchCoverage'
 include 'branchCoverageEvaluation'
-include 'lineCoverage'
+include 'basicBlockCoverage'
 

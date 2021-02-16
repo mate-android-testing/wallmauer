@@ -238,6 +238,8 @@ public class BasicBlockCoverage {
                     // add instrumented method implementation
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
+                    // write out the number of branches per class
+                    Utility.writeInstructionCount(methodInformation);
                 } else {
                     // no modification necessary
                     methods.add(method);
@@ -251,8 +253,7 @@ public class BasicBlockCoverage {
                 Utility.addInstrumentedClass(classes, methods, classDef);
             }
 
-            // write out the number of branches per class
-            Utility.writeBranches(classDef.getType(), numberOfBranches);
+
         }
 
         // insert tracer class

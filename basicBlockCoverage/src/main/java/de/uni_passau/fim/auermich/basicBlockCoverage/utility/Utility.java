@@ -135,22 +135,24 @@ public final class Utility {
     }
 
     /**
-     * Writes the number of branches for each class to the given file.
-     * Classes without any branches are omitted.
+     * Writes the number of instructions per method.
+     * Methods which are not instrumented are omitted.
      *
-     * @param className The name of the class.
-     * @param branchCounter The number of branches for a certain class.
+     * @param methodInformation A description of the instrumented method
      * @throws FileNotFoundException Should never be thrown.
      */
-    public static void writeBranches(String className, int branchCounter) throws FileNotFoundException {
+    public static void writeInstructionCount(final MethodInformation methodInformation) throws FileNotFoundException {
 
         File file = new File(OUTPUT_BRANCHES_FILE);
         OutputStream outputStream = new FileOutputStream(file, true);
         PrintStream printStream = new PrintStream(outputStream);
 
-        if (branchCounter != 0) {
+        if (methodInformation.getInstrumentationPoints().size() > 0) {
             // we have to save our branchCounter for the later evaluation
-            printStream.println(className + ": " + branchCounter);
+            final String className = methodInformation.getClassDef().getType();
+            final String methodName = methodInformation.getMethod().getName();
+            final int instructionCount = methodInformation.getInitialInstructionCount();
+            printStream.println(className+ ":" + methodName + ":" + instructionCount);
             printStream.flush();
         }
         printStream.close();
