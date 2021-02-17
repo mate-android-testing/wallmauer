@@ -20,7 +20,6 @@ import org.jf.dexlib2.iface.MethodImplementation;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -210,7 +209,7 @@ public class BranchCoverage {
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
                     // determine the location of the branches
-                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPointsForBlocks(methodInformation));
+                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
                     // determine the location of try blocks
                     methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));

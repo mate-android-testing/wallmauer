@@ -5,9 +5,6 @@ import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.branchcoverage.instrumentation.InstrumentationPoint;
 import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.Format;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
@@ -18,121 +15,15 @@ import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.TryBlock;
-import org.jf.dexlib2.iface.instruction.Instruction;
 import org.jf.dexlib2.util.MethodUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class Analyzer {
 
     private static final Logger LOGGER = LogManager.getLogger(Analyzer.class);
-
-    /**
-     * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
-     *
-     * @param methodInformation Encapsulates a method.
-     * @return Returns the set of instrumentation points.
-     */
-    public static Set<InstrumentationPoint> trackInstrumentationPointsForBlocks(final MethodInformation methodInformation) {
-        final Map<Integer, InstrumentationPoint.Type> instrumentationPoints = new HashMap<>();
-        final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
-
-        // Instrument first instruction of every method
-        instrumentationPoints.put(0, InstrumentationPoint.Type.METHOD_START);
-
-        // Instrument if-else branch
-        for (final AnalyzedInstruction instruction : instructions) {
-            if (isBranchingInstruction(instruction)) {
-                LOGGER.debug("Found if branch: " + instruction.getInstructionIndex());
-                final int ifTarget = instruction.getInstructionIndex() + 1;
-                LOGGER.debug("If target: " + ifTarget);
-                instrumentationPoints.putIfAbsent(ifTarget, InstrumentationPoint.Type.IF_BRANCH);
-
-                final int elseTarget = instruction.getSuccessors().stream().mapToInt(AnalyzedInstruction::getInstructionIndex).max().getAsInt();
-                LOGGER.debug(instruction.getSuccessors().stream().map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toList()));
-                LOGGER.debug(List.of(ifTarget, elseTarget));
-                assert instruction.getSuccessors().stream().map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toList()).equals(List.of(ifTarget, elseTarget));
-                LOGGER.debug("Else target: " + elseTarget);
-                instrumentationPoints.putIfAbsent(elseTarget, InstrumentationPoint.Type.ELSE_BRANCH);
-            }
-        }
-
-        // Instrument target of goto instruction
-        for(final AnalyzedInstruction instruction : instructions){
-            if(isGotoInstruction(instruction)) {
-                LOGGER.debug("Found goto instruction: " + instruction.getInstructionIndex());
-                final List<AnalyzedInstruction> successors = instruction.getSuccessors();
-                assert successors.size() == 1;
-                instrumentationPoints.putIfAbsent(successors.get(0).getInstructionIndex(), InstrumentationPoint.Type.GOTO_BRANCH);
-
-            }
-        }
-
-        // Instrument the first instruction of each catch-block
-        // each entry refers to the code address of the first instruction within a catch block
-        final Set<Integer> catchBlocks = methodInformation.getMethodImplementation().getTryBlocks().stream().flatMap(t -> t.getExceptionHandlers().stream()).map(ExceptionHandler::getHandlerCodeAddress).collect(Collectors.toSet());
-        if (!catchBlocks.isEmpty()) {
-            LOGGER.debug("Catch Blocks located at code addresses: " + catchBlocks);
-            int consumedCodeUnits = 0;
-            for (AnalyzedInstruction instruction : instructions) {
-                if (catchBlocks.contains(consumedCodeUnits)) {
-                    // first instruction of a catch block is a leader instruction
-                    LOGGER.debug("First instruction within catch block at pos: " + instruction.getInstructionIndex());
-                    instrumentationPoints.putIfAbsent(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_START);
-                }
-                consumedCodeUnits += instruction.getInstruction().getCodeUnits();
-            }
-        }
-
-        // Instrument any other instruction that has more then one successor
-        // TODO: Is this even needed?
-        final Set<Integer> instrumentedPositions = instrumentationPoints.keySet();
-        instructions.stream().map(i -> new AbstractMap.SimpleEntry<>(i.getInstructionIndex(), i.getSuccessors().stream().map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet())))
-                    .filter(e -> e.getValue().size() >= 2)
-                    .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), e.getValue().stream().filter(s -> !instrumentedPositions.contains(s)).collect(Collectors.toSet())))
-                    .filter(e -> e.getValue().size() >= 1)
-                    .forEachOrdered(e -> {
-                        LOGGER.debug("Exceptional flow");
-                        LOGGER.debug("From: " + e.getKey());
-                        e.getValue().forEach(v -> {
-                            LOGGER.debug("    To: " + v);
-                            instrumentationPoints.putIfAbsent(v, InstrumentationPoint.Type.EXCEPTIONAL_SUCCESSOR);
-                        });
-                    });
-
-        final List<BuilderInstruction> bInstructions = new MutableMethodImplementation(methodInformation.getMethodImplementation()).getInstructions();
-        final Set<InstrumentationPoint> result = instrumentationPoints.entrySet().stream().map(e -> new InstrumentationPoint(bInstructions.get(e.getKey()), e.getValue())).collect(Collectors.toSet());
-        LOGGER.info(result.toString());
-        return result;
-    }
-
-    /**
-     * Checks whether the given instruction refers to a goto instruction.
-     *
-     * @param analyzedInstruction The instruction to be analyzed.
-     * @return Returns {@code true} if the instruction is a goto instruction,
-     * otherwise {@code false} is returned.
-     */
-    public static boolean isGotoInstruction(AnalyzedInstruction analyzedInstruction) {
-        Instruction instruction = analyzedInstruction.getInstruction();
-        EnumSet<Format> gotoInstructions = EnumSet.of(Format.Format10t, Format.Format20t, Format.Format30t);
-        return gotoInstructions.contains(instruction.getOpcode().format);
-    }
-
-    /**
-     * Checks whether the given instruction refers to an if instruction.
-     *
-     * @param analyzedInstruction The instruction to be analyzed.
-     * @return Returns {@code true} if the instruction is a branching instruction,
-     * otherwise {@code false} is returned.
-     */
-    public static boolean isBranchingInstruction(final AnalyzedInstruction analyzedInstruction) {
-        final Instruction instruction = analyzedInstruction.getInstruction();
-        final EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
-        return branchingInstructions.contains(instruction.getOpcode().format);
-    }
-
 
     /**
      * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
@@ -150,6 +41,7 @@ public final class Analyzer {
         List<BuilderInstruction> instructions = mutableMethodImplementation.getInstructions();
 
         for (BuilderInstruction instruction : instructions) {
+
             // check whether instruction is an if instruction
             if (instruction instanceof BuilderInstruction21t
                     || instruction instanceof BuilderInstruction22t) {
@@ -263,7 +155,7 @@ public final class Analyzer {
 
         Set<BuilderInstruction> branches = new HashSet<>();
 
-        for (BuilderInstruction instruction : instructions) {
+        for(BuilderInstruction instruction : instructions) {
 
             if (instruction instanceof BuilderInstruction21t
                     || instruction instanceof BuilderInstruction22t) {
