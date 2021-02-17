@@ -39,10 +39,11 @@ import java.util.regex.Pattern;
 public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
-    public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
+    public static final String OUTPUT_BLOCKS_FILE = "blocks.txt";
     public static final String SEPERATOR = "->";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
+    
 
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
@@ -136,22 +137,23 @@ public final class Utility {
     }
 
     /**
-     * Writes the number of instructions per method.
+     * Writes the number of instructions and number of branches per method.
      * Methods which are not instrumented are omitted.
      *
      * @param methodInformation A description of the instrumented method
      * @throws FileNotFoundException Should never be thrown.
      */
-    public static void writeInstructionCount(final MethodInformation methodInformation) throws FileNotFoundException {
+    public static void writeInstructionAndBranchCount(final MethodInformation methodInformation) throws FileNotFoundException {
 
-        File file = new File(OUTPUT_BRANCHES_FILE);
+        File file = new File(OUTPUT_BLOCKS_FILE);
         OutputStream outputStream = new FileOutputStream(file, true);
         PrintStream printStream = new PrintStream(outputStream);
 
         if (methodInformation.getInstrumentationPoints().size() > 0) {
             final String method = methodInformation.getMethod().toString();
             final int instructionCount = methodInformation.getInitialInstructionCount();
-            printStream.println(method + SEPERATOR + instructionCount);
+            final int noBranches = methodInformation.getNumberOfBranches();
+            printStream.println(method + SEPERATOR + instructionCount + noBranches);
             printStream.flush();
         }
         printStream.close();

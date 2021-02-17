@@ -36,13 +36,13 @@ public final class Instrumentation {
      *
      * @param methodInformation    Stores all relevant information about the given method.
      * @param instrumentationPoint Describes the position of the branch.
-     * @param id                   The id which identifies the given branch, i.e. packageName->className->method->branchID.
+     * @param trace                   The trace which which should be logged every time the basic block is executed.
      * @param elseBranch           Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
                                                                          InstrumentationPoint instrumentationPoint,
-                                                                         final String id, boolean elseBranch) {
+                                                                         final String trace, boolean elseBranch) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -69,7 +69,7 @@ public final class Instrumentation {
 
         // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
         BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
-                new ImmutableStringReference(id));
+                new ImmutableStringReference(trace));
 
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -216,7 +216,8 @@ public final class Instrumentation {
         while (iterator.hasNext()) {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
-            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->" + instrumentationPoint.getCovered_instructions();
+            String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
+            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->" + instrumentationPoint.getCovered_instructions() + "->" + isBranch;
 
             /*
              * We can't directly insert a statement before the else branch, instead

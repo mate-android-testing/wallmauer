@@ -239,7 +239,7 @@ public class BasicBlockCoverage {
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
                     // write out the number of branches per class
-                    Utility.writeInstructionCount(methodInformation);
+                    Utility.writeInstructionAndBranchCount(methodInformation);
                 } else {
                     // no modification necessary
                     methods.add(method);

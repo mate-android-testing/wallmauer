@@ -171,4 +171,8 @@ public class MethodInformation {
     public void setParamRegisterTypeMap(Optional<Map<Integer, RegisterType>> paramRegisterTypeMap) {
         this.paramRegisterTypeMap = paramRegisterTypeMap;
     }
+
+    public int getNumberOfBranches() {
+        return (int) instrumentationPoints.stream().filter(InstrumentationPoint::hasBranchType).count();
+    }
 }

@@ -13,6 +13,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private final int position;
     private final Type type;
 
+
     private final int covered_instructions;
 
     public InstrumentationPoint(BuilderInstruction instruction, Type type, int covered_instructions) {
@@ -37,6 +38,10 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     public BuilderInstruction getInstruction() {
         return instruction;
+    }
+
+    public boolean hasBranchType() {
+        return this.type.isBranchType();
     }
 
     @Override
@@ -76,6 +81,10 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         EXCEPTIONAL_SUCCESSOR,
         IF_BRANCH,
         ELSE_BRANCH,
-        GOTO_BRANCH,
+        GOTO_BRANCH;
+
+        public boolean isBranchType() {
+            return this == IF_BRANCH || this == ELSE_BRANCH;
+        }
     }
 }
