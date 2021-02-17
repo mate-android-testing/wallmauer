@@ -153,7 +153,7 @@ public final class Utility {
             final String method = methodInformation.getMethod().toString();
             final int instructionCount = methodInformation.getInitialInstructionCount();
             final int noBranches = methodInformation.getNumberOfBranches();
-            printStream.println(method + SEPERATOR + instructionCount + noBranches);
+            printStream.println(method + SEPERATOR + instructionCount + SEPERATOR + noBranches);
             printStream.flush();
         }
         printStream.close();
