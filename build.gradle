@@ -29,6 +29,7 @@ subprojects {
         // since the libs dir is flat, we can access the dependency by its name (don't specify .jar extension)
         compile name: 'apktool-cli-all'
         compile name: 'android'
+        compile name: 'androidx'
         compile(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
             // mdexlib2 uses dexlib2 2.3.4 but apktool requires 2.4.0
             exclude group: 'org.smali', module: 'dexlib2'

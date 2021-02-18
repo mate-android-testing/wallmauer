@@ -1,5 +1,6 @@
 package de.uni_passau.fim.auermich.tracer;
 
+import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -15,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 /**
  * Provides the functionality to trace branches for
@@ -39,12 +43,23 @@ public class Tracer extends BroadcastReceiver {
 
     private static final int CACHE_SIZE = 5000;
 
+    /**
+     * Called when a broadcast is received.
+     *
+     * @param context The application context object.
+     * @param intent The intent that represents the broadcast message.
+     */
     @Override
     public void onReceive(Context context, Intent intent) {
 
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
             String packageName = intent.getStringExtra("packageName");
             LOGGER.info("Received Broadcast");
+
+            if (!isPermissionGranted(context, WRITE_EXTERNAL_STORAGE)) {
+                LOGGER.info("Permissions got dropped unexpectedly!");
+            }
+
             // it seems like previous invocations of the tracer can interfere with the following
             synchronized (Tracer.class) {
                 write(packageName);
@@ -70,10 +85,50 @@ public class Tracer extends BroadcastReceiver {
         }
     }
 
+    // https://stackoverflow.com/questions/2002288/static-way-to-get-context-in-android
+    private static Application getApplicationUsingReflection() {
+        try {
+            return (Application) Class.forName("android.app.ActivityThread")
+                    .getMethod("currentApplication").invoke(null, (Object[]) null);
+        } catch (Exception e) {
+            LOGGER.info("Couldn't retrieve global context object!");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Checks whether the application has the given permission.
+     *
+     * @param context The application context object.
+     * @param permission The permission to check.
+     * @return Returns {@code true} if the permission is granted,
+     *          otherwise {@code false} is returned.
+     */
+    private static boolean isPermissionGranted(Context context, final String permission) {
+
+        if (context == null) {
+            context = getApplicationUsingReflection();
+        }
+
+        if (context == null) {
+            throw new IllegalStateException("Couldn't access context object!");
+        } else {
+            return context.checkSelfPermission(permission) == PERMISSION_GRANTED;
+        }
+    }
+
+    /**
+     * Writes the collected traces to the external storage.
+     */
     private static void write() {
 
         File sdCard = Environment.getExternalStorageDirectory();
         File traces = new File(sdCard, TRACES_FILE);
+
+        if (!isPermissionGranted(null, WRITE_EXTERNAL_STORAGE)) {
+            LOGGER.info("Permissions got dropped unexpectedly!");
+        }
 
         try {
 

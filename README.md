@@ -7,10 +7,70 @@ The instrumentation library offers three modules responsible for:
 * BranchCoverage Evaluation
 * BranchDistance Instrumentation
 
+# BranchCoverage Instrumentation:
+
+Generate the **branchCoverage.jar** using the supplied gradle task `customFatJar` of the **branchCoverage module**. 
+The JAR file can be found within the `build/libs/` folder of the respective module.
+
+To invoke the instrumentation run the following command: <br >
+
+`java -jar branchCoverage.jar <path-to-apk>` <br >
+
+This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
+In addition, a file called **branches.txt** will be generated in the current working directory. It contains
+the number of branches per class, which is relevant for the evaluation of the branch coverage.
+
 # BranchDistance Instrumentation:
 
-The android.jar as well as the apktool-cli-all.jar contain both an implementation of the XmlPullParser library, which
-leads to a conflict, if the Android API is selected. In this case the following exception occurs:
+Generate the **branchDistance.jar** using the supplied gradle task `customFatJar` of the **branchDistance module**. 
+The JAR file can be found within the `build/libs/` folder of the respective module.
+
+To invoke the instrumentation run the following command: <br >
+
+`java -jar branchDistance.jar <path-to-apk>` <br >
+
+This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
+In addition, a file called **branches.txt** will be generated in the current working directory. It contains
+the number of branches per class, which is relevant for the evaluation of the branch coverage.
+
+# Workflow:
+
+Once you have instrumented the APK, sign it using `apksigner` (comes with the Android-SDK).
+Then follow the instructions below:
+
+`adb install -g <apk>` <br />
+
+This installs the APK on the emulator and grants read/write access on the external storage among other things.
+Now, it is time to explore the application. Whenever a new branch is visited, a trace is collected by the incorporated
+`Tracer` class. After 5000 traces, those are written to a file **traces.txt** on the external storage of the emulator.
+In order to pull all traces, invoke the following commands:
+
+`adb root` (only works on rooted devices!) <br />
+`adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.auermich.tracer.Tracer --es packageName "<package-name>"` <br />
+`adb pull storage/emulated/0/traces.txt` <br />
+`adb pull data/data/<package-name>/info.txt` (may require an additional slash on Linux, i.e. /data/data/)
+
+The broadcast ensures that all collected traces are written to the **traces.txt** file. You have to specify at the two
+placeholders the package name of the application. You can find this information within the **AndroidManifest.xml** 
+(first line) or run the command: `aapt dump badging <path-to-apk> | grep package:\ name` <br >
+The second pull command retrieves a file called **info.txt**, which solely contains the number of collected traces.
+This file is present once writing the traces to the file is completed.
+
+# BranchCoverage Evaluation:
+
+Generate the **branchCoverageEvaluation.jar** using the supplied gradle task `customFatJar` of the **branchCoverageEvaluation module**. 
+The JAR file can be found within the `build/libs/` folder of the respective module.
+
+To invoke the evaluation run the following command: <br >
+
+`java -jar branchCoverageEvaluation.jar <path-to-branches.txt> <path-to-traces.txt>` <br >
+
+Have a look at the supplied **BranchCoverageEvaluationTest**.
+
+# Building Issues:
+
+The `android.jar` as well as the `apktool-cli-all.jar` contain both an implementation of the `XmlPullParser` library, 
+which leads to a conflict, if the Android API is selected. In this case the following exception occurs:
 
 INFO: Decoding AndroidManifest.xml with resources... <br>
 Exception in thread "main" java.lang.RuntimeException: Stub! <br>
@@ -26,41 +86,6 @@ Exception in thread "main" java.lang.RuntimeException: Stub! <br>
 	at de.uni_passau.fim.Utility.decodeAPK(Utility.java:184) <br>
 	at de.uni_passau.fim.BranchDistance.main(BranchDistance.java:194) <br>
 	
-To fix this issue, I had to manually remove class files from the android.jar.
-
-# Program Arguments BranchDistance:
-
-Only the path to the APK is required, e.g.:
-
-C:\Users\Michael\git\mate-commander\com.simple.app.apk
-
-# Saving and Fetching Traces:
-
-In order to retrieve the traces, a broadcast need to be sent to the AUT:
-
-adb install -g <apk> <br />
-
-adb root
-adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.Tracer --es packageName "<package-name>" <br />
-adb pull storage/emulated/0/traces.txt <br />
-adb pull data/data/<package-name>/info.txt <br /> (may require a slash before data on Linux)
-
-With adb install -g all necessary permissions are granted. After sending the intent, the traces.txt
-is generated and can be found in the external storage. Additionally, once all traces have be written out,
-an info.txt is generated within the app internal storage. This file solely indicates how many
-traces have been collected.
-
-# Program Arguments BranchCoverage:
-
-Only the path to the APK is required, e.g.:
-
-C:\Users\Michael\git\mate-commander\com.simple.app.apk
-
-# Program Arguments BranchCoverageEvaluation:
-
-1st Argument: Path to branches.txt
-2nd Argument: Path to traces.txt
-
-The branches.txt is obtained from the instrumentation process.
-
-Have a look at the corresponding BranchCoverageEvaluationTest.
+To fix this issue, one has to manually remove certain class files from the `android.jar`. In the future,
+we should adjust the build.gradle file in order to exclude the `XmlPullParser` library of the `android.jar`.
+See https://docs.gradle.org/current/userguide/dependency_downgrade_and_exclude.html for more details.
