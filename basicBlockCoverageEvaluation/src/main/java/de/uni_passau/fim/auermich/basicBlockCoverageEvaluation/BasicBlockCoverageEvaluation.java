@@ -24,14 +24,14 @@ public class BasicBlockCoverageEvaluation {
         if (args.length != 2) {
             LOGGER.info("Usage: java -jar basicBlockCoverageEvaluation.jar <path-to-branches.txt> <path-to-traces.txt>");
         } else {
-                totalInstructionsPerClass(args[0].trim());
-                totalInstructionsCoveredPerClass(args[1].trim());
+                totalPerClass(args[0].trim());
+                coveredPerClass(args[1].trim());
 
             for (final String key : totalInstructionsPerClass.keySet()) {
                 final float coveredInstructions = coveredInstructionsPerClass.getOrDefault(key, 0);
                 final float totalInstructions = totalInstructionsPerClass.get(key);
                 if(coveredInstructions > 0) {
-                    LOGGER.info("We have for the class " + key + " a branch coverage of: " + coveredInstructions / totalInstructions * 100 + "%");
+                    LOGGER.info("We have for the class " + key + " a line coverage of: " + coveredInstructions / totalInstructions * 100 + "%");
                 }
             }
 
@@ -45,14 +45,14 @@ public class BasicBlockCoverageEvaluation {
         }
     }
 
-    private static  void  totalInstructionsPerClass(final String filePath) throws IOException {
+    private static  void totalPerClass(final String filePath) throws IOException {
         totalInstructionsPerClass = new HashMap<>();
         totalBranchesPerClass = new HashMap<>();
 
         // Assumes there are not duplicate lines in the file
         try (BufferedReader branchesReader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filePath))))) {
 
-            // Class name -> method name -> id -> instructions count -> isBranch
+            // Class name -> method name -> instructions count -> branches count
             String line;
             while ((line = branchesReader.readLine()) != null) {
                 final String[] tuple = line.split("->");
@@ -60,19 +60,15 @@ public class BasicBlockCoverageEvaluation {
                 final int instruction_count = Integer.parseInt(tuple[2].trim());
                 final int recorded = totalInstructionsPerClass.getOrDefault(clazz, 0);
                 totalInstructionsPerClass.put(clazz, recorded + instruction_count);
-
-                final boolean isBranch = tuple[3].trim().equals("isBranch");
-                if(isBranch) {
-                    final int count = totalBranchesPerClass.getOrDefault(clazz, 0);
-                    totalBranchesPerClass.put(clazz, count + 1);
-                }
-
+                final int noBranches = Integer.parseInt(tuple[3].trim());
+                final int count = totalBranchesPerClass.getOrDefault(clazz, 0);
+                totalBranchesPerClass.put(clazz, count + noBranches);
             }
         }
 
     }
     
-    private static void totalInstructionsCoveredPerClass(final String filePath) throws IOException {
+    private static void coveredPerClass(final String filePath) throws IOException {
         // The same basic blocks can be executed multiple times during a run
         // But for the coverage we only need to count each block once, even if it is executed multiple times
 
@@ -92,7 +88,7 @@ public class BasicBlockCoverageEvaluation {
                 final String method = tuple[1];
                 final Integer blockId = Integer.parseInt(tuple[2].trim());
                 final int count = Integer.parseInt(tuple[3].trim());
-                final boolean isBranch = tuple[3].trim().equals("isBranch");
+                final boolean isBranch = tuple[4].trim().equals("isBranch");
 
                 instruction_count.putIfAbsent(clazz, new HashMap<>());
                 instruction_count.get(clazz).putIfAbsent(method, new HashMap<>());
@@ -109,13 +105,13 @@ public class BasicBlockCoverageEvaluation {
         coveredInstructionsPerClass = new HashMap<>();
         instruction_count.keySet().forEach(clazz -> {
             final int coveredInstructions = instruction_count.get(clazz).entrySet().stream().flatMap(e -> e.getValue().entrySet().stream()).mapToInt(Map.Entry::getValue).sum();
-            coveredBranchesPerClass.put(clazz, coveredInstructions);
+            coveredInstructionsPerClass.put(clazz, coveredInstructions);
         });
 
         coveredBranchesPerClass = new HashMap<>();
         covered_branches.keySet().forEach(clazz -> {
             final int count = covered_branches.get(clazz).values().stream().mapToInt(Set::size).sum();
-            coveredInstructionsPerClass.put(clazz, count);
+            coveredBranchesPerClass.put(clazz, count);
         });
     }
 }
