@@ -40,7 +40,7 @@ public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BLOCKS_FILE = "blocks.txt";
-    public static final String SEPERATOR = "->";
+    public static final String SEPARATOR = "->";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
     
@@ -153,7 +153,7 @@ public final class Utility {
             final String method = methodInformation.getMethod().toString();
             final int instructionCount = methodInformation.getInitialInstructionCount();
             final int noBranches = methodInformation.getNumberOfBranches();
-            printStream.println(method + SEPERATOR + instructionCount + SEPERATOR + noBranches);
+            printStream.println(method + SEPARATOR + instructionCount + SEPARATOR + noBranches);
             printStream.flush();
         }
         printStream.close();
