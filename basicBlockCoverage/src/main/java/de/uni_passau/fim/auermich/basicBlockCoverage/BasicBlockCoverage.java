@@ -69,7 +69,7 @@ public class BasicBlockCoverage {
     }
 
     /**
-     * Instruments a given APK file with branch coverage information.
+     * Instruments a given APK file with basic block coverage information.
      *
      * @param args The path to the APK file.
      * @throws IOException        Should never happen.
@@ -185,9 +185,6 @@ public class BasicBlockCoverage {
             // track whether we modified the method or not
             boolean modifiedMethod = false;
 
-            // count the number of branches per class
-            int numberOfBranches = 0;
-
             for (Method method : classDef.getMethods()) {
 
                 // each method is identified by its class name and method name
@@ -197,7 +194,7 @@ public class BasicBlockCoverage {
                 MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
                 /* We can only instrument methods with a given register count because
-                 * our instrumentation code uses instructions that only the usage of
+                 * our instrumentation code uses instructions that only allow the usage of
                  * registers with a register ID < MAX_TOTAL_REGISTERS, i.e. the newly
                  * inserted registers aren't allowed to exceed this limit.
                  */
@@ -208,21 +205,18 @@ public class BasicBlockCoverage {
                     // determine the new local registers and free register IDs
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
-                    // determine the location of the branches
+                    // determine the location of the basic blocks
                     methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPointsForBlocks(methodInformation));
 
                     // determine the location of try blocks
                     methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
-
-                    // determine the number of branches per class
-                    numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);
 
                     // determine the register type of the param registers if the method has param registers
                     if (methodInformation.getParamRegisterCount() > 0) {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
                     }
 
-                    // instrument branches
+                    // instrument basic blocks
                     Instrumentation.modifyMethod(methodInformation, dexFile);
                     modifiedMethod = true;
 
@@ -238,7 +232,7 @@ public class BasicBlockCoverage {
                     // add instrumented method implementation
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
-                    // write out the number of branches per class
+                    // write out the number of branches and instructions per method
                     Utility.writeInstructionAndBranchCount(methodInformation);
                 } else {
                     // no modification necessary
@@ -252,8 +246,6 @@ public class BasicBlockCoverage {
                 // add modified class including its method to the list of classes
                 Utility.addInstrumentedClass(classes, methods, classDef);
             }
-
-
         }
 
         // insert tracer class

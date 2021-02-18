@@ -140,7 +140,7 @@ public final class Utility {
      * Writes the number of instructions and number of branches per method.
      * Methods which are not instrumented are omitted.
      *
-     * @param methodInformation A description of the instrumented method
+     * @param methodInformation A description of the instrumented method.
      * @throws FileNotFoundException Should never be thrown.
      */
     public static void writeInstructionAndBranchCount(final MethodInformation methodInformation) throws FileNotFoundException {
@@ -152,8 +152,8 @@ public final class Utility {
         if (methodInformation.getInstrumentationPoints().size() > 0) {
             final String method = methodInformation.getMethod().toString();
             final int instructionCount = methodInformation.getInitialInstructionCount();
-            final int noBranches = methodInformation.getNumberOfBranches();
-            printStream.println(method + SEPARATOR + instructionCount + SEPARATOR + noBranches);
+            final int numberOfBranches = methodInformation.getNumberOfBranches();
+            printStream.println(method + SEPARATOR + instructionCount + SEPARATOR + numberOfBranches);
             printStream.flush();
         }
         printStream.close();
@@ -184,7 +184,7 @@ public final class Utility {
         InputStream inputStream = classLoader.getResourceAsStream(EXCLUSION_PATTERN_FILE);
 
         if (inputStream == null) {
-            System.out.println("Couldn't find exlcusion file!");
+            LOGGER.info("Couldn't find exclusion file!");
             return null;
         }
 
@@ -368,6 +368,7 @@ public final class Utility {
      * @throws NoSuchFieldException   Should never happen, constitutes a byproduct of using reflection.
      * @throws IllegalAccessException Should never happen, constitutes a byproduct of using reflection.
      */
+    @SuppressWarnings("unused")
     public static void reOrderRegister(BuilderInstruction instruction, int registerNumber, int shift)
             throws NoSuchFieldException, IllegalAccessException {
 

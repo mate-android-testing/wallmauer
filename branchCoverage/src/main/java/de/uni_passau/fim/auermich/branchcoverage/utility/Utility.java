@@ -181,7 +181,7 @@ public final class Utility {
         InputStream inputStream = classLoader.getResourceAsStream(EXCLUSION_PATTERN_FILE);
 
         if (inputStream == null) {
-            System.out.println("Couldn't find exlcusion file!");
+            LOGGER.info("Couldn't find exclusion file!");
             return null;
         }
 
@@ -365,6 +365,7 @@ public final class Utility {
      * @throws NoSuchFieldException   Should never happen, constitutes a byproduct of using reflection.
      * @throws IllegalAccessException Should never happen, constitutes a byproduct of using reflection.
      */
+    @SuppressWarnings("unused")
     public static void reOrderRegister(BuilderInstruction instruction, int registerNumber, int shift)
             throws NoSuchFieldException, IllegalAccessException {
 

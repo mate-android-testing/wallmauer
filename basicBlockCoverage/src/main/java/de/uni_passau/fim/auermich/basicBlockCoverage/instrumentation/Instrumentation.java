@@ -32,11 +32,11 @@ public final class Instrumentation {
     private static final Logger LOGGER = LogManager.getLogger(Instrumentation.class);
 
     /**
-     * Instruments the given branch with the tracer functionality.
+     * Instruments the given basic block with the tracer functionality.
      *
      * @param methodInformation    Stores all relevant information about the given method.
-     * @param instrumentationPoint Describes the position of the branch.
-     * @param trace                   The trace which which should be logged every time the basic block is executed.
+     * @param instrumentationPoint Describes the position of the basic block.
+     * @param trace                The trace which which should be logged every time the basic block is executed.
      * @param elseBranch           Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
@@ -50,7 +50,7 @@ public final class Instrumentation {
         // the location of try blocks
         Set<Range> tryBlocks = methodInformation.getTryBlocks();
 
-        // the position of the branch
+        // the position of the basic block
         int index = instrumentationPoint.getPosition();
 
         // we require one parameter containing the unique branch id
@@ -67,7 +67,7 @@ public final class Instrumentation {
             index++;
         }
 
-        // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
+        // const-string pN, "basic block identifier" (pN refers to the free register at the end)
         BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
                 new ImmutableStringReference(trace));
 
@@ -81,23 +81,23 @@ public final class Instrumentation {
         if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
 
             /*
-            * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
-            * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
-            * but we consider here any try block. The problem arises from the fact that an invoke instruction
-            * within a try block introduces an additional edge to corresponding catch blocks, although it may
-            * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
-            * might be two-fold (conflicted), which is rejected by the verifier, see
-            * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
-            *
-            * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
-            * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the
-            * method and calls the tracer functionality and afterwards jumps back to the original position. Since
-            * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
-            * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
-            * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
-            *
-            * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
-            * Automated Black-box Android Testing', see section 4.3.
+             * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
+             * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+             * but we consider here any try block. The problem arises from the fact that an invoke instruction
+             * within a try block introduces an additional edge to corresponding catch blocks, although it may
+             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+             * might be two-fold (conflicted), which is rejected by the verifier, see
+             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+             *
+             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+             * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the
+             * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+             * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+             * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
+             * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+             *
+             * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+             * Automated Black-box Android Testing', see section 4.3.
              */
 
             LOGGER.debug("Instrumentation point within try block!");
@@ -156,7 +156,7 @@ public final class Instrumentation {
      * UPDATE: Although certain instructions are not allowed to be reachable by the control flow,
      * e.g. PACKED_SWITCH_PAYLOAD, they don't need to be at the end of the method!
      * Thus, we can always insert instructions after those pseudo-instructions.
-     *
+     * <p>
      * Returns a possible position for a new label near the end of a method.
      * Note that a single instruction can only have one label. If we try to define
      * an additional label, the old label is shared/re-used (verify this behaviour!).
@@ -174,7 +174,7 @@ public final class Instrumentation {
         Collections.reverse(instructions);
 
         // search for possible label position at the end of method
-        for(BuilderInstruction instruction : instructions) {
+        for (BuilderInstruction instruction : instructions) {
 
             // the bytecode verifier ensures that those instructions must be unreachable by control flow
             EnumSet<Opcode> opcodes = EnumSet.of(Opcode.PACKED_SWITCH_PAYLOAD,
@@ -210,14 +210,15 @@ public final class Instrumentation {
         Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
         /*
-         * Traverse the branches backwards, i.e. the last branch comes first, in order
-         * to avoid inherent index/position updates of other branches while instrumenting.
+         * Traverse the basic blocks backwards, i.e. the last basic block comes first, in order
+         * to avoid inherent index/position updates of other basic blocks while instrumenting.
          */
         while (iterator.hasNext()) {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
-            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->" + instrumentationPoint.getCovered_instructions() + "->" + isBranch;
+            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
+                    + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
 
             /*
              * We can't directly insert a statement before the else branch, instead
