@@ -7,7 +7,6 @@ import de.uni_passau.fim.auermich.basicBlockCoverage.instrumentation.Instrumenta
 import de.uni_passau.fim.auermich.basicBlockCoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.graalvm.compiler.phases.common.LazyValue;
 import org.jf.dexlib2.Format;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
