@@ -42,6 +42,7 @@ public final class Analyzer {
         }
 
         final Map<Integer, InstrumentationPoint.Type> instrumentationPoints = new HashMap<>();
+        instrumentationPoints.put(0, InstrumentationPoint.Type.ENTRY_STMT);
 
         // each entry refers to the code address of the first instruction within a catch block
         final Set<Integer> catchBlocks = methodInformation.getMethodImplementation()
@@ -59,7 +60,7 @@ public final class Analyzer {
                 final int ifTarget = instruction.getInstructionIndex() + 1;
 
                 LOGGER.debug("If target: " + ifTarget);
-                instrumentationPoints.put(ifTarget, InstrumentationPoint.Type.IF_BRANCH);
+                instrumentationPoints.putIfAbsent(ifTarget, InstrumentationPoint.Type.IF_BRANCH);
 
                 final int elseTarget = instruction.getSuccessors().stream()
                         .mapToInt(AnalyzedInstruction::getInstructionIndex).max().getAsInt();
@@ -69,12 +70,6 @@ public final class Analyzer {
 
                 LOGGER.debug("Else target: " + elseTarget);
                 instrumentationPoints.put(elseTarget, InstrumentationPoint.Type.ELSE_BRANCH);
-            }
-
-            // the first instruction or more specifically any beginning instruction define a new basic block
-            if (instruction.isBeginningInstruction()) {
-                LOGGER.debug("Entry instruction: " + instruction.getInstructionIndex());
-                instrumentationPoints.putIfAbsent(instruction.getInstructionIndex(), InstrumentationPoint.Type.ENTRY_STMT);
             }
 
             // the target of a goto instruction defines a new basic block
