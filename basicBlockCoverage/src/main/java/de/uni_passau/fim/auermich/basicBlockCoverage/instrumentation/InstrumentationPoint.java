@@ -74,10 +74,11 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         return "IP: " + position + "(" + type + ")";
     }
 
-    public enum Type {
+    public enum  Type {
 
         ENTRY_STMT,
-        CATCH_BLOCK_START,
+        CATCH_BLOCK_WITH_MOVE_EXCEPTION,
+        CATCH_BLOCK_WITHOUT_MOVE_EXCEPTION,
         EXCEPTIONAL_SUCCESSOR,
         IF_BRANCH,
         ELSE_BRANCH,

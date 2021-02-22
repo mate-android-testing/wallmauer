@@ -8,6 +8,7 @@ import de.uni_passau.fim.auermich.basicBlockCoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Format;
+import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
@@ -89,7 +90,11 @@ public final class Analyzer {
                 if (catchBlocks.contains(consumedCodeUnits)) {
                     // first instruction of a catch block is a leader instruction
                     LOGGER.debug("First instruction within catch block at pos: " + instruction.getInstructionIndex());
-                    instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_START);
+                    if(isMoveExceptionInstruction(instruction)) {
+                        instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_WITH_MOVE_EXCEPTION);
+                    } else {
+                        instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_WITHOUT_MOVE_EXCEPTION);
+                    }
                 }
                 consumedCodeUnits += instruction.getInstruction().getCodeUnits();
             }
@@ -155,6 +160,16 @@ public final class Analyzer {
         final Instruction instruction = analyzedInstruction.getInstruction();
         final EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
         return branchingInstructions.contains(instruction.getOpcode().format);
+    }
+
+    /**
+     * Check whether the given Instruction is a move-exception instruction
+     * @param analyzedInstruction The instruction to test
+     * @return {@code true} if the passed instruction is a move-exception instruction. Otherwise {@code false}.
+     */
+    public static boolean isMoveExceptionInstruction(final AnalyzedInstruction analyzedInstruction) {
+        final Opcode opcode = analyzedInstruction.getInstruction().getOpcode();
+        return opcode == Opcode.MOVE_EXCEPTION;
     }
 
     /**
