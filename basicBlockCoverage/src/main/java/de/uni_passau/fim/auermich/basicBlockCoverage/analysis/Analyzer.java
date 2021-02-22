@@ -7,6 +7,7 @@ import de.uni_passau.fim.auermich.basicBlockCoverage.instrumentation.Instrumenta
 import de.uni_passau.fim.auermich.basicBlockCoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.graalvm.compiler.phases.common.LazyValue;
 import org.jf.dexlib2.Format;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
@@ -35,9 +36,12 @@ public final class Analyzer {
      * @return Returns the set of instrumentation points.
      */
     public static Set<InstrumentationPoint> trackInstrumentationPointsForBlocks(final MethodInformation methodInformation) {
+        final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
+        if(instructions.isEmpty()) {
+            return new HashSet<InstrumentationPoint>(0);
+        }
 
         final Map<Integer, InstrumentationPoint.Type> instrumentationPoints = new HashMap<>();
-        final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
 
         // each entry refers to the code address of the first instruction within a catch block
         final Set<Integer> catchBlocks = methodInformation.getMethodImplementation()

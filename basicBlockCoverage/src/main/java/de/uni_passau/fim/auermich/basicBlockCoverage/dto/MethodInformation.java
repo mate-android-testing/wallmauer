@@ -72,12 +72,15 @@ public class MethodInformation {
     }
 
     public List<AnalyzedInstruction> getInstructions() {
+        if(method.getImplementation() != null) {
+            MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                    true, ClassPath.NOT_ART), method,
+                    null, false);
 
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions();
+            return analyzer.getAnalyzedInstructions();
+        } else {
+            return new ArrayList<>(0);
+        }
     }
 
     public Set<Range> getTryBlocks() {
