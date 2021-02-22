@@ -63,7 +63,7 @@ public final class Instrumentation {
          * Instead, we have to insert our trace after the move-exception instruction and thus have to increase
          * the index by one.
          */
-        if (instrumentationPoint.getType() == InstrumentationPoint.Type.ENTRY_STMT && index > 0) {
+        if (instrumentationPoint.getType() == InstrumentationPoint.Type.CATCH_BLOCK_START && index > 0) {
             index++;
         }
 

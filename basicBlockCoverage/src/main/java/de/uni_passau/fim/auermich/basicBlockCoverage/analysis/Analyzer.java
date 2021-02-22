@@ -89,7 +89,7 @@ public final class Analyzer {
                 if (catchBlocks.contains(consumedCodeUnits)) {
                     // first instruction of a catch block is a leader instruction
                     LOGGER.debug("First instruction within catch block at pos: " + instruction.getInstructionIndex());
-                    instrumentationPoints.putIfAbsent(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_START);
+                    instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_START);
                 }
                 consumedCodeUnits += instruction.getInstruction().getCodeUnits();
             }
