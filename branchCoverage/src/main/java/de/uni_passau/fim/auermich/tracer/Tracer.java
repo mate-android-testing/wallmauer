@@ -31,7 +31,11 @@ public class Tracer extends BroadcastReceiver {
     * FIXME: There seems to be some sort of race condition, since every 2-3 write of the
     *  remaining traces, the actual number of traces in the trace file is higher by a multiple
     *  of the specified cache size than the logged number of traces (numberOfTraces), although
-    *  the writing and logging happens in the same synchronized block.
+    *  the writing and logging happens in the same synchronized block. The only possible explanation
+    *  to me right now is that the method trace() is called a couple of times after the broadcast,
+    *  but Android suppresses the logs, which is nothing new. This would at least explain why there
+    *  are more traces than expected. However, the reason why those logs are suppressed is unclear,
+    *  might be related to the fact that the AUT is reset by MATE shortly after the broadcast is sent.
      */
 
     // contains the collected traces per 'CACHE_SIZE'
