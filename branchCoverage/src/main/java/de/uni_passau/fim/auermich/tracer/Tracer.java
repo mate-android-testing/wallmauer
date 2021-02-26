@@ -10,41 +10,49 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 /**
- * Provides the functionality to trace branches for
- * a given application.
+ * Provides the functionality to trace branches for a given application. The collected traces/branches
+ * are written to the external storage in an incremental manner. By sending a special intent to the
+ * broadcast receiver, the remaining traces are written to the traces file.
+ *
  */
 public class Tracer extends BroadcastReceiver {
 
-    // tracks the execution path (prefer List to MultiMap since no external dependencies are required)
-    // TODO: use synchronized list if really necessary to avoid synchronized block
-    private static List<String> executionPath = Collections.synchronizedList(new ArrayList<>());
+    /*
+    * FIXME: There seems to be some sort of race condition, since every 2-3 write of the
+    *  remaining traces, the actual number of traces in the trace file is higher by a multiple
+    *  of the specified cache size than the logged number of traces (numberOfTraces), although
+    *  the writing and logging happens in the same synchronized block.
+     */
+
+    // contains the collected traces per 'CACHE_SIZE'
+    private static Set<String> traces = new LinkedHashSet<>();
 
     // the output file containing the covered branches
     private static final String TRACES_FILE = "traces.txt";
 
     // keeps track of the total number of generated traces per test case / trace file
-    // FIXME: doesn't reflect updates in onReceive() method for yet unknown reasons
-    private static AtomicInteger numberOfTraces = new AtomicInteger(0);
+    private static int numberOfTraces = 0;
 
     // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
     private static final Logger LOGGER = Logger.getLogger(Tracer.class
             .getName());
 
+    // how many traces should be cached before written to the traces file
     private static final int CACHE_SIZE = 5000;
 
     /**
-     * Called when a broadcast is received.
+     * Called when a broadcast is received. Writes the remaining traces to
+     * the traces file.
      *
      * @param context The application context object.
      * @param intent The intent that represents the broadcast message.
@@ -60,27 +68,32 @@ public class Tracer extends BroadcastReceiver {
                 LOGGER.info("Permissions got dropped unexpectedly!");
             }
 
-            // it seems like previous invocations of the tracer can interfere with the following
+            /*
+             * We use here 'Tracer.class' as monitor object instead of 'this', because
+             * the same monitor object needs to be used for a flawless synchronization,
+             * and 'Tracer.class' can only be used in the static trace() method.
+             */
             synchronized (Tracer.class) {
                 write(packageName);
-                executionPath.clear();
+                traces.clear();
             }
         }
     }
 
     /**
-     * Adds a new branch to the set of covered branches. The set
-     * ensures that we don't track duplicate branches.
+     * Adds a new trace to the set of covered traces. This method is called
+     * directly through the app code of the AUT. In particular, each branch
+     * of the AUT contains such invocation.
      *
      * @param identifier Uniquely identifies the given branch.
      */
     public static void trace(String identifier) {
         synchronized (Tracer.class) {
-            executionPath.add(identifier);
+            traces.add(identifier);
 
-            if (executionPath.size() == CACHE_SIZE) {
+            if (traces.size() == CACHE_SIZE) {
                 write();
-                executionPath.clear();
+                traces.clear();
             }
         }
     }
@@ -119,12 +132,13 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
-     * Writes the collected traces to the external storage.
+     * Writes the collected traces to the external storage. Only called
+     * once the specified cache size is reached.
      */
-    private static void write() {
+    private static synchronized void write() {
 
         File sdCard = Environment.getExternalStorageDirectory();
-        File traces = new File(sdCard, TRACES_FILE);
+        File traceFile = new File(sdCard, TRACES_FILE);
 
         if (!isPermissionGranted(null, WRITE_EXTERNAL_STORAGE)) {
             LOGGER.info("Permissions got dropped unexpectedly!");
@@ -132,17 +146,17 @@ public class Tracer extends BroadcastReceiver {
 
         try {
 
-            FileWriter writer = new FileWriter(traces, true);
+            FileWriter writer = new FileWriter(traceFile, true);
             BufferedWriter br = new BufferedWriter(writer);
 
-            for (int i = 0; i < CACHE_SIZE; i++) {
-                String pathNode = executionPath.get(i);
-                br.write(pathNode);
+            for (String trace : traces) {
+                br.write(trace);
                 br.newLine();
             }
 
             // keep track of collected traces per test case / trace file
-            LOGGER.info("Accumulated traces size: " + numberOfTraces.addAndGet(CACHE_SIZE));
+            numberOfTraces = numberOfTraces + CACHE_SIZE;
+            LOGGER.info("Accumulated traces size: " + numberOfTraces);
 
             br.flush();
             br.close();
@@ -165,35 +179,48 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
-     * Writes the collected (unique) branches to the app internal storage, which
+     * Writes the collected (unique) traces to the app internal storage, which
      * is specified through the package name {@param packageName}.
      *
      * @param packageName The packageName describing the path of the app
      *                    internal storage. (data/data/packageName)
      */
-    private static void write(String packageName) {
+    private static synchronized void write(String packageName) {
 
         // sd card
         File sdCard = Environment.getExternalStorageDirectory();
-        File traces = new File(sdCard, TRACES_FILE);
+        File traceFile = new File(sdCard, TRACES_FILE);
 
-        LOGGER.info("Remaining Traces Size: " + executionPath.size());
-
-        if (!executionPath.isEmpty()) {
-            LOGGER.info("First entry: " + executionPath.get(0));
-            LOGGER.info("Last entry: " + executionPath.get(executionPath.size() - 1));
-        }
+        LOGGER.info("Remaining traces size: " + traces.size());
 
         // write out remaining traces
         try {
 
-            FileWriter writer = new FileWriter(traces, true);
+            FileWriter writer = new FileWriter(traceFile, true);
             BufferedWriter br = new BufferedWriter(writer);
 
-            for (int i = 0; i < executionPath.size(); i++) {
-                String pathNode = executionPath.get(i);
-                br.write(pathNode);
-                br.newLine();
+            Iterator<String> iterator = traces.iterator();
+            String element = null;
+
+            while (iterator.hasNext()) {
+
+                if (element == null) {
+                    element = iterator.next();
+                    LOGGER.info("First entry: " + element);
+                } else {
+                    element = iterator.next();
+                }
+
+                br.write(element);
+
+                // avoid new line at end
+                if (iterator.hasNext()) {
+                    br.newLine();
+                }
+            }
+
+            if (!traces.isEmpty()) {
+                LOGGER.info("Last entry: " + element);
             }
 
             br.flush();
@@ -211,11 +238,12 @@ public class Tracer extends BroadcastReceiver {
             File info = new File(filePath, "info.txt");
             FileWriter writer = new FileWriter(info);
 
-            writer.append(String.valueOf(numberOfTraces.addAndGet(executionPath.size())));
-            LOGGER.info("Total number of traces: " + numberOfTraces.get());
+            numberOfTraces = numberOfTraces + traces.size();
+            writer.append(String.valueOf(numberOfTraces));
+            LOGGER.info("Total number of traces in file: " + numberOfTraces);
 
             // reset traces counter
-            numberOfTraces.set(0);
+            numberOfTraces = 0;
 
             writer.flush();
             writer.close();
