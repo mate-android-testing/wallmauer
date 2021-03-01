@@ -36,12 +36,16 @@ public final class Analyzer {
      * @return Returns the set of instrumentation points.
      */
     public static Set<InstrumentationPoint> trackInstrumentationPointsForBlocks(final MethodInformation methodInformation) {
+
         final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
+
         if(instructions.isEmpty()) {
             return new HashSet<InstrumentationPoint>(0);
         }
 
         final Map<Integer, InstrumentationPoint.Type> instrumentationPoints = new HashMap<>();
+
+        // the first instruction defines a new basic block
         instrumentationPoints.put(0, InstrumentationPoint.Type.ENTRY_STMT);
 
         // each entry refers to the code address of the first instruction within a catch block
@@ -56,7 +60,7 @@ public final class Analyzer {
             // branches define a new basic block
             if (isBranchingInstruction(instruction)) {
 
-                LOGGER.debug("Found if branch: " + instruction.getInstructionIndex());
+                LOGGER.debug("If branch: " + instruction.getInstructionIndex());
                 final int ifTarget = instruction.getInstructionIndex() + 1;
 
                 LOGGER.debug("If target: " + ifTarget);
@@ -77,7 +81,8 @@ public final class Analyzer {
                 LOGGER.debug("Found goto instruction: " + instruction.getInstructionIndex());
                 final List<AnalyzedInstruction> successors = instruction.getSuccessors();
                 assert successors.size() == 1;
-                instrumentationPoints.putIfAbsent(successors.get(0).getInstructionIndex(), InstrumentationPoint.Type.GOTO_BRANCH);
+                instrumentationPoints.putIfAbsent(successors.get(0).getInstructionIndex(),
+                        InstrumentationPoint.Type.GOTO_BRANCH);
             }
 
             // Instrument the first instruction of each catch-block
@@ -86,9 +91,11 @@ public final class Analyzer {
                     // first instruction of a catch block is a leader instruction
                     LOGGER.debug("First instruction within catch block at pos: " + instruction.getInstructionIndex());
                     if(isMoveExceptionInstruction(instruction)) {
-                        instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_WITH_MOVE_EXCEPTION);
+                        instrumentationPoints.put(instruction.getInstructionIndex(),
+                                InstrumentationPoint.Type.CATCH_BLOCK_WITH_MOVE_EXCEPTION);
                     } else {
-                        instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.CATCH_BLOCK_WITHOUT_MOVE_EXCEPTION);
+                        instrumentationPoints.put(instruction.getInstructionIndex(),
+                                InstrumentationPoint.Type.CATCH_BLOCK_WITHOUT_MOVE_EXCEPTION);
                     }
                 }
                 consumedCodeUnits += instruction.getInstruction().getCodeUnits();
@@ -113,17 +120,17 @@ public final class Analyzer {
 
         final List<BuilderInstruction> builderInstructions
                 = new MutableMethodImplementation(methodInformation.getMethodImplementation()).getInstructions();
-        final List<Integer> covered_instructions = new ArrayList<>(instrumentationPoints.keySet());
-        Collections.sort(covered_instructions);
-        covered_instructions.add(instructions.get(instructions.size() - 1).getInstructionIndex() + 1);
+        final List<Integer> coveredInstructions = new ArrayList<>(instrumentationPoints.keySet());
+        Collections.sort(coveredInstructions);
+        coveredInstructions.add(instructions.get(instructions.size() - 1).getInstructionIndex() + 1);
 
         final Set<InstrumentationPoint> result = new HashSet<>();
-        for (int i = 0; i < covered_instructions.size() - 1; ++i) {
-            final int index = covered_instructions.get(i);
+        for (int i = 0; i < coveredInstructions.size() - 1; ++i) {
+            final int index = coveredInstructions.get(i);
             final BuilderInstruction builderInstruction = builderInstructions.get(index);
             final InstrumentationPoint.Type type = instrumentationPoints.get(index);
-            final int block_size = covered_instructions.get(i + 1) - index;
-            final InstrumentationPoint p = new InstrumentationPoint(builderInstruction, type, block_size);
+            final int blockSize = coveredInstructions.get(i + 1) - index;
+            final InstrumentationPoint p = new InstrumentationPoint(builderInstruction, type, blockSize);
             result.add(p);
         }
 
@@ -135,8 +142,7 @@ public final class Analyzer {
      * Checks whether the given instruction refers to a goto instruction.
      *
      * @param analyzedInstruction The instruction to be analyzed.
-     * @return Returns {@code true} if the instruction is a goto instruction,
-     * otherwise {@code false} is returned.
+     * @return Returns {@code true} if the instruction is a goto instruction, otherwise {@code false} is returned.
      */
     public static boolean isGotoInstruction(AnalyzedInstruction analyzedInstruction) {
         Instruction instruction = analyzedInstruction.getInstruction();
@@ -148,8 +154,7 @@ public final class Analyzer {
      * Checks whether the given instruction refers to an if instruction.
      *
      * @param analyzedInstruction The instruction to be analyzed.
-     * @return Returns {@code true} if the instruction is a branching instruction,
-     * otherwise {@code false} is returned.
+     * @return Returns {@code true} if the instruction is a branching instruction, otherwise {@code false} is returned.
      */
     public static boolean isBranchingInstruction(final AnalyzedInstruction analyzedInstruction) {
         final Instruction instruction = analyzedInstruction.getInstruction();
@@ -158,9 +163,11 @@ public final class Analyzer {
     }
 
     /**
-     * Check whether the given Instruction is a move-exception instruction
-     * @param analyzedInstruction The instruction to test
-     * @return {@code true} if the passed instruction is a move-exception instruction. Otherwise {@code false}.
+     * Check whether the given instruction is a move-exception instruction.
+     *
+     * @param analyzedInstruction The instruction to check for.
+     * @return Returns {@code true} if the instruction is a move-exception instruction,
+     *          otherwise {@code false} is returned.
      */
     public static boolean isMoveExceptionInstruction(final AnalyzedInstruction analyzedInstruction) {
         final Opcode opcode = analyzedInstruction.getInstruction().getOpcode();
