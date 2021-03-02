@@ -173,7 +173,9 @@ public class BasicBlockCoverage {
             String className = Utility.dottedClassName(classDef.getType());
 
             // exclude certain packages/classes from instrumentation, e.g. android.widget.*
-            if (exclusionPattern != null && exclusionPattern.matcher(className).matches()) {
+            if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
+                    || Utility.isResourceClass(classDef)
+                    || Utility.isBuildConfigClass(classDef)) {
                 LOGGER.info("Excluding class: " + className + " from instrumentation!");
                 classes.add(classDef);
                 continue;

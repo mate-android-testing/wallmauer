@@ -20,20 +20,15 @@ import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction3rc;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.dexbacked.value.DexBackedTypeEncodedValue;
+import org.jf.dexlib2.iface.*;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
 import org.jf.dexlib2.immutable.ImmutableMethod;
 import org.jf.smali.SmaliTestUtils;
 
 import javax.annotation.Nonnull;
 import java.io.*;
-import java.util.AbstractSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -43,8 +38,91 @@ public final class Utility {
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
 
+    /**
+     * It seems that certain resource classes are API dependent, e.g.
+     * "R$interpolator" is only available in API 21.
+     */
+    private static final Set<String> resourceClasses = new HashSet<String>() {{
+        add("R$anim");
+        add("R$attr");
+        add("R$bool");
+        add("R$color");
+        add("R$dimen");
+        add("R$drawable");
+        add("R$id");
+        add("R$integer");
+        add("R$layout");
+        add("R$mipmap");
+        add("R$string");
+        add("R$style");
+        add("R$styleable");
+        add("R$interpolator");
+        add("R$menu");
+        add("R$array");
+    }};
+
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
+    }
+
+    /**
+     * Checks whether the given class represents the dynamically generated R class or any
+     * inner class of it.
+     *
+     * @param classDef The class to be checked.
+     * @return Returns {@code true} if the given class represents the R class or any
+     * inner class of it, otherwise {@code false} is returned.
+     */
+    public static boolean isResourceClass(ClassDef classDef) {
+
+        String className = Utility.dottedClassName(classDef.toString());
+
+        String[] tokens = className.split("\\.");
+
+        // check whether it is the R class itself
+        if (tokens[tokens.length - 1].equals("R")) {
+            return true;
+        }
+
+        // check for inner R classes
+        for (String resourceClass : resourceClasses) {
+            if (className.contains(resourceClass)) {
+                return true;
+            }
+        }
+
+        // TODO: can be removed, just for illustration how to process annotations
+        Set<? extends Annotation> annotations = classDef.getAnnotations();
+
+        for (Annotation annotation : annotations) {
+
+            // check if the enclosing class is the R class
+            if (annotation.getType().equals("Ldalvik/annotation/EnclosingClass;")) {
+                for (AnnotationElement annotationElement : annotation.getElements()) {
+                    if (annotationElement.getValue() instanceof DexBackedTypeEncodedValue) {
+                        DexBackedTypeEncodedValue value = (DexBackedTypeEncodedValue) annotationElement.getValue();
+                        if (value.getValue().equals("Landroidx/appcompat/R;")) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks whether the given class represents the dynamically generated BuildConfig class.
+     *
+     * @param classDef The class to be checked.
+     * @return Returns {@code true} if the given class represents the dynamically generated
+     * BuildConfig class, otherwise {@code false} is returned.
+     */
+    public static boolean isBuildConfigClass(ClassDef classDef) {
+        String className = Utility.dottedClassName(classDef.toString());
+        // TODO: check solely the last token (the actual class name)
+        return className.endsWith("BuildConfig");
     }
 
     /**

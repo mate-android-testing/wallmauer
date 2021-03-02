@@ -20,7 +20,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 /**
- * Provides the functionality to trace branches and compute the branch distance  for a given application.
+ * Provides the functionality to trace branches and compute the branch distance for a given application.
  * The collected traces/branches are written to the external storage in an incremental manner.
  * By sending a special intent to the broadcast receiver, the remaining traces are written to the traces file.
  */
