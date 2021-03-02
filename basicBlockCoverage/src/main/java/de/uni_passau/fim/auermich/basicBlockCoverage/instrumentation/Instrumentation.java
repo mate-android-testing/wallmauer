@@ -333,6 +333,15 @@ public final class Instrumentation {
                     /* Conflicted types cannot be read from and need to be treated as uninitialized memory
                      * See: https://stackoverflow.com/questions/55047978/dalvik-verifier-copy1-v16-v22-type-2-cat-1
                      *
+                     * Found in APK bbc.mobile.news.ww, in file
+                     *  bbc.mobile.news.ww/out/com/google/android/exoplayer/extractor/mp4/FragmentedMp4Extractor.smali
+                     *  in method
+                     *  read(Lcom/google/android/exoplayer/extractor/ExtractorInput;Lcom/google/android/exoplayer/extractor/PositionHolder;)I
+                     *  which can be obtained by running
+                     *      apktool d -s bbc.mobile.news.ww.apk
+                     *      cd bbc.mobile.news.ww
+                     *      baksmali-2.4.0.jar d -b "" --register-info ALL,FULLMERGE --offsets classes2.dex
+                     *
                      * A conflicted type must be written to, before it can be read from. So we just set it to the dummy
                      * value 0. Then we can move from the register (which required reading from the register).
                      *
@@ -353,6 +362,7 @@ public final class Instrumentation {
                      *             conflicted which means the register has to be written to (thus overwriting our 0)
                      *             before it can be read from.
                      */
+                    LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
                     final BuilderInstruction11n setZero = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
                     mutableMethodImplementation.addInstruction(pos, setZero);
                     pos++;
