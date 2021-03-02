@@ -267,7 +267,8 @@ public final class Instrumentation {
         LOGGER.info("Destination Registers: " + destinationRegisters);
         LOGGER.info("Source Registers: " + sourceRegisters);
 
-        // we need a seperate counter for the insertion location of the instructions, since we skip indices when facing wide tpyes
+        // we need a separate counter for the insertion location of the instructions,
+        // since we skip indices when facing wide types
         int pos = 0;
 
         // use correct move instruction depend on type of source register
