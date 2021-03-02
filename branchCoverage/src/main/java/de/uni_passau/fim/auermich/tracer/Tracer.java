@@ -48,8 +48,7 @@ public class Tracer extends BroadcastReceiver {
     private static int numberOfTraces = 0;
 
     // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
-    private static final Logger LOGGER = Logger.getLogger(Tracer.class
-            .getName());
+    private static final Logger LOGGER = Logger.getLogger(Tracer.class.getName());
 
     // how many traces should be cached before written to the traces file
     private static final int CACHE_SIZE = 5000;
@@ -183,11 +182,11 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
-     * Writes the collected (unique) traces to the app internal storage, which
-     * is specified through the package name {@param packageName}.
+     * Writes the remaining traces to the external storage.
+     * Also writes a file 'info.txt' to the internal storage containing the number
+     * collected traces since the last broadcast.
      *
-     * @param packageName The packageName describing the path of the app
-     *                    internal storage. (data/data/packageName)
+     * @param packageName The packageName of the AUT.
      */
     private static synchronized void write(String packageName) {
 
