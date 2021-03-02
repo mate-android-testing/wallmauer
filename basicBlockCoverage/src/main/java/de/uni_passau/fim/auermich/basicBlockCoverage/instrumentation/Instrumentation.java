@@ -190,9 +190,8 @@ public final class Instrumentation {
     }
 
     /**
-     * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. branch or if stmt, a trace
-     * statement. For each if stmt, the branch distance is computed as well. In addition, also method entry
-     * and exit is instrumented.
+     * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. at each basic block, a trace
+     * statement.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
      * @param dexFile           The dex file containing the method.
