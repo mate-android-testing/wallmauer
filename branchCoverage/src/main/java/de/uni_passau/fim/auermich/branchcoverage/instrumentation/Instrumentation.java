@@ -314,6 +314,43 @@ public final class Instrumentation {
                 mutableMethodImplementation.addInstruction(pos, move);
                 pos++;
             } else {
+                if (registerType.category == RegisterType.CONFLICTED) {
+                    /* Conflicted types cannot be read from and need to be treated as uninitialized memory, see
+                     * https://stackoverflow.com/questions/55047978/dalvik-verifier-copy1-v16-v22-type-2-cat-1.
+                     *
+                     * Found in APK bbc.mobile.news.ww,
+                     * in class
+                     * com/google/android/exoplayer/extractor/mp4/FragmentedMp4Extractor.smali
+                     * in method
+                     * read(Lcom/google/android/exoplayer/extractor/ExtractorInput;
+                     *                                      Lcom/google/android/exoplayer/extractor/PositionHolder;)I
+                     *
+                     * A conflicted type must be written to, before it can be read from. So we just set it to the dummy
+                     * value 0. Then we can move from the register (which requires reading from the register).
+                     *
+                     * We can set the value to 0 regardless of what the possible type of the value is because all-zeros
+                     * is a valid bit representation for any type:
+                     *     1) For a object reference we have (Object) null == (int) 0.
+                     *     2) For a char we have (char) 0 == '\0'.
+                     *     3) For any integer type (that is byte, short, int and long) we have (double) 0 == (int) 0.
+                     *     4) For floating point type (that is float, double) we have (float) -0 == (int) 0.
+                     *     5) For boolean we have (boolean) false == (int) 0.
+                     *
+                     *  Assuming the bytecode was valid before the instrumentation we know that the dummy value will
+                     *  only be read by the move instruction added below. The dummy value can not be read by any other
+                     *  code, because
+                     *      1) We do not add any other instrumentation code which reads the dummy value, besides the one
+                     *             move operation below.
+                     *      2) Any instruction that we did not add still assumes that the type of the register is
+                     *             conflicted which means the register has to be written to (thus overwriting our 0)
+                     *             before it can be read from.
+                     */
+                    LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
+                    final BuilderInstruction11n constZero
+                            = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
+                    mutableMethodImplementation.addInstruction(pos, constZero);
+                    pos++;
+                }
 
                 // primitive type
                 Opcode movePrimitive = Opcode.MOVE_FROM16;

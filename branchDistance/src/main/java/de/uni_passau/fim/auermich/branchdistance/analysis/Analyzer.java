@@ -56,12 +56,14 @@ public final class Analyzer {
                 instrumentationPoints.add(ifInstruction);
 
                 // The if branch starts at the next instruction, which we also need to trace.
-                InstrumentationPoint ifBranch = new InstrumentationPoint(instructions.get(instruction.getLocation().getIndex() + 1), InstrumentationPoint.Type.IF_BRANCH);
+                InstrumentationPoint ifBranch = new InstrumentationPoint(instructions.get(instruction.getLocation().getIndex() + 1),
+                        InstrumentationPoint.Type.IF_BRANCH);
                 instrumentationPoints.add(ifBranch);
 
                 // We also need to instrument the else branch.
                 int elseBranchPosition = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
-                InstrumentationPoint elseBranch = new InstrumentationPoint(instructions.get(elseBranchPosition), InstrumentationPoint.Type.ELSE_BRANCH);
+                InstrumentationPoint elseBranch = new InstrumentationPoint(instructions.get(elseBranchPosition),
+                        InstrumentationPoint.Type.ELSE_BRANCH);
                 instrumentationPoints.add(elseBranch);
             }
         }
