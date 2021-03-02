@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.utility;
+package de.uni_passau.fim.auermich.basicBlockCoverage.utility;
 
 import brut.androlib.Androlib;
 import brut.androlib.ApkDecoder;
@@ -7,8 +7,8 @@ import brut.common.BrutException;
 import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
-import de.uni_passau.fim.auermich.branchcoverage.BranchCoverage;
-import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.basicBlockCoverage.BasicBlockCoverage;
+import de.uni_passau.fim.auermich.basicBlockCoverage.dto.MethodInformation;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
@@ -39,9 +39,11 @@ import java.util.regex.Pattern;
 public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
-    public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
+    public static final String OUTPUT_BLOCKS_FILE = "blocks.txt";
+    public static final String SEPARATOR = "->";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
+    
 
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
@@ -55,7 +57,7 @@ public final class Utility {
      */
     public static ClassDef loadTracer(int apiLevel) {
 
-        InputStream inputStream = BranchCoverage.class.getClassLoader().getResourceAsStream("Tracer.smali");
+        InputStream inputStream = BasicBlockCoverage.class.getClassLoader().getResourceAsStream("Tracer.smali");
 
         ByteSource byteSource = new ByteSource() {
             @Override
@@ -135,22 +137,23 @@ public final class Utility {
     }
 
     /**
-     * Writes the number of branches for each class to the given file.
-     * Classes without any branches are omitted.
+     * Writes the number of instructions and number of branches per method.
+     * Methods which are not instrumented are omitted.
      *
-     * @param className The name of the class.
-     * @param branchCounter The number of branches for a certain class.
+     * @param methodInformation A description of the instrumented method.
      * @throws FileNotFoundException Should never be thrown.
      */
-    public static void writeBranches(String className, int branchCounter) throws FileNotFoundException {
+    public static void writeInstructionAndBranchCount(final MethodInformation methodInformation) throws FileNotFoundException {
 
-        File file = new File(OUTPUT_BRANCHES_FILE);
+        File file = new File(OUTPUT_BLOCKS_FILE);
         OutputStream outputStream = new FileOutputStream(file, true);
         PrintStream printStream = new PrintStream(outputStream);
 
-        if (branchCounter != 0) {
-            // we have to save our branchCounter for the later evaluation
-            printStream.println(className + ": " + branchCounter);
+        if (methodInformation.getInstrumentationPoints().size() > 0) {
+            final String method = methodInformation.getMethod().toString();
+            final int instructionCount = methodInformation.getInitialInstructionCount();
+            final int numberOfBranches = methodInformation.getNumberOfBranches();
+            printStream.println(method + SEPARATOR + instructionCount + SEPARATOR + numberOfBranches);
             printStream.flush();
         }
         printStream.close();

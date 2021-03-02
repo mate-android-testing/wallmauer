@@ -1030,7 +1030,6 @@ public final class Instrumentation {
             oldPoint.setInstruction(newPoint.getInstruction());
         }
 
-        // methodInformation.setMethodExits();
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getMethodExits());
         Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
@@ -1042,10 +1041,7 @@ public final class Instrumentation {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->exit->" + instrumentationPoint.getPosition();
-
-            MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
-            MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
-
+            
             /*
              * If a label is attached to a return statement, which is often the case, the insertion
              * between the label and the return statement is not directly possible. Instead, we

@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+version 'unspecified'
+
+repositories {
+    mavenCentral()
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task customFatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.basicBlockCoverageEvaluation.BasicBlockCoverageEvaluation'
+    }
+    baseName = 'basicBlockCoverageEvaluation'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}

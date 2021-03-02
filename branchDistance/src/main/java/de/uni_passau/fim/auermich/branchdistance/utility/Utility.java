@@ -118,7 +118,7 @@ public final class Utility {
         InputStream inputStream = classLoader.getResourceAsStream(EXCLUSION_PATTERN_FILE);
 
         if (inputStream == null) {
-            System.out.println("Couldn't find exlcusion file!");
+            LOGGER.info("Couldn't find exclusion file!");
             return null;
         }
 
@@ -320,6 +320,7 @@ public final class Utility {
      * @return Returns {@code true} if the instruction is a branching instruction,
      * otherwise {@code false} is returned.
      */
+    @SuppressWarnings("unused")
     public static boolean isBranchingInstruction(AnalyzedInstruction analyzedInstruction) {
         Instruction instruction = analyzedInstruction.getInstruction();
         EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
