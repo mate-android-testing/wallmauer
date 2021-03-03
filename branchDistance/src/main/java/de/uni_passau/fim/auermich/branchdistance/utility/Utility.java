@@ -8,6 +8,7 @@ import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
+import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
@@ -152,6 +153,26 @@ public final class Utility {
     }
 
     /**
+     * Writes the number of branches for each method. Methods without any branches are omitted.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @throws FileNotFoundException Should never be thrown.
+     */
+    public static void writeBranches(MethodInformation methodInformation) throws FileNotFoundException {
+
+        File file = new File(OUTPUT_BRANCHES_FILE);
+        OutputStream outputStream = new FileOutputStream(file, true);
+        PrintStream printStream = new PrintStream(outputStream);
+        int branchCounter = Analyzer.trackNumberOfBranches(methodInformation);
+
+        if (branchCounter != 0) {
+            printStream.println(methodInformation.getMethodID() + "->" + branchCounter);
+            printStream.flush();
+        }
+        printStream.close();
+    }
+
+    /**
      * Writes the number of branches for each class to the given file.
      * Classes without any branches are omitted.
      *
@@ -159,6 +180,7 @@ public final class Utility {
      * @param branchCounter The number of branches for a certain class.
      * @throws FileNotFoundException Should never be thrown.
      */
+    @SuppressWarnings("unusued")
     public static void writeBranches(String className, int branchCounter) throws FileNotFoundException {
 
         File file = new File(OUTPUT_BRANCHES_FILE);

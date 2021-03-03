@@ -148,6 +148,7 @@ public final class Analyzer {
      * @param methodInformation Encapsulates a given method.
      * @return Returns the number of branches in the given method.
      */
+    @SuppressWarnings("unused")
     public static int trackNumberOfBranches(MethodInformation methodInformation) {
 
         MutableMethodImplementation mutableMethodImplementation =
