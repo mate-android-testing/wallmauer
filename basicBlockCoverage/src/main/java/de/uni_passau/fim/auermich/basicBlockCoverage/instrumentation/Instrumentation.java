@@ -37,12 +37,11 @@ public final class Instrumentation {
      * @param methodInformation    Stores all relevant information about the given method.
      * @param instrumentationPoint Describes the position of the basic block.
      * @param trace                The trace which which should be logged every time the basic block is executed.
-     * @param elseBranch           Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
                                                                          InstrumentationPoint instrumentationPoint,
-                                                                         final String trace, boolean elseBranch) {
+                                                                         final String trace) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -57,14 +56,32 @@ public final class Instrumentation {
         int freeRegisterID = methodInformation.getFreeRegisters().get(0);
 
         /*
-         * A method entry that is not the first instruction (it is the first instruction of a catch block)
-         * needs a special treatment. The bytecode verifier ensures that the move-exception instruction must
-         * be the first instruction of the catch block, thus we can't insert any instruction before move-exception.
-         * Instead, we have to insert our trace after the move-exception instruction and thus have to increase
-         * the index by one.
+         * Many instruction have labels.
+         * For example the else-target instruction of in if-test has a :else_<id> label.
+         * Or the first instruction of every try block has a :try_<id> label.
+         *
+         * When instrumenting such an instruction we can not simply stick the instrumentation code in front of the
+         * original instruction because labels would stick to the original instruction. To move the labels from e.g.
+         * the original first instruction of an else branch to our instrumentation code we need to first insert our
+         * after the instruction we want to instrument and than swap the original instruction with our instrumentation
+         * code. This works because labels do not stick to their instruction if instructions are swapped.
+         *
+         * Moreover, in case the instruction we want to instrument has no corresponding label, then then we could insert
+         * our instrumentation code directly in front of the instruction. However, inserting our code after the
+         * instruction and than swapping does not cause any harm either. Because dexlib2 does not offer an easy method
+         * determining if a method has a corresponding label we just stick to always swapping the instructions.
+         *
+         * At last, there is one special case that needs to be addressed: The bytecode verifier ensures that
+         * if a catch block has move-exception instruction that instruction must be the first instruction of the catch
+         * block. More precisely: Move-exception instruction can only appear as the first instruction of a catch block.
+         * But not all catch need to have a move-exception instruction.
+         * So, if we want to instrument a move-exception instruction we can not put our instrumentation code in front of
+         * the move-exception instruction. It can only be placed after it.
          */
-        if (instrumentationPoint.getType() == InstrumentationPoint.Type.CATCH_BLOCK_WITH_MOVE_EXCEPTION && index > 0) {
+        boolean useSwap = true;
+        if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
             index++;
+            useSwap = false;
         }
 
         // const-string pN, "basic block identifier" (pN refers to the free register at the end)
@@ -111,7 +128,7 @@ public final class Instrumentation {
             Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
 
-            if (elseBranch) {
+            if (useSwap) {
                 mutableMethodImplementation.addInstruction(index + 1, jumpForward);
                 mutableMethodImplementation.swapInstructions(index, index + 1);
             } else {
@@ -130,7 +147,7 @@ public final class Instrumentation {
             mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
 
         } else {
-            if (elseBranch) {
+            if (useSwap) {
                 mutableMethodImplementation.addInstruction(++index, constString);
                 mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
 
@@ -213,19 +230,12 @@ public final class Instrumentation {
          * to avoid inherent index/position updates of other basic blocks while instrumenting.
          */
         while (iterator.hasNext()) {
-
             InstrumentationPoint instrumentationPoint = iterator.next();
             String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
             String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
                     + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
 
-            /*
-             * We can't directly insert a statement before the else branch, instead
-             * we need to insert our code after the first instruction of the else branch
-             * and later swap those instructions.
-             */
-            boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
         }
     }
 

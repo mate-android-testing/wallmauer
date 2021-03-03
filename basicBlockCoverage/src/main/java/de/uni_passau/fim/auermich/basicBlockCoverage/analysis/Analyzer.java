@@ -38,82 +38,73 @@ public final class Analyzer {
     public static Set<InstrumentationPoint> trackInstrumentationPointsForBlocks(final MethodInformation methodInformation) {
 
         final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
-
-        if(instructions.isEmpty()) {
-            return new HashSet<InstrumentationPoint>(0);
-        }
-
         final Map<Integer, InstrumentationPoint.Type> instrumentationPoints = new HashMap<>();
 
         // the first instruction defines a new basic block
-        instrumentationPoints.put(0, InstrumentationPoint.Type.ENTRY_STMT);
+        instrumentationPoints.put(0, InstrumentationPoint.Type.NO_BRANCH);
 
         // each entry refers to the code address of the first instruction within a catch block
         final Set<Integer> catchBlocks = methodInformation.getMethodImplementation()
-                .getTryBlocks().stream().flatMap(t -> t.getExceptionHandlers().stream())
-                .map(ExceptionHandler::getHandlerCodeAddress).collect(Collectors.toSet());
+                                                          .getTryBlocks().stream().flatMap(t -> t.getExceptionHandlers().stream())
+                                                          .map(ExceptionHandler::getHandlerCodeAddress).collect(Collectors.toSet());
         LOGGER.debug("Catch Blocks located at code addresses: " + catchBlocks);
 
-        int consumedCodeUnits = 0;
+
+        // Instrument the beginning of every catch-block and track their instruction indexes.
+        Set<Integer> catchBlockInstructionIndexes = new HashSet<>(catchBlocks.size());
+        if(!catchBlocks.isEmpty()) {
+            int consumedCodeUnits = 0;
+            for (final AnalyzedInstruction instruction : instructions) {
+                if (catchBlocks.contains(consumedCodeUnits)) {
+                    LOGGER.debug("First instruction within catch block at pos: " + instruction.getInstructionIndex());
+                    instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.NO_BRANCH);
+                    catchBlockInstructionIndexes.add(instruction.getInstructionIndex());
+                }
+                consumedCodeUnits += instruction.getInstruction().getCodeUnits();
+            }
+        }
+
         for (final AnalyzedInstruction instruction : instructions) {
+            final Set<Integer> successors = instruction.getSuccessors().stream()
+                                                       .map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
+            final boolean moreThanOne = successors.size() > 1;
+            successors.removeAll(catchBlockInstructionIndexes);
 
             // branches define a new basic block
             if (isBranchingInstruction(instruction)) {
-
                 LOGGER.debug("If branch: " + instruction.getInstructionIndex());
                 final int ifTarget = instruction.getInstructionIndex() + 1;
-
                 LOGGER.debug("If target: " + ifTarget);
-                instrumentationPoints.putIfAbsent(ifTarget, InstrumentationPoint.Type.IF_BRANCH);
+                instrumentationPoints.put(ifTarget, InstrumentationPoint.Type.IS_BRANCH);
 
-                final int elseTarget = instruction.getSuccessors().stream()
-                        .mapToInt(AnalyzedInstruction::getInstructionIndex).max().getAsInt();
-
-                assert instruction.getSuccessors().stream().map(AnalyzedInstruction::getInstructionIndex)
-                        .collect(Collectors.toList()).equals(List.of(ifTarget, elseTarget));
-
-                LOGGER.debug("Else target: " + elseTarget);
-                instrumentationPoints.put(elseTarget, InstrumentationPoint.Type.ELSE_BRANCH);
+                assert successors.stream().filter(i -> i != ifTarget).count() <= 1 : "Should have at most one else target. Found: " + successors;
+                for(final int successor : successors) {
+                    if(successor != ifTarget) {
+                       instrumentationPoints.put(successor, InstrumentationPoint.Type.IS_BRANCH);
+                    }
+                }
             }
 
             // the target of a goto instruction defines a new basic block
             if (isGotoInstruction(instruction)) {
                 LOGGER.debug("Found goto instruction: " + instruction.getInstructionIndex());
-                final List<AnalyzedInstruction> successors = instruction.getSuccessors();
-                assert successors.size() == 1;
-                instrumentationPoints.putIfAbsent(successors.get(0).getInstructionIndex(),
-                        InstrumentationPoint.Type.GOTO_BRANCH);
-            }
-
-            // Instrument the first instruction of each catch-block
-            if (!catchBlocks.isEmpty()) {
-                if (catchBlocks.contains(consumedCodeUnits)) {
-                    // first instruction of a catch block is a leader instruction
-                    LOGGER.debug("First instruction within catch block at pos: " + instruction.getInstructionIndex());
-                    if(isMoveExceptionInstruction(instruction)) {
-                        instrumentationPoints.put(instruction.getInstructionIndex(),
-                                InstrumentationPoint.Type.CATCH_BLOCK_WITH_MOVE_EXCEPTION);
-                    } else {
-                        instrumentationPoints.put(instruction.getInstructionIndex(),
-                                InstrumentationPoint.Type.CATCH_BLOCK_WITHOUT_MOVE_EXCEPTION);
-                    }
+                assert successors.size() <= 1 : "Should have a most 1 goto target. Found: " + successors;
+                for(final int successor: successors) {
+                    instrumentationPoints.putIfAbsent(successor, InstrumentationPoint.Type.NO_BRANCH);
                 }
-                consumedCodeUnits += instruction.getInstruction().getCodeUnits();
             }
 
             // Instrument any other instruction that has more then one successor
             // For example, every instruction inside a try block which can throw an exception has its corresponding
             // catch block as an successor.
-            final Set<Integer> successors = instruction.getSuccessors().stream()
-                    .map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
-            successors.removeAll(instrumentationPoints.keySet());
-            successors.remove(instruction.getInstructionIndex() + 1);
-            if (!successors.isEmpty()) {
-                LOGGER.debug("Exceptional flow");
-                LOGGER.debug("From: " + instruction.getInstructionIndex());
-                for (final int successor : successors) {
-                    LOGGER.debug("    To: " + successor);
-                    instrumentationPoints.putIfAbsent(successor, InstrumentationPoint.Type.EXCEPTIONAL_SUCCESSOR);
+            if(moreThanOne) {
+                if (!successors.isEmpty()) {
+                    LOGGER.debug("Exceptional flow");
+                    LOGGER.debug("From: " + instruction.getInstructionIndex());
+                    for (final int successor : successors) {
+                        LOGGER.debug("    To: " + successor);
+                        instrumentationPoints.putIfAbsent(successor, InstrumentationPoint.Type.NO_BRANCH);
+                    }
                 }
             }
         }
@@ -160,18 +151,6 @@ public final class Analyzer {
         final Instruction instruction = analyzedInstruction.getInstruction();
         final EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
         return branchingInstructions.contains(instruction.getOpcode().format);
-    }
-
-    /**
-     * Check whether the given instruction is a move-exception instruction.
-     *
-     * @param analyzedInstruction The instruction to check for.
-     * @return Returns {@code true} if the instruction is a move-exception instruction,
-     *          otherwise {@code false} is returned.
-     */
-    public static boolean isMoveExceptionInstruction(final AnalyzedInstruction analyzedInstruction) {
-        final Opcode opcode = analyzedInstruction.getInstruction().getOpcode();
-        return opcode == Opcode.MOVE_EXCEPTION;
     }
 
     /**

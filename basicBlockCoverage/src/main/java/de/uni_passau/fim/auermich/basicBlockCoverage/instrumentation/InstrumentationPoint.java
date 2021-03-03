@@ -53,7 +53,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         if (o instanceof InstrumentationPoint) {
 
             InstrumentationPoint other = (InstrumentationPoint) o;
-            return this.position == other.position && this.type == other.type;
+            return this.position == other.position;
         }
 
         return false;
@@ -61,7 +61,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     @Override
     public int hashCode() {
-        return Objects.hash(position, type);
+        return Objects.hash(position);
     }
 
     @Override
@@ -74,18 +74,11 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         return "IP: " + position + "(" + type + ")";
     }
 
-    public enum  Type {
-
-        ENTRY_STMT,
-        CATCH_BLOCK_WITH_MOVE_EXCEPTION,
-        CATCH_BLOCK_WITHOUT_MOVE_EXCEPTION,
-        EXCEPTIONAL_SUCCESSOR,
-        IF_BRANCH,
-        ELSE_BRANCH,
-        GOTO_BRANCH;
+    public enum Type {
+       IS_BRANCH, NO_BRANCH;
 
         public boolean isBranchType() {
-            return this == IF_BRANCH || this == ELSE_BRANCH;
+            return this == IS_BRANCH;
         }
     }
 }
