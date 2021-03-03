@@ -56,6 +56,7 @@ public class MethodInformation {
         methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
         this.initialInstructionCount = getInstructions().size();
+        this.instrumentationPoints = new HashSet<>();
     }
 
     public int getInitialInstructionCount() {

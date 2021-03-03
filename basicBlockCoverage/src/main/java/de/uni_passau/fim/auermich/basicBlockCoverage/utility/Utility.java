@@ -9,6 +9,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.basicBlockCoverage.BasicBlockCoverage;
 import de.uni_passau.fim.auermich.basicBlockCoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.basicBlockCoverage.instrumentation.InstrumentationPoint;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
@@ -220,6 +221,37 @@ public final class Utility {
      * @param methodInformation A description of the instrumented method.
      * @throws FileNotFoundException Should never be thrown.
      */
+    public static void writeBasicBlocks(final MethodInformation methodInformation) throws FileNotFoundException {
+
+        File file = new File(OUTPUT_BLOCKS_FILE);
+        OutputStream outputStream = new FileOutputStream(file, true);
+        PrintStream printStream = new PrintStream(outputStream);
+
+        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
+
+        if (instrumentationPoints.size() > 0) {
+
+            final String method = methodInformation.getMethodID();
+
+            for (InstrumentationPoint instrumentationPoint : instrumentationPoints) {
+                int basicBlockID = instrumentationPoint.getPosition();
+                int basicBlockSize = instrumentationPoint.getCoveredInstructions();
+                String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
+                printStream.println(method + SEPARATOR + basicBlockID + SEPARATOR + basicBlockSize + SEPARATOR + isBranch);
+            }
+            printStream.flush();
+        }
+        printStream.close();
+    }
+
+    /**
+     * Writes the number of instructions and number of branches per method.
+     * Methods which are not instrumented are omitted.
+     *
+     * @param methodInformation A description of the instrumented method.
+     * @throws FileNotFoundException Should never be thrown.
+     */
+    @SuppressWarnings("unused")
     public static void writeInstructionAndBranchCount(final MethodInformation methodInformation) throws FileNotFoundException {
 
         File file = new File(OUTPUT_BLOCKS_FILE);

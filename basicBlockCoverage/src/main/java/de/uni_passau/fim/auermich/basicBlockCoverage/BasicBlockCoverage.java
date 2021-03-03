@@ -234,8 +234,8 @@ public class BasicBlockCoverage {
                     // add instrumented method implementation
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
-                    // write out the number of branches and instructions per method
-                    Utility.writeInstructionAndBranchCount(methodInformation);
+                    // write out the basic blocks per method
+                    Utility.writeBasicBlocks(methodInformation);
                 } else {
                     // no modification necessary
                     methods.add(method);

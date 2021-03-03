@@ -27,7 +27,7 @@ public class BasicBlockCoverageEvaluation {
         LOGGER.setLevel(Level.ALL);
 
         if (args.length != 2) {
-            LOGGER.info("Usage: java -jar basicBlockCoverageEvaluation.jar <path-to-branches.txt> <path-to-traces.txt>");
+            LOGGER.info("Usage: java -jar basicBlockCoverageEvaluation.jar <path-to-blocks.txt> <path-to-traces.txt>");
         } else {
                 totalPerClass(args[0].trim());
                 coveredPerClass(args[1].trim());
@@ -60,17 +60,24 @@ public class BasicBlockCoverageEvaluation {
         try (BufferedReader branchesReader
                      = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filePath))))) {
 
-            // Class name -> method name -> instructions count -> branches count
+            // an entry looks as follows: class name -> method name -> block id -> block size -> isBranch
             String line;
             while ((line = branchesReader.readLine()) != null) {
-                final String[] tuple = line.split("->");
-                final String clazz = tuple[0];
-                final int instructionCount = Integer.parseInt(tuple[2].trim());
+
+                final String[] tokens = line.split("->");
+                final String clazz = tokens[0];
+
+                final int instructionCount = Integer.parseInt(tokens[3]);
                 final int recorded = totalInstructionsPerClass.getOrDefault(clazz, 0);
                 totalInstructionsPerClass.put(clazz, recorded + instructionCount);
-                final int noBranches = Integer.parseInt(tuple[3].trim());
-                final int count = totalBranchesPerClass.getOrDefault(clazz, 0);
-                totalBranchesPerClass.put(clazz, count + noBranches);
+
+                boolean isBranch = tokens[4].equals("isBranch");
+
+                // aggregate branches count per class
+                if (isBranch) {
+                    // add 1 to current count
+                    totalBranchesPerClass.merge(clazz, 1, Integer::sum);
+                }
             }
         }
     }
@@ -94,9 +101,9 @@ public class BasicBlockCoverageEvaluation {
                 final String[] tuple = line.split("->");
                 final String clazz = tuple[0];
                 final String method = tuple[1];
-                final Integer blockId = Integer.parseInt(tuple[2].trim());
-                final int count = Integer.parseInt(tuple[3].trim());
-                final boolean isBranch = tuple[4].trim().equals("isBranch");
+                final Integer blockId = Integer.parseInt(tuple[2]);
+                final int count = Integer.parseInt(tuple[3]);
+                final boolean isBranch = tuple[4].equals("isBranch");
 
                 instructionCount.putIfAbsent(clazz, new HashMap<>());
                 instructionCount.get(clazz).putIfAbsent(method, new HashMap<>());
