@@ -176,4 +176,9 @@ public class MethodInformation {
     public Optional<Map<Integer, RegisterType>> getParamRegisterTypeMap() {
         return paramRegisterTypeMap;
     }
+
+    public int getNumberOfBranches() {
+        // each instrumentation point represents a branch
+        return instrumentationPoints != null ? instrumentationPoints.size() : 0;
+    }
 }

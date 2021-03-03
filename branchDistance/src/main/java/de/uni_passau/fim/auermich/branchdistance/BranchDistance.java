@@ -204,9 +204,6 @@ public class BranchDistance {
             // track whether we modified the method or not
             boolean modifiedMethod = false;
 
-            // count the number of branches per class
-            int numberOfBranches = 0;
-
             for (Method method : classDef.getMethods()) {
 
                 // each method is identified by its class name and method name
@@ -252,9 +249,6 @@ public class BranchDistance {
                     // determine the location of try blocks
                     methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
 
-                    // determine the number of branches per class
-                    numberOfBranches += Analyzer.trackNumberOfBranches(methodInformation);
-
                     // determine the register type of the param registers if the method has param registers
                     if (methodInformation.getParamRegisterCount() > 0) {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
@@ -276,6 +270,8 @@ public class BranchDistance {
                     // add instrumented method implementation
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
+                    // write out the number of branches per method
+                    Utility.writeBranches(methodInformation);
                 } else {
                     // no modification necessary
                     methods.add(method);
@@ -299,9 +295,6 @@ public class BranchDistance {
                 // add modified class including its method to the list of classes
                 Utility.addInstrumentedClass(classes, methods, classDef);
             }
-
-            // write out the number of branches per class
-            Utility.writeBranches(classDef.getType(), numberOfBranches);
         }
 
         // insert tracer class
