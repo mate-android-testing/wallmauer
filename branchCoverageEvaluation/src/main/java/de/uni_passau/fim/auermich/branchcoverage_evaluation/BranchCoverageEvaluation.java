@@ -77,6 +77,9 @@ public class BranchCoverageEvaluation {
 
             tracesReader.close();
 
+            double overallCoveredBranches = 0.0;
+            double overallBranches = 0.0;
+
             for (String clazz : branches.keySet()) {
 
                 for (String method : branches.get(clazz).keySet()) {
@@ -107,7 +110,15 @@ public class BranchCoverageEvaluation {
 
                 LOGGER.info("We have for the class " + clazz + " a branch coverage of "
                         + (coveredBranches / totalBranches * 100) + "%.");
+
+                // update total coverage
+                overallCoveredBranches += coveredBranches;
+                overallBranches += totalBranches;
             }
+
+            // total branch coverage
+            LOGGER.info("We have a total branch coverage of "
+                    + (overallCoveredBranches / overallBranches * 100) + "%.");
         }
     }
 }
