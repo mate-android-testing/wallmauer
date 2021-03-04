@@ -14,11 +14,23 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private final int position;
 
     private final Type type;
+    private final boolean attachedToLabel;
 
     public InstrumentationPoint(BuilderInstruction instruction, Type type) {
         this.instruction = instruction;
         this.position = instruction.getLocation().getIndex();
         this.type = type;
+        this.attachedToLabel = instruction.getLocation().getLabels().size() > 0;
+    }
+
+    /**
+     * Whether a label is attached to the instruction.
+     *
+     * @return Returns {@code true} if a label is attached to the instruction,
+     *          otherwise {@code false} is returned.
+     */
+    public boolean isAttachedToLabel() {
+        return attachedToLabel;
     }
 
     public int getPosition() {
@@ -47,6 +59,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         if (o instanceof InstrumentationPoint) {
 
             InstrumentationPoint other = (InstrumentationPoint) o;
+            // we also need to compare the type since there can be multiple IPs at the same position
             return this.position == other.position && this.type == other.type;
         }
 
@@ -88,7 +101,6 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
                 // shared else branch -> duplicate
                 return 0;
             }
-
         } else {
             return comparePosition;
         }

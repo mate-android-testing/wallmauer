@@ -254,7 +254,7 @@ public class BranchDistance {
                         Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
                     }
 
-                    // instrument branches, if stmts as well as method entry and exit
+                    // instrument branches, if statements as well as method entry and exit
                     Instrumentation.modifyMethod(methodInformation, dexFile);
                     modifiedMethod = true;
 
