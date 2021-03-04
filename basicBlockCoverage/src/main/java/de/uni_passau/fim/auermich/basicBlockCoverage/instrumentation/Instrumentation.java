@@ -222,8 +222,8 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
-        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
+        TreeSet<InstrumentationPoint> instrumentationPoints = methodInformation.getInstrumentationPoints();
+        Iterator<InstrumentationPoint> iterator = instrumentationPoints.descendingIterator();
 
         /*
          * Traverse the basic blocks backwards, i.e. the last basic block comes first, in order

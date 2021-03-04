@@ -13,18 +13,20 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private final int position;
     private final Type type;
 
-    // defines how many instructions are covered by the basic block
-    private final int coveredInstructions;
+    public int getCoveredInstructions() {
+        return coveredInstructions;
+    }
 
-    public InstrumentationPoint(BuilderInstruction instruction, Type type, int coveredInstructions) {
-        this.instruction = instruction;
-        this.position = instruction.getLocation().getIndex();
-        this.type = type;
+    public void setCoveredInstructions(int coveredInstructions) {
         this.coveredInstructions = coveredInstructions;
     }
 
-    public int getCoveredInstructions() {
-        return coveredInstructions;
+    private int coveredInstructions = -1;
+
+    public InstrumentationPoint(BuilderInstruction instruction, Type type) {
+        this.instruction = instruction;
+        this.position = instruction.getLocation().getIndex();
+        this.type = type;
     }
 
     public int getPosition() {

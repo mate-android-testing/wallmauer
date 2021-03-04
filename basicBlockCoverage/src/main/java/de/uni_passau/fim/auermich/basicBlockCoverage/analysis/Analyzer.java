@@ -35,13 +35,15 @@ public final class Analyzer {
      * @param methodInformation Encapsulates a method.
      * @return Returns the set of instrumentation points.
      */
-    public static Set<InstrumentationPoint> trackInstrumentationPointsForBlocks(final MethodInformation methodInformation) {
+    public static TreeSet<InstrumentationPoint> trackInstrumentationPointsForBlocks(final MethodInformation methodInformation) {
 
         final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
-        final Map<Integer, InstrumentationPoint.Type> instrumentationPoints = new HashMap<>();
+        final List<BuilderInstruction> builderInstructions
+                = new MutableMethodImplementation(methodInformation.getMethodImplementation()).getInstructions();
+        final TreeSet<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
 
         // the first instruction defines a new basic block
-        instrumentationPoints.put(0, InstrumentationPoint.Type.NO_BRANCH);
+        instrumentationPoints.add(new InstrumentationPoint(builderInstructions.get(0), InstrumentationPoint.Type.NO_BRANCH));
 
         // each entry refers to the code address of the first instruction within a catch block
         final Set<Integer> catchBlocks = methodInformation.getMethodImplementation()
@@ -50,83 +52,80 @@ public final class Analyzer {
         LOGGER.debug("Catch Blocks located at code addresses: " + catchBlocks);
 
 
-        // Instrument the beginning of every catch-block and track their instruction indexes.
-        Set<Integer> catchBlockInstructionIndexes = new HashSet<>(catchBlocks.size());
-        if(!catchBlocks.isEmpty()) {
-            int consumedCodeUnits = 0;
-            for (final AnalyzedInstruction instruction : instructions) {
-                if (catchBlocks.contains(consumedCodeUnits)) {
-                    LOGGER.debug("First instruction within catch block at pos: " + instruction.getInstructionIndex());
-                    instrumentationPoints.put(instruction.getInstructionIndex(), InstrumentationPoint.Type.NO_BRANCH);
-                    catchBlockInstructionIndexes.add(instruction.getInstructionIndex());
-                }
-                consumedCodeUnits += instruction.getInstruction().getCodeUnits();
-            }
-        }
-
+        int consumedCodeUnits = 0;
         for (final AnalyzedInstruction instruction : instructions) {
-            final Set<Integer> successors = instruction.getSuccessors().stream()
-                                                       .map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
-            final boolean moreThanOne = successors.size() > 1;
-            successors.removeAll(catchBlockInstructionIndexes);
+            final int index = instruction.getInstructionIndex();
+
 
             // branches define a new basic block
             if (isBranchingInstruction(instruction)) {
-                LOGGER.debug("If branch: " + instruction.getInstructionIndex());
+                LOGGER.debug("If branch: " + index);
                 final int ifTarget = instruction.getInstructionIndex() + 1;
                 LOGGER.debug("If target: " + ifTarget);
-                instrumentationPoints.put(ifTarget, InstrumentationPoint.Type.IS_BRANCH);
+                final BuilderInstruction ifTargetInstruction = builderInstructions.get(ifTarget);
+                final InstrumentationPoint ifIP = new InstrumentationPoint(ifTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
 
-                assert successors.stream().filter(i -> i != ifTarget).count() <= 1 : "Should have at most one else target. Found: " + successors;
-                for(final int successor : successors) {
-                    if(successor != ifTarget) {
-                       instrumentationPoints.put(successor, InstrumentationPoint.Type.IS_BRANCH);
-                    }
-                }
+                // Ensure Type is set to IS_BRANCH
+                instrumentationPoints.remove(ifIP);
+                instrumentationPoints.add(ifIP);
+
+                final int elseTarget = ((BuilderOffsetInstruction) builderInstructions.get(index)).getTarget().getLocation().getIndex();
+                final BuilderInstruction elseTargetInstruction = builderInstructions.get(elseTarget);
+                final InstrumentationPoint elseIP = new InstrumentationPoint(elseTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
+
+                // Ensure Type is set to IS_BRANCH
+                instrumentationPoints.remove(elseIP);
+                instrumentationPoints.add(elseIP);
             }
 
             // the target of a goto instruction defines a new basic block
             if (isGotoInstruction(instruction)) {
-                LOGGER.debug("Found goto instruction: " + instruction.getInstructionIndex());
-                assert successors.size() <= 1 : "Should have a most 1 goto target. Found: " + successors;
-                for(final int successor: successors) {
-                    instrumentationPoints.putIfAbsent(successor, InstrumentationPoint.Type.NO_BRANCH);
-                }
+                LOGGER.debug("Found goto instruction: " + index);
+                final int target = ((BuilderOffsetInstruction) builderInstructions.get(index)).getTarget().getLocation().getIndex();
+                final BuilderInstruction targetInstruction = builderInstructions.get(target);
+                final InstrumentationPoint ip = new InstrumentationPoint(targetInstruction, InstrumentationPoint.Type.NO_BRANCH);
+                instrumentationPoints.add(ip);
+            }
+
+            // Every catch block is a leader
+            if(!catchBlocks.isEmpty()) {
+                    if (catchBlocks.contains(consumedCodeUnits)) {
+                        LOGGER.debug("First instruction within catch block at pos: " + index);
+                        instrumentationPoints.add(new InstrumentationPoint(builderInstructions.get(index), InstrumentationPoint.Type.NO_BRANCH));
+                    }
+                    consumedCodeUnits += instruction.getInstruction().getCodeUnits();
             }
 
             // Instrument any other instruction that has more then one successor
             // For example, every instruction inside a try block which can throw an exception has its corresponding
             // catch block as an successor.
-            if(moreThanOne) {
-                if (!successors.isEmpty()) {
+            final Set<Integer> successors = instruction.getSuccessors().stream()
+                                                       .map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
+            if(successors.size() >= 2) {
                     LOGGER.debug("Exceptional flow");
-                    LOGGER.debug("From: " + instruction.getInstructionIndex());
+                    LOGGER.debug("From: " + index);
                     for (final int successor : successors) {
                         LOGGER.debug("    To: " + successor);
-                        instrumentationPoints.putIfAbsent(successor, InstrumentationPoint.Type.NO_BRANCH);
+                        final BuilderInstruction targetInstruction = builderInstructions.get(successor);
+                        instrumentationPoints.add(new InstrumentationPoint(targetInstruction, InstrumentationPoint.Type.NO_BRANCH));
                     }
-                }
             }
         }
 
-        final List<BuilderInstruction> builderInstructions
-                = new MutableMethodImplementation(methodInformation.getMethodImplementation()).getInstructions();
-        final List<Integer> coveredInstructions = new ArrayList<>(instrumentationPoints.keySet());
-        Collections.sort(coveredInstructions);
-        coveredInstructions.add(instructions.get(instructions.size() - 1).getInstructionIndex() + 1);
-
-        final Set<InstrumentationPoint> result = new HashSet<>();
-        for (int i = 0; i < coveredInstructions.size() - 1; ++i) {
-            final int index = coveredInstructions.get(i);
-            final BuilderInstruction builderInstruction = builderInstructions.get(index);
-            final InstrumentationPoint.Type type = instrumentationPoints.get(index);
-            final int blockSize = coveredInstructions.get(i + 1) - index;
-            final InstrumentationPoint p = new InstrumentationPoint(builderInstruction, type, blockSize);
-            result.add(p);
+       assert !instrumentationPoints.isEmpty() : "Should always have at least one instrumentation point";
+        final Iterator<InstrumentationPoint> ascendingIterator = instrumentationPoints.iterator();
+        InstrumentationPoint current = ascendingIterator.next();
+        while(ascendingIterator.hasNext()) {
+            final InstrumentationPoint next = ascendingIterator.next();
+            current.setCoveredInstructions(next.getPosition() - current.getPosition());
+            current = next;
         }
 
-        LOGGER.info(result.toString());
-        return result;
+        // current is now the last instrumentation point
+        current.setCoveredInstructions(instructions.size() + 1 - current.getPosition());
+
+        LOGGER.info(instrumentationPoints.toString());
+        return instrumentationPoints;
     }
 
     /**
