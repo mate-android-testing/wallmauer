@@ -170,12 +170,12 @@ public final class Instrumentation {
      * @param instrumentationPoint Describes where to insert the tracer invocation.
      * @param id                The id which identifies the given instrumentation point,
      *                          e.g. packageName->className->method->branchID.
-     * @param elseBranch        Whether the location where we instrument refers to an else branch.
+     * @param swapInstructions Whether we need to swap instructions due to the issue with labels.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
                                                                          InstrumentationPoint instrumentationPoint,
-                                                                         final String id, boolean elseBranch) {
+                                                                         final String id, boolean swapInstructions) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -242,7 +242,7 @@ public final class Instrumentation {
             Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
 
-            if (elseBranch) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(index + 1, jumpForward);
                 mutableMethodImplementation.swapInstructions(index, index + 1);
             } else {
@@ -260,14 +260,20 @@ public final class Instrumentation {
             BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
             mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
         } else {
-            if (elseBranch) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(++index, constString);
                 mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
 
                 /*
-                 * We cannot directly insert our instructions after the else-branch label (those instructions
-                 * would fall between the goto and else-branch label). Instead we need to insert our
-                 * instructions after the first instructions there, and swap them back afterwards.
+                 * We can't directly insert an instruction before another instruction that is attached to a label.
+                 * Consider the following example:
+                 *
+                 * :label (e.g. an else branch)
+                 * instruction
+                 *
+                 * If we would try to insert our code before the given instruction, the code would be
+                 * placed actually before the label, which is not what we want. Instead we need insert our code
+                 * after the instruction and swap the instructions afterwards.
                  */
                 mutableMethodImplementation.swapInstructions(index - 2, index - 1);
                 mutableMethodImplementation.swapInstructions(index - 1, index);
@@ -299,13 +305,13 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        // instrument the branches first
+        // instrument the if statements + branches first
         Set<Integer> coveredInstructionPoints = new HashSet<>();
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
         Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
 
         /*
-         * Traverse the branches backwards, i.e. the last branch comes first, in order
+         * Traverse the instrumentation points backwards, i.e. the last one comes first, in order
          * to avoid inherent index/position updates of other branches while instrumenting.
          */
         while (iterator.hasNext()) {
@@ -330,7 +336,8 @@ public final class Instrumentation {
                      */
                     trace = methodInformation.getMethodID() + "->if->" + instrumentationPoint.getPosition();
 
-                    insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
+                    boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+                    insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
                 }
 
             } else {
@@ -338,12 +345,18 @@ public final class Instrumentation {
                 coveredInstructionPoints.add(instrumentationPoint.getPosition());
 
                 /*
-                 * We can't directly insert a statement before the else branch, instead
-                 * we need to insert our code after the first instruction of the else branch
-                 * and later swap those instructions.
+                 * We can't directly insert an instruction before another instruction that is attached to a label.
+                 * Consider the following example:
+                 *
+                 * :label (e.g. an else branch)
+                 * instruction
+                 *
+                 * If we would try to insert our code before the given instruction, the code would be
+                 * placed actually before the label, which is not what we want. Instead we need insert our code
+                 * after the instruction and swap the instructions afterwards.
                  */
-                boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-                insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
+                boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+                insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
             }
         }
 
@@ -955,8 +968,8 @@ public final class Instrumentation {
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
 
-            // TODO: check whether try/catch blocks have the label issue
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
+            boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
         }
     }
 
@@ -998,11 +1011,8 @@ public final class Instrumentation {
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->entry->" + instrumentationPoint.getPosition();
 
-            /*
-             * We need to treat method entries similar to else branches in order to avoid that
-             * label/instruction issue.
-             */
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
+            boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
         }
     }
 
@@ -1041,13 +1051,9 @@ public final class Instrumentation {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->exit->" + instrumentationPoint.getPosition();
-            
-            /*
-             * If a label is attached to a return statement, which is often the case, the insertion
-             * between the label and the return statement is not directly possible. Instead, we
-             * need to use the same approach as for else branches.
-             */
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, true);
+
+            boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
         }
     }
 
