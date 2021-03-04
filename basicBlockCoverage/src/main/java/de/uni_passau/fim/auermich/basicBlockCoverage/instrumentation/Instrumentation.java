@@ -73,10 +73,10 @@ public final class Instrumentation {
          * So, if we want to instrument a move-exception instruction we can not put our instrumentation code in front of
          * the move-exception instruction. It can only be placed after it.
          */
-        boolean useSwap = !instrumentationPoint.getInstruction().getLocation().getLabels().isEmpty();
+        boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
         if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
             index++;
-            useSwap = false;
+            swapInstructions = false;
         }
 
         // const-string pN, "basic block identifier" (pN refers to the free register at the end)
@@ -123,7 +123,7 @@ public final class Instrumentation {
             Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
 
-            if (useSwap) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(index + 1, jumpForward);
                 mutableMethodImplementation.swapInstructions(index, index + 1);
             } else {
@@ -142,7 +142,7 @@ public final class Instrumentation {
             mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
 
         } else {
-            if (useSwap) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(++index, constString);
                 mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
 
@@ -217,7 +217,8 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        TreeSet<InstrumentationPoint> instrumentationPoints = methodInformation.getInstrumentationPoints();
+        TreeSet<InstrumentationPoint> instrumentationPoints
+                = (TreeSet<InstrumentationPoint>) methodInformation.getInstrumentationPoints();
         Iterator<InstrumentationPoint> iterator = instrumentationPoints.descendingIterator();
 
         /*

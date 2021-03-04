@@ -45,7 +45,7 @@ public class MethodInformation {
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
     // contains the locations where we need to instrument
-    private TreeSet<InstrumentationPoint> instrumentationPoints;
+    private Set<InstrumentationPoint> instrumentationPoints;
     // describes the ranges of try blocks
     private Set<Range> tryBlocks = new TreeSet<>();
 
@@ -53,7 +53,7 @@ public class MethodInformation {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
-        methodImplementation = method.getImplementation();
+        this.methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
         this.initialInstructionCount = getInstructions().size();
         this.instrumentationPoints = new TreeSet<>();
@@ -92,11 +92,11 @@ public class MethodInformation {
         this.tryBlocks = tryBlocks;
     }
 
-    public TreeSet<InstrumentationPoint> getInstrumentationPoints() {
+    public Set<InstrumentationPoint> getInstrumentationPoints() {
         return instrumentationPoints;
     }
 
-    public void setInstrumentationPoints(TreeSet<InstrumentationPoint> instrumentationPoints) {
+    public void setInstrumentationPoints(Set<InstrumentationPoint> instrumentationPoints) {
         this.instrumentationPoints = instrumentationPoints;
     }
 

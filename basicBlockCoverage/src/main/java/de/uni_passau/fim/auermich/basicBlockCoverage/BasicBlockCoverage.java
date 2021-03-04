@@ -208,7 +208,7 @@ public class BasicBlockCoverage {
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
                     // determine the location of the basic blocks
-                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPointsForBlocks(methodInformation));
+                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
                     // determine the location of try blocks
                     methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));

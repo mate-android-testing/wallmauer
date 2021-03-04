@@ -12,6 +12,19 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private final BuilderInstruction instruction;
     private final int position;
     private final Type type;
+    private final boolean attachedToLabel;
+    private int coveredInstructions = -1;
+
+    public InstrumentationPoint(BuilderInstruction instruction, Type type) {
+        this.instruction = instruction;
+        this.position = instruction.getLocation().getIndex();
+        this.type = type;
+        this.attachedToLabel = !instruction.getLocation().getLabels().isEmpty();
+    }
+
+    public boolean isAttachedToLabel() {
+        return attachedToLabel;
+    }
 
     public int getCoveredInstructions() {
         return coveredInstructions;
@@ -19,14 +32,6 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     public void setCoveredInstructions(int coveredInstructions) {
         this.coveredInstructions = coveredInstructions;
-    }
-
-    private int coveredInstructions = -1;
-
-    public InstrumentationPoint(BuilderInstruction instruction, Type type) {
-        this.instruction = instruction;
-        this.position = instruction.getLocation().getIndex();
-        this.type = type;
     }
 
     public int getPosition() {
@@ -77,7 +82,8 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     }
 
     public enum Type {
-       IS_BRANCH, NO_BRANCH;
+        IS_BRANCH,
+        NO_BRANCH;
 
         public boolean isBranchType() {
             return this == IS_BRANCH;
