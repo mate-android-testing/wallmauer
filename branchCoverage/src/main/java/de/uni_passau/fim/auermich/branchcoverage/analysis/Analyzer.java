@@ -26,13 +26,14 @@ public final class Analyzer {
     private static final Logger LOGGER = LogManager.getLogger(Analyzer.class);
 
     /**
-     * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
+     * Tracks the instrumentation points, i.e. instructions defining a branch.
      *
      * @param methodInformation Encapsulates a method.
      * @return Returns the set of instrumentation points.
      */
     public static Set<InstrumentationPoint> trackInstrumentationPoints(MethodInformation methodInformation) {
 
+        // a tree set ensures the appropriate order (according to the instruction index of the instrumentation point)
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
 
         MutableMethodImplementation mutableMethodImplementation =
@@ -46,12 +47,12 @@ public final class Analyzer {
             if (instruction instanceof BuilderInstruction21t
                     || instruction instanceof BuilderInstruction22t) {
 
-                // The if branch starts at the next instruction, which we also need to trace.
+                // the successor of the if instruction defines the if branch
                 InstrumentationPoint ifBranch = new InstrumentationPoint(instructions.get(instruction.getLocation().getIndex() + 1),
                         InstrumentationPoint.Type.IF_BRANCH);
                 instrumentationPoints.add(ifBranch);
 
-                // We also need to instrument the else branch.
+                // the target of the if instruction defines the else branch
                 int elseBranchPosition = ((BuilderOffsetInstruction) instruction).getTarget().getLocation().getIndex();
                 InstrumentationPoint elseBranch = new InstrumentationPoint(instructions.get(elseBranchPosition),
                         InstrumentationPoint.Type.ELSE_BRANCH);
