@@ -66,11 +66,6 @@ public final class Instrumentation {
          * after the instruction we want to instrument and than swap the original instruction with our instrumentation
          * code. This works because labels do not stick to their instruction if instructions are swapped.
          *
-         * Moreover, in case the instruction we want to instrument has no corresponding label, then then we could insert
-         * our instrumentation code directly in front of the instruction. However, inserting our code after the
-         * instruction and than swapping does not cause any harm either. Because dexlib2 does not offer an easy method
-         * determining if a method has a corresponding label we just stick to always swapping the instructions.
-         *
          * At last, there is one special case that needs to be addressed: The bytecode verifier ensures that
          * if a catch block has move-exception instruction that instruction must be the first instruction of the catch
          * block. More precisely: Move-exception instruction can only appear as the first instruction of a catch block.
@@ -78,7 +73,7 @@ public final class Instrumentation {
          * So, if we want to instrument a move-exception instruction we can not put our instrumentation code in front of
          * the move-exception instruction. It can only be placed after it.
          */
-        boolean useSwap = true;
+        boolean useSwap = !instrumentationPoint.getInstruction().getLocation().getLabels().isEmpty();
         if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
             index++;
             useSwap = false;
