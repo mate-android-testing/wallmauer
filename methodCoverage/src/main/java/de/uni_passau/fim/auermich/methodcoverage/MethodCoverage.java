@@ -39,7 +39,7 @@ public class MethodCoverage {
 
     /*
      * Defines the number of additional registers. We require one additional register
-     * for storing the unique branch id. We require a second register when shifting
+     * for storing the unique method id. We require a second register when shifting
      * wide types.
      */
     public static final int ADDITIONAL_REGISTERS = 2;
@@ -68,7 +68,7 @@ public class MethodCoverage {
     }
 
     /**
-     * Instruments a given APK file with branch coverage information.
+     * Instruments a given APK file with method coverage information.
      *
      * @param args The path to the APK file.
      * @throws IOException        Should never happen.
