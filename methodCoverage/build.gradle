@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+}
+
+version 'unspecified'
+
+repositories {
+    mavenCentral()
+}
+
+task customFatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.methodcoverage.MethodCoverage'
+    }
+    baseName = 'methodCoverage'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile depends.log4j
+}
