@@ -56,22 +56,20 @@ public final class Instrumentation {
         int freeRegisterID = methodInformation.getFreeRegisters().get(0);
 
         /*
-         * Many instruction have labels.
-         * For example the else-target instruction of in if-test has a :else_<id> label.
-         * Or the first instruction of every try block has a :try_<id> label.
+         * We can't directly insert an instruction before another instruction that is attached to a label.
+         * Consider the following example:
          *
-         * When instrumenting such an instruction we can not simply stick the instrumentation code in front of the
-         * original instruction because labels would stick to the original instruction. To move the labels from e.g.
-         * the original first instruction of an else branch to our instrumentation code we need to first insert our
-         * after the instruction we want to instrument and than swap the original instruction with our instrumentation
-         * code. This works because labels do not stick to their instruction if instructions are swapped.
+         * :label (e.g. an else branch)
+         * instruction
          *
-         * At last, there is one special case that needs to be addressed: The bytecode verifier ensures that
-         * if a catch block has move-exception instruction that instruction must be the first instruction of the catch
-         * block. More precisely: Move-exception instruction can only appear as the first instruction of a catch block.
-         * But not all catch need to have a move-exception instruction.
-         * So, if we want to instrument a move-exception instruction we can not put our instrumentation code in front of
-         * the move-exception instruction. It can only be placed after it.
+         * If we would try to insert our code before the given instruction, the code would be
+         * placed actually before the label, which is not what we want. Instead we need insert our code
+         * after the instruction and swap the instructions afterwards.
+         *
+         * However, there is one special case that needs to be addressed here: The bytecode verifier ensures that
+         * a move-exception instruction must be the first instruction within a catch block, but not all catch blocks
+         * necessarily contain such move-exception instruction. This means whenever an instrumentation point coincides
+         * with the location of a move-exception instruction, we can only insert our code after that instruction.
          */
         boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
         if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {

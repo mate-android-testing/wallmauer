@@ -55,7 +55,6 @@ public final class Analyzer {
         for (final AnalyzedInstruction instruction : instructions) {
             final int index = instruction.getInstructionIndex();
 
-
             // branches define a new basic block
             if (isBranchingInstruction(instruction)) {
 
