@@ -3,189 +3,38 @@ package de.uni_passau.fim.auermich.methodcoverage.instrumentation;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.methodcoverage.MethodCoverage;
 import de.uni_passau.fim.auermich.methodcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.methodcoverage.utility.Range;
 import de.uni_passau.fim.auermich.methodcoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.RegisterType;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.DexFile;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction11n;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction21c;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction22x;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction3rc;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Provides the functionality to instrument a given method. This includes
- * the insertion of certain lifecycle methods, e.g. onCreate(), shifting of
- * param registers and the instrumentation of branches.
+ * Provides the functionality to instrument a given method and the shifting of parameter registers.
  */
 public final class Instrumentation {
 
     private static final Logger LOGGER = LogManager.getLogger(Instrumentation.class);
 
     /**
-     * Instruments the given branch with the tracer functionality.
-     *
-     * @param methodInformation    Stores all relevant information about the given method.
-     * @param instrumentationPoint Describes the position of the branch.
-     * @param id                   The id which identifies the given branch, i.e. packageName->className->method->branchID.
-     * @param elseBranch           Whether the location where we instrument refers to an else branch.
-     * @return Returns the instrumented method implementation.
-     */
-    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
-                                                                         InstrumentationPoint instrumentationPoint,
-                                                                         final String id, boolean elseBranch) {
-
-        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
-        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
-
-        // the location of try blocks
-        Set<Range> tryBlocks = methodInformation.getTryBlocks();
-
-        // the position of the branch
-        int index = instrumentationPoint.getPosition();
-
-        // we require one parameter containing the unique branch id
-        int freeRegisterID = methodInformation.getFreeRegisters().get(0);
-
-        // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
-        BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
-                new ImmutableStringReference(id));
-
-        // invoke-static-range
-        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
-                freeRegisterID, 1,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "trace",
-                        Lists.newArrayList("Ljava/lang/String;"), "V"));
-
-        // check whether the branch is located within a try block
-        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
-
-            /*
-            * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
-            * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
-            * but we consider here any try block. The problem arises from the fact that an invoke instruction
-            * within a try block introduces an additional edge to corresponding catch blocks, although it may
-            * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
-            * might be two-fold (conflicted), which is rejected by the verifier, see
-            * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
-            *
-            * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
-            * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the
-            * method and calls the tracer functionality and afterwards jumps back to the original position. Since
-            * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
-            * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
-            * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
-            *
-            * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
-            * Automated Black-box Android Testing', see section 4.3.
-             */
-
-            LOGGER.debug("Instrumentation point within try block!");
-            LOGGER.debug("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
-                    "(" + instrumentationPoint.getPosition() + ")");
-
-            // the label + tracer functionality comes after the last instruction
-            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
-
-            // insert goto to jump to method end
-            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
-            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
-
-            if (elseBranch) {
-                mutableMethodImplementation.addInstruction(index + 1, jumpForward);
-                mutableMethodImplementation.swapInstructions(index, index + 1);
-            } else {
-                mutableMethodImplementation.addInstruction(index, jumpForward);
-            }
-
-            // create label at branch after forward jump
-            Label branchLabel = mutableMethodImplementation.newLabelForIndex(index + 1);
-
-            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
-            mutableMethodImplementation.addInstruction(afterLastInstruction + 1, constString);
-            mutableMethodImplementation.addInstruction(afterLastInstruction + 2, invokeStaticRange);
-
-            // insert goto to jump back to branch
-            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
-            mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
-
-        } else {
-            if (elseBranch) {
-                mutableMethodImplementation.addInstruction(++index, constString);
-                mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
-
-                /*
-                 * We cannot directly insert our instructions after the else-branch label (those instructions
-                 * would fall between the goto and else-branch label). Instead we need to insert our
-                 * instructions after the first instructions there, and swap them back afterwards.
-                 */
-                mutableMethodImplementation.swapInstructions(index - 2, index - 1);
-                mutableMethodImplementation.swapInstructions(index - 1, index);
-            } else {
-                mutableMethodImplementation.addInstruction(index, constString);
-                mutableMethodImplementation.addInstruction(index + 1, invokeStaticRange);
-            }
-        }
-
-        // update implementation
-        methodInformation.setMethodImplementation(mutableMethodImplementation);
-        return mutableMethodImplementation;
-    }
-
-    /**
-     * UPDATE: Although certain instructions are not allowed to be reachable by the control flow,
-     * e.g. PACKED_SWITCH_PAYLOAD, they don't need to be at the end of the method!
-     * Thus, we can always insert instructions after those pseudo-instructions.
-     *
-     * Returns a possible position for a new label near the end of a method.
-     * Note that a single instruction can only have one label. If we try to define
-     * an additional label, the old label is shared/re-used (verify this behaviour!).
+     * Instruments the method entry with a trace. Also increases the method's registry count.
      *
      * @param methodInformation Encapsulates a method.
-     * @return Returns a possible position for a new label.
      */
-    @SuppressWarnings("unused")
-    private static int getFreeLabelPosition(MethodInformation methodInformation) {
-
-        MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
-
-        List<BuilderInstruction> instructions = new ArrayList<>(mutableImplementation.getInstructions());
-        Collections.reverse(instructions);
-
-        // search for possible label position at the end of method
-        for(BuilderInstruction instruction : instructions) {
-
-            // the bytecode verifier ensures that those instructions must be unreachable by control flow
-            EnumSet<Opcode> opcodes = EnumSet.of(Opcode.PACKED_SWITCH_PAYLOAD,
-                    Opcode.SPARSE_SWITCH_PAYLOAD, Opcode.FILL_ARRAY_DATA);
-
-            if (!opcodes.contains(instruction.getOpcode())) {
-                // valid position for new label after instruction (hence + 1)
-                LOGGER.info("Position of new label: " + instruction.getLocation().getIndex() + 1);
-                return instruction.getLocation().getIndex() + 1;
-            }
-        }
-        throw new IllegalStateException("No free label position found for method: " + methodInformation.getMethodID());
-    }
-
-    /**
-     * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. a branch, a trace
-     * statement.
-     *
-     * @param methodInformation Encapsulates a method and its instrumentation points.
-     * @param dexFile           The dex file containing the method.
-     */
-    public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
+    public static void modifyMethod(MethodInformation methodInformation) {
 
         LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
@@ -194,26 +43,27 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
-        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
-        /*
-         * Traverse the branches backwards, i.e. the last branch comes first, in order
-         * to avoid inherent index/position updates of other branches while instrumenting.
-         */
-        while (iterator.hasNext()) {
+        // we require one parameter containing the unique method id
+        int freeRegisterID = methodInformation.getFreeRegisters().get(0);
 
-            InstrumentationPoint instrumentationPoint = iterator.next();
-            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+        // store method id in register
+        BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
+                new ImmutableStringReference(methodInformation.getMethodID()));
 
-            /*
-             * We can't directly insert a statement before the else branch, instead
-             * we need to insert our code after the first instruction of the else branch
-             * and later swap those instructions.
-             */
-            boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
-        }
+        // invoke trace(method id)
+        BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                freeRegisterID, 1,
+                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "trace",
+                        Lists.newArrayList("Ljava/lang/String;"), "V"));
+
+        mutableMethodImplementation.addInstruction(0, constString);
+        mutableMethodImplementation.addInstruction(1, invokeStaticRange);
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
     /**

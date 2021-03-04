@@ -15,11 +15,8 @@ import lanchon.multidexlib2.MultiDexIO;
 import org.antlr.runtime.RecognitionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.Opcodes;
-import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction3rc;
 import org.jf.dexlib2.dexbacked.value.DexBackedTypeEncodedValue;
 import org.jf.dexlib2.iface.*;
 import org.jf.dexlib2.immutable.ImmutableClassDef;
@@ -34,7 +31,7 @@ import java.util.regex.Pattern;
 public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
-    public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
+    public static final String OUTPUT_METHODS_FILE = "methods.txt";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
 
@@ -213,45 +210,22 @@ public final class Utility {
     }
 
     /**
-     * Writes the number of branches for each class to the given file.
-     * Classes without any branches are omitted.
+     * Appends the instrumented method names to the methods.txt file.
      *
-     * @param className The name of the class.
-     * @param branchCounter The number of branches for a certain class.
+     * @param methods The name of the instrumented methods.
      * @throws FileNotFoundException Should never be thrown.
      */
-    @SuppressWarnings("unused")
-    public static void writeBranches(String className, int branchCounter) throws FileNotFoundException {
+    public static void writeMethods(List<Method> methods) throws FileNotFoundException {
 
-        File file = new File(OUTPUT_BRANCHES_FILE);
+        File file = new File(OUTPUT_METHODS_FILE);
         OutputStream outputStream = new FileOutputStream(file, true);
         PrintStream printStream = new PrintStream(outputStream);
 
-        if (branchCounter != 0) {
-            // we have to save our branchCounter for the later evaluation
-            printStream.println(className + ": " + branchCounter);
-            printStream.flush();
+        for (Method method : methods) {
+            printStream.println(method);
         }
-        printStream.close();
-    }
 
-    /**
-     * Writes the number of branches for each method. Methods without any branches are omitted.
-     *
-     * @param methodInformation Encapsulates a method.
-     * @throws FileNotFoundException Should never be thrown.
-     */
-    public static void writeBranches(MethodInformation methodInformation) throws FileNotFoundException {
-
-        File file = new File(OUTPUT_BRANCHES_FILE);
-        OutputStream outputStream = new FileOutputStream(file, true);
-        PrintStream printStream = new PrintStream(outputStream);
-        int branchCounter = methodInformation.getNumberOfBranches();
-
-        if (branchCounter != 0) {
-            printStream.println(methodInformation.getMethodID() + "->" + branchCounter);
-            printStream.flush();
-        }
+        printStream.flush();
         printStream.close();
     }
 
@@ -341,43 +315,6 @@ public final class Utility {
     }
 
     /**
-     * Produces a .dex file containing the given list of classes.
-     *
-     * @param filePath The path of the .dex file.
-     * @param classes The list of classes that should be contained in the .dex file.
-     * @param opCode The API opcode level.
-     * @throws IOException Should never happen.
-     */
-    @SuppressWarnings("unused")
-    public static void writeToDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
-
-        DexFileFactory.writeDexFile(filePath, new DexFile() {
-            @Nonnull
-            @Override
-            public Set<? extends ClassDef> getClasses() {
-                return new AbstractSet<ClassDef>() {
-                    @Nonnull
-                    @Override
-                    public Iterator<ClassDef> iterator() {
-                        return classes.iterator();
-                    }
-
-                    @Override
-                    public int size() {
-                        return classes.size();
-                    }
-                };
-            }
-
-            @Nonnull
-            @Override
-            public Opcodes getOpcodes() {
-                return Opcodes.forApi(opCode);
-            }
-        });
-    }
-
-    /**
      * Increases the register directive of the method, i.e. the .register statement at the method head
      * according to the number specified by {@param newRegisterCount}.
      *
@@ -449,56 +386,4 @@ public final class Utility {
                 classDef.getFields(),
                 methods));
     }
-
-    /**
-     * Increasing the amount of registers for a method requires shifting
-     * certain registers back to their original position. In particular, all
-     * registers, which register id is bigger or equal than the new specified
-     * register count {@param registerNumber}, need to be shifted (increased) by the amount of the newly
-     * created registers. Especially, originally param registers are affected
-     * by increasing the register count, and would be treated now as a local register
-     * without re-ordering (shifting).
-     *
-     * @param instruction    The instruction that is currently inspected.
-     * @param registerNumber Specifies a lower limit for registers, which need to be considered.
-     * @throws NoSuchFieldException   Should never happen, constitutes a byproduct of using reflection.
-     * @throws IllegalAccessException Should never happen, constitutes a byproduct of using reflection.
-     */
-    @SuppressWarnings("unused")
-    public static void reOrderRegister(BuilderInstruction instruction, int registerNumber, int shift)
-            throws NoSuchFieldException, IllegalAccessException {
-
-        // those invoke range instructions require a special treatment, since they don't have fields containing the registers
-        if (instruction instanceof BuilderInstruction3rc) {
-
-            // those instructions store the number of registers (var registerCount) and the first register of these range (var startRegister)
-            int registerStart = ((BuilderInstruction3rc) instruction).getStartRegister();
-            java.lang.reflect.Field f = instruction.getClass().getDeclaredField("startRegister");
-            if (registerStart >= registerNumber) {
-                f.setAccessible(true);
-                f.set(instruction, registerStart + shift);
-            }
-            return;
-        }
-
-        java.lang.reflect.Field[] fields = instruction.getClass().getDeclaredFields();
-
-        for (java.lang.reflect.Field field : fields) {
-            // all fields are labeled registerA - registerG
-            if (field.getName().startsWith("register") && !field.getName().equals("registerCount")) {
-                field.setAccessible(true);
-                // System.out.println(field.getName());
-                try {
-                    int value = field.getInt(instruction);
-
-                    if (value >= registerNumber)
-                        field.set(instruction, value + shift);
-
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
 }

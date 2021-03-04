@@ -1,8 +1,5 @@
 package de.uni_passau.fim.auermich.methodcoverage.dto;
 
-import de.uni_passau.fim.auermich.methodcoverage.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.methodcoverage.utility.Range;
-import com.google.common.collect.Lists;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
@@ -53,52 +50,12 @@ public class MethodInformation {
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
 
-    // contains the locations where we need to instrument
-    private Set<InstrumentationPoint> instrumentationPoints;
-
-    // describes the ranges of try blocks
-    private Set<Range> tryBlocks = new TreeSet<>();
-
     public MethodInformation(String methodID, ClassDef classDef, Method method, DexFile dexFile) {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
         methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
-    }
-
-    public AnalyzedInstruction getInstructionAtIndex(int index) {
-
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions().get(index);
-    }
-
-    public List<AnalyzedInstruction> getInstructions() {
-
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions();
-    }
-
-    public Set<Range> getTryBlocks() {
-        return tryBlocks;
-    }
-
-    public void setTryBlocks(Set<Range> tryBlocks) {
-        this.tryBlocks = tryBlocks;
-    }
-
-    public Set<InstrumentationPoint> getInstrumentationPoints() {
-        return instrumentationPoints;
-    }
-
-    public void setInstrumentationPoints(Set<InstrumentationPoint> instrumentationPoints) {
-        this.instrumentationPoints = instrumentationPoints;
     }
 
     public String getMethodID() {
@@ -175,10 +132,5 @@ public class MethodInformation {
 
     public Optional<Map<Integer, RegisterType>> getParamRegisterTypeMap() {
         return paramRegisterTypeMap;
-    }
-
-    public int getNumberOfBranches() {
-        // each instrumentation point represents a branch
-        return instrumentationPoints != null ? instrumentationPoints.size() : 0;
     }
 }
