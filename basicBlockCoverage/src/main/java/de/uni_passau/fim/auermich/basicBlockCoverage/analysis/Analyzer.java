@@ -122,7 +122,7 @@ public final class Analyzer {
         }
 
         // current is now the last instrumentation point
-        current.setCoveredInstructions(instructions.size() + 1 - current.getPosition());
+        current.setCoveredInstructions(instructions.size() - current.getPosition());
 
         LOGGER.info(instrumentationPoints.toString());
         return instrumentationPoints;
