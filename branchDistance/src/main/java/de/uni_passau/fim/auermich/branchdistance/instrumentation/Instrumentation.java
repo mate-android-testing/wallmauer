@@ -223,6 +223,30 @@ public final class Instrumentation {
              * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
              * Also consider the answer at:
              * https://stackoverflow.com/questions/64034015/dalvik-bytecode-verification-dex2oat/64034465.
+             * The concrete problem is that the monitor object (register) gets in a conflicted state because the
+             * insertion of instructions that can throw an exception introduce a new control flow (execution path)
+             * in which the monitor object has not been initialized, consider the following example:
+             *
+             * if-eqz v0, :cond_0
+             *
+             * iget-object v1, v0, La/d/cn;->b:Ljava/lang/Object (initialises v1)
+             * monitor-enter v1
+             * :try_start_0
+             * [some logic]
+             * monitor-exit v1
+             *
+             * :cond_0
+             * [inserted code here causing additional edge to catch block]
+             * return p1
+             *
+             * :catchall_0
+             * move-exception v0
+             * monitor-exit v1 (can be reached while v1 is still unset)
+             * :try_end_0
+             *
+             * In the original code, v1 is guaranteed to be set when the monitor-exit instruction is reached. However,
+             * due to the additional edge introduced by our code, the monitor-exit instruction can be reached while
+             * v1 is still unset, which was not possible in the original code.
              *
              * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
              * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the

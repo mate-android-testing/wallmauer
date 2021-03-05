@@ -232,7 +232,7 @@ public class BranchDistance {
                  */
                 if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
-                    LOGGER.info("Instrumenting method " + method.getName() + " of class " + classDef.toString());
+                    LOGGER.info("Instrumenting method " + method.toString());
 
                     // determine the new local registers and free register IDs
                     Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
