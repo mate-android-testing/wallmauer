@@ -170,12 +170,11 @@ public final class Instrumentation {
      * @param instrumentationPoint Describes where to insert the tracer invocation.
      * @param id                The id which identifies the given instrumentation point,
      *                          e.g. packageName->className->method->branchID.
-     * @param swapInstructions Whether we need to swap instructions due to the issue with labels.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
                                                                          InstrumentationPoint instrumentationPoint,
-                                                                         final String id, boolean swapInstructions) {
+                                                                         final String id) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -190,14 +189,26 @@ public final class Instrumentation {
         int index = instrumentationPoint.getInstruction().getLocation().getIndex();
 
         /*
-         * A method entry that is not the first instruction (it is the first instruction of a catch block)
-         * needs a special treatment. The bytecode verifier ensures that the move-exception instruction must
-         * be the first instruction of the catch block, thus we can't insert any instruction before move-exception.
-         * Instead, we have to insert our trace after the move-exception instruction and thus have to increase
-         * the index by one.
+         * We can't directly insert an instruction before another instruction that is attached to a label.
+         * Consider the following example:
+         *
+         * :label (e.g. an else branch)
+         * instruction
+         *
+         * If we would try to insert our code before the given instruction, the code would be
+         * placed actually before the label, which is not what we want. Instead we need insert our code
+         * after the instruction and swap the instructions afterwards.
+         *
+         * However, there is one special case that needs to be addressed here: The bytecode verifier ensures that
+         * a move-exception instruction must be the first instruction within a catch block, but not all catch blocks
+         * necessarily contain such move-exception instruction. This means whenever an instrumentation point coincides
+         * with the location of a move-exception instruction, we can only insert our code after that instruction.
          */
-        if (instrumentationPoint.getType() == InstrumentationPoint.Type.ENTRY_STMT && index > 0) {
+        boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+        if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
             index++;
+            // reset because we want to directly insert our code after the move exception instruction
+            swapInstructions = false;
         }
 
         // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
@@ -278,7 +289,7 @@ public final class Instrumentation {
             // create label at branch after forward jump
             Label branchLabel = mutableMethodImplementation.newLabelForIndex(index + 1);
 
-            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            // insert tracer functionality at method end (+1 because we inserted already a goto instruction at branch)
             mutableMethodImplementation.addInstruction(afterLastInstruction + 1, constString);
             mutableMethodImplementation.addInstruction(afterLastInstruction + 2, invokeStaticRange);
 
@@ -287,9 +298,6 @@ public final class Instrumentation {
             mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
         } else {
             if (swapInstructions) {
-                mutableMethodImplementation.addInstruction(++index, constString);
-                mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
-
                 /*
                  * We can't directly insert an instruction before another instruction that is attached to a label.
                  * Consider the following example:
@@ -301,6 +309,8 @@ public final class Instrumentation {
                  * placed actually before the label, which is not what we want. Instead we need insert our code
                  * after the instruction and swap the instructions afterwards.
                  */
+                mutableMethodImplementation.addInstruction(++index, constString);
+                mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
                 mutableMethodImplementation.swapInstructions(index - 2, index - 1);
                 mutableMethodImplementation.swapInstructions(index - 1, index);
             } else {
@@ -361,28 +371,13 @@ public final class Instrumentation {
                      * coverage evaluation procedure would count the trace as an additional branch.
                      */
                     trace = methodInformation.getMethodID() + "->if->" + instrumentationPoint.getPosition();
-
-                    boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
-                    insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
+                    insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
                 }
 
             } else {
                 // instrument branch with trace
                 coveredInstructionPoints.add(instrumentationPoint.getPosition());
-
-                /*
-                 * We can't directly insert an instruction before another instruction that is attached to a label.
-                 * Consider the following example:
-                 *
-                 * :label (e.g. an else branch)
-                 * instruction
-                 *
-                 * If we would try to insert our code before the given instruction, the code would be
-                 * placed actually before the label, which is not what we want. Instead we need insert our code
-                 * after the instruction and swap the instructions afterwards.
-                 */
-                boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
-                insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
+                insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
             }
         }
 
@@ -993,9 +988,7 @@ public final class Instrumentation {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
-
-            boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
         }
     }
 
@@ -1036,9 +1029,7 @@ public final class Instrumentation {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->entry->" + instrumentationPoint.getPosition();
-
-            boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
         }
     }
 
@@ -1077,9 +1068,7 @@ public final class Instrumentation {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             final String trace = methodInformation.getMethodID() + "->exit->" + instrumentationPoint.getPosition();
-
-            boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, swapInstructions);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
         }
     }
 
