@@ -41,7 +41,7 @@ public class Tracer extends BroadcastReceiver {
     // contains the collected traces per 'CACHE_SIZE'
     private static Set<String> traces = new LinkedHashSet<>();
 
-    // the output file containing the covered branches
+    // the output file containing the covered methods
     private static final String TRACES_FILE = "traces.txt";
 
     // keeps track of the total number of generated traces per test case / trace file
@@ -85,10 +85,10 @@ public class Tracer extends BroadcastReceiver {
 
     /**
      * Adds a new trace to the set of covered traces. This method is called
-     * directly through the app code of the AUT. In particular, each branch
+     * directly through the app code of the AUT. In particular, each method
      * of the AUT contains such invocation.
      *
-     * @param identifier Uniquely identifies the given branch.
+     * @param identifier Uniquely identifies the given method.
      */
     public static void trace(String identifier) {
         synchronized (Tracer.class) {
