@@ -31,6 +31,7 @@ import org.jf.smali.SmaliTestUtils;
 import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
+import java.util.logging.Handler;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -243,6 +244,13 @@ public final class Utility {
      * Decodes a given APK using apktool.
      */
     public static String decodeAPK(File apkPath) {
+
+        // set 3rd party library (apktool) logging to 'WARNING'
+        java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
+        rootLogger.setLevel(java.util.logging.Level.WARNING);
+        for (Handler h : rootLogger.getHandlers()) {
+            h.setLevel(java.util.logging.Level.WARNING);
+        }
 
         try {
             ApkDecoder decoder = new ApkDecoder(apkPath);
