@@ -45,7 +45,7 @@ To invoke the instrumentation run the following command: <br >
 
 This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
 In addition, a file called **methods.txt** will be generated in the current working directory. It contains
-the number of methods per class, which is relevant for the evaluation of the branch coverage.
+the number of methods per class, which is relevant for the evaluation of the method coverage.
 
 # Workflow:
 
@@ -60,7 +60,7 @@ Now, it is time to explore the application. Whenever a new branch is visited, a 
 In order to pull all traces, invoke the following commands:
 
 `adb root` (only works on rooted devices!) <br />
-`adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.Tracer --es packageName "<package-name>"` <br />
+`adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.auermich.tracer.Tracer --es packageName "<package-name>"` <br />
 `adb pull storage/emulated/0/traces.txt` <br />
 `adb pull data/data/<package-name>/info.txt` (may require an additional slash on Linux, i.e. /data/data/)
 
