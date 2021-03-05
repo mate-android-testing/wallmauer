@@ -77,6 +77,8 @@ public final class Instrumentation {
             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
             * might be two-fold (conflicted), which is rejected by the verifier, see
             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+            * Also consider the answer at:
+            * https://stackoverflow.com/questions/64034015/dalvik-bytecode-verification-dex2oat/64034465.
             *
             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
             * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the
