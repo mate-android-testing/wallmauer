@@ -31,7 +31,7 @@ subprojects {
         compile name: 'android'
         compile name: 'androidx'
         compile(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
-            // mdexlib2 uses dexlib2 2.3.4 but apktool requires 2.4.0
+            // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2
             exclude group: 'org.smali', module: 'dexlib2'
         }
     }
