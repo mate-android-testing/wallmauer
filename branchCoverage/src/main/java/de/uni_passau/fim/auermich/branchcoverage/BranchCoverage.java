@@ -234,7 +234,7 @@ public class BranchCoverage {
                     // add instrumented method implementation
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
-                    // write out the number of branches per method
+                    // write out the branches per method
                     Utility.writeBranches(methodInformation);
 
                 } else {
