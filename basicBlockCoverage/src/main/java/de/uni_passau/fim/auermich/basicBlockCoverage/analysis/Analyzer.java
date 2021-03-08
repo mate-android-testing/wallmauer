@@ -43,13 +43,14 @@ public final class Analyzer {
         final Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>();
 
         // the first instruction defines a new basic block
-        instrumentationPoints.add(new InstrumentationPoint(builderInstructions.get(0), InstrumentationPoint.Type.NO_BRANCH));
+        instrumentationPoints.add(new InstrumentationPoint(builderInstructions.get(0),
+                InstrumentationPoint.Type.NO_BRANCH));
 
         // each entry refers to the code address of the first instruction within a catch block
         final Set<Integer> catchBlocks = methodInformation.getMethodImplementation()
                 .getTryBlocks().stream().flatMap(t -> t.getExceptionHandlers().stream())
                 .map(ExceptionHandler::getHandlerCodeAddress).collect(Collectors.toSet());
-        LOGGER.debug("Catch Blocks located at code addresses: " + catchBlocks);
+        LOGGER.debug("Catch blocks located at code addresses: " + catchBlocks);
 
         int consumedCodeUnits = 0;
 
@@ -68,7 +69,14 @@ public final class Analyzer {
                 final InstrumentationPoint ifIP
                         = new InstrumentationPoint(ifTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
 
-                // Ensure Type is set to IS_BRANCH
+                /*
+                * We only compare instrumentation points by their position, this means it can happen that
+                * another instrumentation point for the same position was added previously. However, we need
+                * to ensure that a 'branch' instrumentation point has a higher priority, thus we remove and
+                * add the instrumentation point. This is necessary to construct the trace correctly.
+                * If we can tell which kind of label (goto, branch, try/catch) is attached to the instruction,
+                * we could avoid this. Track the progress of: https://github.com/JesusFreke/smali/issues/808.
+                 */
                 instrumentationPoints.remove(ifIP);
                 instrumentationPoints.add(ifIP);
 
@@ -80,41 +88,51 @@ public final class Analyzer {
                 final InstrumentationPoint elseIP
                         = new InstrumentationPoint(elseTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
 
-                // Ensure Type is set to IS_BRANCH
+                /*
+                 * We only compare instrumentation points by their position, this means it can happen that
+                 * another instrumentation point for the same position was added previously. However, we need
+                 * to ensure that a 'branch' instrumentation point has a higher priority, thus we remove and
+                 * add the instrumentation point. This is necessary to construct the trace correctly.
+                 * If we can tell which kind of label (goto, branch, try/catch) is attached to the instruction,
+                 * we could avoid this. Track the progress of: https://github.com/JesusFreke/smali/issues/808.
+                 */
                 instrumentationPoints.remove(elseIP);
                 instrumentationPoints.add(elseIP);
 
             } else if (isGotoInstruction(instruction)) {
                 // the target of a goto instruction defines a new basic block
 
-                LOGGER.debug("Found goto instruction: " + index);
+                LOGGER.debug("Found goto instruction at index: " + index);
                 final int target = ((BuilderOffsetInstruction) builderInstructions.get(index)).getTarget()
                         .getLocation().getIndex();
                 final BuilderInstruction targetInstruction = builderInstructions.get(target);
+                LOGGER.debug("Found goto target at index: " + target);
                 final InstrumentationPoint ip
                         = new InstrumentationPoint(targetInstruction, InstrumentationPoint.Type.NO_BRANCH);
                 instrumentationPoints.add(ip);
             }
 
-            assert catchBlocks.contains(consumedCodeUnits) || instruction.getInstruction().getOpcode() != Opcode.MOVE_EXCEPTION : "Move exceptions instructions should only appear as the first instruction of a catch-block";
-
-            // Every catch block is a leader
+            // the first instruction in a catch block defines a new basic block
             if (!catchBlocks.isEmpty()) {
                 if (catchBlocks.contains(consumedCodeUnits)) {
-                    LOGGER.debug("First instruction within catch block at pos: " + index);
+                    LOGGER.debug("First instruction within catch-block at index: " + index);
                     instrumentationPoints.add(new InstrumentationPoint(builderInstructions.get(index),
                             InstrumentationPoint.Type.NO_BRANCH));
                 }
                 consumedCodeUnits += instruction.getInstruction().getCodeUnits();
             }
 
-            // Instrument any other instruction that has more than one successor.
-            // For example, every instruction inside a try block which can throw an exception has its corresponding
-            // catch block as an successor.
+            /*
+            * Every other instruction that has more than one successor also defines a new basic block.
+            * Those instructions are within try blocks and have a link to the attached catch block. In particular,
+            * any instruction within a try block where the direct successor can potentially throw an exception is affected.
+            * That is like control flow would not execute an instruction if it has thrown an exception, i.e. the
+            * predecessor defines the link to the catch block and not the instruction itself.
+             */
             final Set<Integer> successors = instruction.getSuccessors().stream()
                     .map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
             if (successors.size() >= 2) {
-                LOGGER.debug("Exceptional flow");
+                LOGGER.debug("Exceptional flow!");
                 LOGGER.debug("From: " + index);
                 for (final int successor : successors) {
                     LOGGER.debug("    To: " + successor);
