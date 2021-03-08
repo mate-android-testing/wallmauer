@@ -10,6 +10,7 @@ import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
 import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
@@ -31,6 +32,7 @@ import org.jf.smali.SmaliTestUtils;
 import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
+import java.util.logging.Handler;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -153,7 +155,7 @@ public final class Utility {
     }
 
     /**
-     * Writes the number of branches for each method. Methods without any branches are omitted.
+     * Writes out the branches of method. Methods without any branches are omitted.
      *
      * @param methodInformation Encapsulates a method.
      * @throws FileNotFoundException Should never be thrown.
@@ -163,12 +165,17 @@ public final class Utility {
         File file = new File(OUTPUT_BRANCHES_FILE);
         OutputStream outputStream = new FileOutputStream(file, true);
         PrintStream printStream = new PrintStream(outputStream);
-        int branchCounter = Analyzer.trackNumberOfBranches(methodInformation);
 
-        if (branchCounter != 0) {
-            printStream.println(methodInformation.getMethodID() + "->" + branchCounter);
-            printStream.flush();
+        for (InstrumentationPoint instrumentationPoint : methodInformation.getInstrumentationPoints()) {
+
+            if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_BRANCH
+                    || instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH) {
+                String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+                printStream.println(trace);
+            }
         }
+
+        printStream.flush();
         printStream.close();
     }
 
@@ -243,6 +250,13 @@ public final class Utility {
      * Decodes a given APK using apktool.
      */
     public static String decodeAPK(File apkPath) {
+
+        // set 3rd party library (apktool) logging to 'WARNING'
+        java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
+        rootLogger.setLevel(java.util.logging.Level.WARNING);
+        for (Handler h : rootLogger.getHandlers()) {
+            h.setLevel(java.util.logging.Level.WARNING);
+        }
 
         try {
             ApkDecoder decoder = new ApkDecoder(apkPath);

@@ -35,14 +35,13 @@ public final class Instrumentation {
      * Instruments the given branch with the tracer functionality.
      *
      * @param methodInformation    Stores all relevant information about the given method.
-     * @param instrumentationPoint Describes the position of the branch.
+     * @param instrumentationPoint Describes the position where we like to insert our code.
      * @param id                   The id which identifies the given branch, i.e. packageName->className->method->branchID.
-     * @param elseBranch           Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
                                                                          InstrumentationPoint instrumentationPoint,
-                                                                         final String id, boolean elseBranch) {
+                                                                         final String id) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -55,6 +54,31 @@ public final class Instrumentation {
 
         // we require one parameter containing the unique branch id
         int freeRegisterID = methodInformation.getFreeRegisters().get(0);
+
+        /*
+         * We can't directly insert an instruction before another instruction that is attached to a label.
+         * Consider the following example:
+         *
+         * :label (e.g. an else branch)
+         * instruction
+         *
+         * If we would try to insert our code before the given instruction, the code would be
+         * placed actually before the label, which is not what we want. Instead we need insert our code
+         * after the instruction and swap the instructions afterwards.
+         *
+         * However, there is one special case that needs to be addressed here: The bytecode verifier ensures that
+         * a move-exception instruction must be the first instruction within a catch block, but not all catch blocks
+         * necessarily contain such move-exception instruction. This means whenever an instrumentation point coincides
+         * with the location of a move-exception instruction, we can only insert our code after that instruction.
+         * We suspect that this special case can ever happen for branch coverage, but just to be on the safe side.
+         */
+        boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+        if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
+            LOGGER.info("Instrumentation point coincides with move-exception instruction!");
+            index++;
+            // reset because we want to directly insert our code after the move exception instruction
+            swapInstructions = false;
+        }
 
         // const-string pN, "unique-branch-id" (pN refers to the free register at the end)
         BuilderInstruction21c constString = new BuilderInstruction21c(Opcode.CONST_STRING, freeRegisterID,
@@ -77,6 +101,32 @@ public final class Instrumentation {
             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
             * might be two-fold (conflicted), which is rejected by the verifier, see
             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+            * Also consider the answer at:
+            * https://stackoverflow.com/questions/64034015/dalvik-bytecode-verification-dex2oat/64034465.
+            * The concrete problem is that the monitor object (register) gets in a conflicted state because the
+            * insertion of instructions that can throw an exception introduce a new control flow (execution path)
+            * in which the monitor object has not been initialized, consider the following example:
+            *
+            * if-eqz v0, :cond_0
+            *
+            * iget-object v1, v0, La/d/cn;->b:Ljava/lang/Object (initialises v1)
+            * monitor-enter v1
+            * :try_start_0
+            * [some logic]
+            * monitor-exit v1
+            *
+            * :cond_0
+            * [inserted code here causing additional edge to catch block]
+            * return p1
+            *
+            * :catchall_0
+            * move-exception v0
+            * monitor-exit v1 (can be reached while v1 is still unset)
+            * :try_end_0
+            *
+            * In the original code, v1 is guaranteed to be set when the monitor-exit instruction is reached. However,
+            * due to the additional edge introduced by our code, the monitor-exit instruction can be reached while
+            * v1 is still unset, which was not possible in the original code.
             *
             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
             * inserting the tracer functionality directly, we insert a goto instruction, which jumps to the end of the
@@ -89,8 +139,8 @@ public final class Instrumentation {
             * Automated Black-box Android Testing', see section 4.3.
              */
 
-            LOGGER.debug("Instrumentation point within try block!");
-            LOGGER.debug("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
+            LOGGER.info("Instrumentation point within try block!");
+            LOGGER.info("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
                     "(" + instrumentationPoint.getPosition() + ")");
 
             // the label + tracer functionality comes after the last instruction
@@ -100,7 +150,7 @@ public final class Instrumentation {
             Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
 
-            if (elseBranch) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(index + 1, jumpForward);
                 mutableMethodImplementation.swapInstructions(index, index + 1);
             } else {
@@ -119,14 +169,20 @@ public final class Instrumentation {
             mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
 
         } else {
-            if (elseBranch) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(++index, constString);
                 mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
 
                 /*
-                 * We cannot directly insert our instructions after the else-branch label (those instructions
-                 * would fall between the goto and else-branch label). Instead we need to insert our
-                 * instructions after the first instructions there, and swap them back afterwards.
+                 * We can't directly insert an instruction before another instruction that is attached to a label.
+                 * Consider the following example:
+                 *
+                 * :label (e.g. an else branch)
+                 * instruction
+                 *
+                 * If we would try to insert our code before the given instruction, the code would be
+                 * placed actually before the label, which is not what we want. Instead we need insert our code
+                 * after the instruction and swap the instructions afterwards.
                  */
                 mutableMethodImplementation.swapInstructions(index - 2, index - 1);
                 mutableMethodImplementation.swapInstructions(index - 1, index);
@@ -171,7 +227,7 @@ public final class Instrumentation {
 
             if (!opcodes.contains(instruction.getOpcode())) {
                 // valid position for new label after instruction (hence + 1)
-                LOGGER.info("Position of new label: " + instruction.getLocation().getIndex() + 1);
+                LOGGER.debug("Position of new label: " + instruction.getLocation().getIndex() + 1);
                 return instruction.getLocation().getIndex() + 1;
             }
         }
@@ -187,12 +243,12 @@ public final class Instrumentation {
      */
     public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
 
-        LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
         Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
 
-        LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
         Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
@@ -205,14 +261,7 @@ public final class Instrumentation {
 
             InstrumentationPoint instrumentationPoint = iterator.next();
             String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
-
-            /*
-             * We can't directly insert a statement before the else branch, instead
-             * we need to insert our code after the first instruction of the else branch
-             * and later swap those instructions.
-             */
-            boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
         }
     }
 
@@ -233,7 +282,7 @@ public final class Instrumentation {
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
         Map<Integer, RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
-        LOGGER.info(paramRegisterMap.toString());
+        LOGGER.debug(paramRegisterMap.toString());
 
         List<Integer> newRegisters = methodInformation.getNewRegisters();
         List<Integer> paramRegisters = methodInformation.getParamRegisters();
@@ -249,10 +298,10 @@ public final class Instrumentation {
         List<Integer> sourceRegisters =
                 paramRegisters.stream().map(elem -> elem + BranchCoverage.ADDITIONAL_REGISTERS).collect(Collectors.toList());
 
-        LOGGER.info("New Registers: " + newRegisters);
-        LOGGER.info("Parameter Registers: " + paramRegisters);
-        LOGGER.info("Destination Registers: " + destinationRegisters);
-        LOGGER.info("Source Registers: " + sourceRegisters);
+        LOGGER.debug("New Registers: " + newRegisters);
+        LOGGER.debug("Parameter Registers: " + paramRegisters);
+        LOGGER.debug("Destination Registers: " + destinationRegisters);
+        LOGGER.debug("Source Registers: " + sourceRegisters);
 
         // we need a separate counter for the insertion location of the instructions, since we skip indices
         // when facing wide types
@@ -270,7 +319,7 @@ public final class Instrumentation {
 
                 Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
 
-                LOGGER.info("Wide type LOW_HALF!");
+                LOGGER.debug("Wide type LOW_HALF!");
 
                 // destination register : {vnew0,vnew1,p0...pn}\{pn-1,pn}
                 int destinationRegisterID = destinationRegisters.get(index);
@@ -278,8 +327,8 @@ public final class Instrumentation {
                 // source register : p0...pN
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
@@ -288,11 +337,11 @@ public final class Instrumentation {
                 pos++;
             } else if (registerType == RegisterType.LONG_HI_TYPE || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
-                LOGGER.info("Wide type HIGH_HALF!");
+                LOGGER.debug("Wide type HIGH_HALF!");
 
                 // we reached the upper half of a wide-type, no additional move instruction necessary
-                LOGGER.info("(Skipping) source reg:" + sourceRegisters.get(index));
-                LOGGER.info("(Skipping) destination reg: " + destinationRegisters.get(index));
+                LOGGER.debug("(Skipping) source reg:" + sourceRegisters.get(index));
+                LOGGER.debug("(Skipping) destination reg: " + destinationRegisters.get(index));
                 continue;
             } else if (registerType.category == RegisterType.REFERENCE
                     || registerType.category == RegisterType.NULL
@@ -302,13 +351,13 @@ public final class Instrumentation {
                 // object type
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
 
-                LOGGER.info("Object type!");
+                LOGGER.debug("Object type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);
@@ -355,13 +404,13 @@ public final class Instrumentation {
                 // primitive type
                 Opcode movePrimitive = Opcode.MOVE_FROM16;
 
-                LOGGER.info("Primitive type!");
+                LOGGER.debug("Primitive type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);

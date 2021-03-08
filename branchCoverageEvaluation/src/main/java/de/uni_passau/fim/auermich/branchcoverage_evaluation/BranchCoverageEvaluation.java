@@ -33,15 +33,19 @@ public class BranchCoverageEvaluation {
             // tracks the number of total branches per class and method
             Map<String, Map<String, Integer>> branches = new HashMap<>();
 
+            // read number of branches per class (each entry is unique)
             String line;
             while ((line = branchesReader.readLine()) != null) {
-                // each line consists of className->methodName->#branches
+                // each line consists of className->methodName->branchID
                 String[] triple = line.split("->");
-                String clazz = triple[0];
-                String method = triple[1];
-                int numberOfBranches = Integer.parseInt(triple[2]);
-                branches.putIfAbsent(clazz, new HashMap<>());
-                branches.get(clazz).putIfAbsent(method, numberOfBranches);
+
+                if (triple.length == 3) {
+                    // ignore the blank line of the branches.txt at the end
+                    String clazz = triple[0];
+                    String method = triple[1];
+                    branches.putIfAbsent(clazz, new HashMap<>());
+                    branches.get(clazz).merge(method, 1, Integer::sum);
+                }
             }
 
             branchesReader.close();

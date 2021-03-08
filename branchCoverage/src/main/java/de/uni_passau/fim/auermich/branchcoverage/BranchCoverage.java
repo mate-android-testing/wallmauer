@@ -76,7 +76,7 @@ public class BranchCoverage {
      */
     public static void main(String[] args) throws IOException {
 
-        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
+        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
         if (args.length != 1) {
             LOGGER.info("Expect exactly one argument: path to the APK file");
@@ -176,7 +176,7 @@ public class BranchCoverage {
             if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
                     || Utility.isResourceClass(classDef)
                     || Utility.isBuildConfigClass(classDef)) {
-                LOGGER.info("Excluding class: " + className + " from instrumentation!");
+                LOGGER.debug("Excluding class: " + className + " from instrumentation!");
                 classes.add(classDef);
                 continue;
             }
@@ -202,7 +202,7 @@ public class BranchCoverage {
                  */
                 if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
-                    LOGGER.info("Instrumenting method " + method + " of class " + classDef.toString());
+                    LOGGER.info("Instrumenting method " + method + ".");
 
                     // determine the new local registers and free register IDs
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
@@ -234,7 +234,7 @@ public class BranchCoverage {
                     // add instrumented method implementation
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
-                    // write out the number of branches per method
+                    // write out the branches per method
                     Utility.writeBranches(methodInformation);
 
                 } else {

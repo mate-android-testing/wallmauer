@@ -12,13 +12,24 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private final BuilderInstruction instruction;
     private final int position;
     private final Type type;
+    private final boolean attachedToLabel;
 
     public InstrumentationPoint(BuilderInstruction instruction, Type type) {
         this.instruction = instruction;
         this.position = instruction.getLocation().getIndex();
         this.type = type;
+        this.attachedToLabel = instruction.getLocation().getLabels().size() > 0;
     }
 
+    /**
+     * Whether a label is attached to the instruction.
+     *
+     * @return Returns {@code true} if a label is attached to the instruction,
+     *          otherwise {@code false} is returned.
+     */
+    public boolean isAttachedToLabel() {
+        return attachedToLabel;
+    }
 
     public int getPosition() {
         return position;
