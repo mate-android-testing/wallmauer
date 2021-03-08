@@ -1,11 +1,13 @@
 
 # Instrumentation
 
-The instrumentation library offers three modules responsible for:
+The instrumentation library offers five modules responsible for:
 
 * BranchCoverage Instrumentation
 * BranchCoverage Evaluation
 * BranchDistance Instrumentation
+* BasicBlockCoverage Instrumentation
+* BasicBlockCoverage Evaluation
 
 # BranchCoverage Instrumentation:
 
@@ -32,6 +34,21 @@ To invoke the instrumentation run the following command: <br >
 This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
 In addition, a file called **branches.txt** will be generated in the current working directory. It contains
 the number of branches per class, which is relevant for the evaluation of the branch coverage.
+
+# BasicBlockCoverage Instrumentation:
+
+Generate the **basicBlockCoverage.jar** using the supplied gradle task `customFatJar` of the **basicBlockCoverage module**.
+The JAR file can be found within the `build/libs/` folder of the respective module.
+
+To invoke the instrumentation run the following command: <br >
+
+`java -jar basicBlockCoverage.jar <path-to-apk>` <br >
+
+This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
+In addition, a file called **blocks.txt** will be generated in the current working directory. It contains
+a list of all basic blocks. For each basic block its class, method, block id (which is only unique within the same method),
+the number of instructions it contains and whether the block is the target of an if/else-Branch is recorded. This information
+can be used to calculate line- and branch-coverage.
 
 # Workflow:
 
@@ -66,6 +83,17 @@ To invoke the evaluation run the following command: <br >
 `java -jar branchCoverageEvaluation.jar <path-to-branches.txt> <path-to-traces.txt>` <br >
 
 Have a look at the supplied **BranchCoverageEvaluationTest**.
+
+# BasicBlockCoverage Evaluation:
+
+Generate the **basicBlockCoverageEvaluation.jar** using the supplied gradle task `customFatJar` of the **basicBlockCoverageEvaluation module**.
+The JAR file can be found within the `build/libs/` folder of the respective module.
+
+To invoke the evaluation run the following command: <br >
+
+`java -jar basicBlockCoverageEvaluation.jar <path-to-blocks.txt> <path-to-traces.txt>` <br >
+
+Have a look at the supplied **BasicBlockCoverageEvaluationTest**.
 
 # Building Issues:
 
