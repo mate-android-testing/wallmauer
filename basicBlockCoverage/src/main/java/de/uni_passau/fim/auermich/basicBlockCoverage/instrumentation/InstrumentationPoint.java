@@ -12,19 +12,26 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     private final BuilderInstruction instruction;
     private final int position;
     private final Type type;
+    private final boolean attachedToLabel;
+    private int coveredInstructions = -1;
 
-    // defines how many instructions are covered by the basic block
-    private final int coveredInstructions;
-
-    public InstrumentationPoint(BuilderInstruction instruction, Type type, int coveredInstructions) {
+    public InstrumentationPoint(BuilderInstruction instruction, Type type) {
         this.instruction = instruction;
         this.position = instruction.getLocation().getIndex();
         this.type = type;
-        this.coveredInstructions = coveredInstructions;
+        this.attachedToLabel = !instruction.getLocation().getLabels().isEmpty();
+    }
+
+    public boolean isAttachedToLabel() {
+        return attachedToLabel;
     }
 
     public int getCoveredInstructions() {
         return coveredInstructions;
+    }
+
+    public void setCoveredInstructions(int coveredInstructions) {
+        this.coveredInstructions = coveredInstructions;
     }
 
     public int getPosition() {
@@ -53,7 +60,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         if (o instanceof InstrumentationPoint) {
 
             InstrumentationPoint other = (InstrumentationPoint) o;
-            return this.position == other.position && this.type == other.type;
+            return this.position == other.position;
         }
 
         return false;
@@ -61,7 +68,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     @Override
     public int hashCode() {
-        return Objects.hash(position, type);
+        return Objects.hash(position);
     }
 
     @Override
@@ -74,18 +81,12 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         return "IP: " + position + "(" + type + ")";
     }
 
-    public enum  Type {
-
-        ENTRY_STMT,
-        CATCH_BLOCK_WITH_MOVE_EXCEPTION,
-        CATCH_BLOCK_WITHOUT_MOVE_EXCEPTION,
-        EXCEPTIONAL_SUCCESSOR,
-        IF_BRANCH,
-        ELSE_BRANCH,
-        GOTO_BRANCH;
+    public enum Type {
+        IS_BRANCH,
+        NO_BRANCH;
 
         public boolean isBranchType() {
-            return this == IF_BRANCH || this == ELSE_BRANCH;
+            return this == IS_BRANCH;
         }
     }
 }

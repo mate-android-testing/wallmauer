@@ -10,19 +10,24 @@ import java.util.logging.Logger;
 
 public class BasicBlockCoverageEvaluation {
 
-    private static final Logger LOGGER = Logger.getLogger(BasicBlockCoverageEvaluation.class
-            .getName());
+    private static final Logger LOGGER = Logger.getLogger(BasicBlockCoverageEvaluation.class.getName());
 
     private static Map<String, Integer> totalInstructionsPerClass;
     private static Map<String, Integer> totalBranchesPerClass;
     private static Map<String, Integer> coveredInstructionsPerClass;
     private static Map<String, Integer> coveredBranchesPerClass;
 
+    /**
+     * Evaluates the basic block coverage based on the given trace file.
+     *
+     * @param args The command line arguments, see the description below.
+     * @throws IOException Should never happen.
+     */
     public static void main(String[] args) throws IOException {
         LOGGER.setLevel(Level.ALL);
 
         if (args.length != 2) {
-            LOGGER.info("Usage: java -jar basicBlockCoverageEvaluation.jar <path-to-branches.txt> <path-to-traces.txt>");
+            LOGGER.info("Usage: java -jar basicBlockCoverageEvaluation.jar <path-to-blocks.txt> <path-to-traces.txt>");
         } else {
                 totalPerClass(args[0].trim());
                 coveredPerClass(args[1].trim());
@@ -31,7 +36,8 @@ public class BasicBlockCoverageEvaluation {
                 final float coveredInstructions = coveredInstructionsPerClass.getOrDefault(key, 0);
                 final float totalInstructions = totalInstructionsPerClass.get(key);
                 if(coveredInstructions > 0) {
-                    LOGGER.info("We have for the class " + key + " a line coverage of: " + coveredInstructions / totalInstructions * 100 + "%");
+                    LOGGER.info("We have for the class " + key + " a line coverage of: "
+                            + coveredInstructions / totalInstructions * 100 + "%");
                 }
             }
 
@@ -39,7 +45,8 @@ public class BasicBlockCoverageEvaluation {
                 final float coveredBranches = coveredBranchesPerClass.getOrDefault(key, 0);
                 final float totalBranches = totalBranchesPerClass.get(key);
                 if(coveredBranches > 0) {
-                    LOGGER.info("We have for the class " + key + " a branch coverage of: " + coveredBranches / totalBranches * 100 + "%");
+                    LOGGER.info("We have for the class " + key + " a branch coverage of: "
+                            + coveredBranches / totalBranches * 100 + "%");
                 }
             }
         }
@@ -50,22 +57,29 @@ public class BasicBlockCoverageEvaluation {
         totalBranchesPerClass = new HashMap<>();
 
         // Assumes there are not duplicate lines in the file
-        try (BufferedReader branchesReader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filePath))))) {
+        try (BufferedReader branchesReader
+                     = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filePath))))) {
 
-            // Class name -> method name -> instructions count -> branches count
+            // an entry looks as follows: class name -> method name -> block id -> block size -> isBranch
             String line;
             while ((line = branchesReader.readLine()) != null) {
-                final String[] tuple = line.split("->");
-                final String clazz = tuple[0];
-                final int instruction_count = Integer.parseInt(tuple[2].trim());
+
+                final String[] tokens = line.split("->");
+                final String clazz = tokens[0];
+
+                final int instructionCount = Integer.parseInt(tokens[3]);
                 final int recorded = totalInstructionsPerClass.getOrDefault(clazz, 0);
-                totalInstructionsPerClass.put(clazz, recorded + instruction_count);
-                final int noBranches = Integer.parseInt(tuple[3].trim());
-                final int count = totalBranchesPerClass.getOrDefault(clazz, 0);
-                totalBranchesPerClass.put(clazz, count + noBranches);
+                totalInstructionsPerClass.put(clazz, recorded + instructionCount);
+
+                boolean isBranch = tokens[4].equals("isBranch");
+
+                // aggregate branches count per class
+                if (isBranch) {
+                    // add 1 to current count
+                    totalBranchesPerClass.merge(clazz, 1, Integer::sum);
+                }
             }
         }
-
     }
     
     private static void coveredPerClass(final String filePath) throws IOException {
@@ -73,12 +87,13 @@ public class BasicBlockCoverageEvaluation {
         // But for the coverage we only need to count each block once, even if it is executed multiple times
 
         // Class name -> Method name -> Basic block id -> Instruction count
-        final Map<String, Map<String, Map<Integer, Integer>>> instruction_count = new HashMap<>();
+        final Map<String, Map<String, Map<Integer, Integer>>> instructionCount = new HashMap<>();
 
         // Class name -> Method name -> Basic block id
-        final Map<String, Map<String, Set<Integer>>> covered_branches = new HashMap<>();
+        final Map<String, Map<String, Set<Integer>>> coveredBranches = new HashMap<>();
 
-        try (BufferedReader branchesReader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filePath))))) {
+        try (BufferedReader branchesReader
+                     = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filePath))))) {
 
             // Class name -> method name -> id -> instructions count -> isBranch
             String line;
@@ -86,31 +101,32 @@ public class BasicBlockCoverageEvaluation {
                 final String[] tuple = line.split("->");
                 final String clazz = tuple[0];
                 final String method = tuple[1];
-                final Integer blockId = Integer.parseInt(tuple[2].trim());
-                final int count = Integer.parseInt(tuple[3].trim());
-                final boolean isBranch = tuple[4].trim().equals("isBranch");
+                final Integer blockId = Integer.parseInt(tuple[2]);
+                final int count = Integer.parseInt(tuple[3]);
+                final boolean isBranch = tuple[4].equals("isBranch");
 
-                instruction_count.putIfAbsent(clazz, new HashMap<>());
-                instruction_count.get(clazz).putIfAbsent(method, new HashMap<>());
-                instruction_count.get(clazz).get(method).putIfAbsent(blockId, count);
+                instructionCount.putIfAbsent(clazz, new HashMap<>());
+                instructionCount.get(clazz).putIfAbsent(method, new HashMap<>());
+                instructionCount.get(clazz).get(method).putIfAbsent(blockId, count);
 
                 if(isBranch) {
-                    covered_branches.putIfAbsent(clazz, new HashMap<>());
-                    covered_branches.get(clazz).putIfAbsent(method, new HashSet<>());
-                    covered_branches.get(clazz).get(method).add(blockId);
+                    coveredBranches.putIfAbsent(clazz, new HashMap<>());
+                    coveredBranches.get(clazz).putIfAbsent(method, new HashSet<>());
+                    coveredBranches.get(clazz).get(method).add(blockId);
                 }
             }
         }
 
         coveredInstructionsPerClass = new HashMap<>();
-        instruction_count.keySet().forEach(clazz -> {
-            final int coveredInstructions = instruction_count.get(clazz).entrySet().stream().flatMap(e -> e.getValue().entrySet().stream()).mapToInt(Map.Entry::getValue).sum();
+        instructionCount.keySet().forEach(clazz -> {
+            final int coveredInstructions = instructionCount.get(clazz).entrySet().stream()
+                    .flatMap(e -> e.getValue().entrySet().stream()).mapToInt(Map.Entry::getValue).sum();
             coveredInstructionsPerClass.put(clazz, coveredInstructions);
         });
 
         coveredBranchesPerClass = new HashMap<>();
-        covered_branches.keySet().forEach(clazz -> {
-            final int count = covered_branches.get(clazz).values().stream().mapToInt(Set::size).sum();
+        coveredBranches.keySet().forEach(clazz -> {
+            final int count = coveredBranches.get(clazz).values().stream().mapToInt(Set::size).sum();
             coveredBranchesPerClass.put(clazz, count);
         });
     }

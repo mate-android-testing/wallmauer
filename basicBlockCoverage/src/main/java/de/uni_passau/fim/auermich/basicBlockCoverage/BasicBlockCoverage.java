@@ -208,7 +208,7 @@ public class BasicBlockCoverage {
                     Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
 
                     // determine the location of the basic blocks
-                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPointsForBlocks(methodInformation));
+                    methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
                     // determine the location of try blocks
                     methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
@@ -234,8 +234,8 @@ public class BasicBlockCoverage {
                     // add instrumented method implementation
                     Utility.addInstrumentedMethod(methods, methodInformation);
 
-                    // write out the number of branches and instructions per method
-                    Utility.writeInstructionAndBranchCount(methodInformation);
+                    // write out the basic blocks per method
+                    Utility.writeBasicBlocks(methodInformation);
                 } else {
                     // no modification necessary
                     methods.add(method);

@@ -1,5 +1,6 @@
 *.log
 branches.txt
+blocks.txt
 methods.txt
 
 # Created by https://www.gitignore.io/api/intellij+all

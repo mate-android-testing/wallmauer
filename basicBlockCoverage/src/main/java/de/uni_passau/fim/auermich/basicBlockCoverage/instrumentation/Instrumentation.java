@@ -37,12 +37,11 @@ public final class Instrumentation {
      * @param methodInformation    Stores all relevant information about the given method.
      * @param instrumentationPoint Describes the position of the basic block.
      * @param trace                The trace which which should be logged every time the basic block is executed.
-     * @param elseBranch           Whether the location where we instrument refers to an else branch.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
                                                                          InstrumentationPoint instrumentationPoint,
-                                                                         final String trace, boolean elseBranch) {
+                                                                         final String trace) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -57,14 +56,25 @@ public final class Instrumentation {
         int freeRegisterID = methodInformation.getFreeRegisters().get(0);
 
         /*
-         * A method entry that is not the first instruction (it is the first instruction of a catch block)
-         * needs a special treatment. The bytecode verifier ensures that the move-exception instruction must
-         * be the first instruction of the catch block, thus we can't insert any instruction before move-exception.
-         * Instead, we have to insert our trace after the move-exception instruction and thus have to increase
-         * the index by one.
+         * We can't directly insert an instruction before another instruction that is attached to a label.
+         * Consider the following example:
+         *
+         * :label (e.g. an else branch)
+         * instruction
+         *
+         * If we would try to insert our code before the given instruction, the code would be
+         * placed actually before the label, which is not what we want. Instead we need insert our code
+         * after the instruction and swap the instructions afterwards.
+         *
+         * However, there is one special case that needs to be addressed here: The bytecode verifier ensures that
+         * a move-exception instruction must be the first instruction within a catch block, but not all catch blocks
+         * necessarily contain such move-exception instruction. This means whenever an instrumentation point coincides
+         * with the location of a move-exception instruction, we can only insert our code after that instruction.
          */
-        if (instrumentationPoint.getType() == InstrumentationPoint.Type.CATCH_BLOCK_WITH_MOVE_EXCEPTION && index > 0) {
+        boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
+        if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
             index++;
+            swapInstructions = false;
         }
 
         // const-string pN, "basic block identifier" (pN refers to the free register at the end)
@@ -137,7 +147,7 @@ public final class Instrumentation {
             Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
 
-            if (elseBranch) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(index + 1, jumpForward);
                 mutableMethodImplementation.swapInstructions(index, index + 1);
             } else {
@@ -156,7 +166,7 @@ public final class Instrumentation {
             mutableMethodImplementation.addInstruction(afterLastInstruction + 3, jumpBackward);
 
         } else {
-            if (elseBranch) {
+            if (swapInstructions) {
                 mutableMethodImplementation.addInstruction(++index, constString);
                 mutableMethodImplementation.addInstruction(++index, invokeStaticRange);
 
@@ -231,27 +241,21 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
-        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
+        TreeSet<InstrumentationPoint> instrumentationPoints
+                = (TreeSet<InstrumentationPoint>) methodInformation.getInstrumentationPoints();
+        Iterator<InstrumentationPoint> iterator = instrumentationPoints.descendingIterator();
 
         /*
          * Traverse the basic blocks backwards, i.e. the last basic block comes first, in order
          * to avoid inherent index/position updates of other basic blocks while instrumenting.
          */
         while (iterator.hasNext()) {
-
             InstrumentationPoint instrumentationPoint = iterator.next();
             String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
             String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
                     + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
 
-            /*
-             * We can't directly insert a statement before the else branch, instead
-             * we need to insert our code after the first instruction of the else branch
-             * and later swap those instructions.
-             */
-            boolean shiftInstruction = instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH;
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace, shiftInstruction);
+            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
         }
     }
 

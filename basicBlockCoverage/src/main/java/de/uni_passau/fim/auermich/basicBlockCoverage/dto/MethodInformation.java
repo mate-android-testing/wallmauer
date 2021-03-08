@@ -53,9 +53,10 @@ public class MethodInformation {
         this.methodID = methodID;
         this.classDef = classDef;
         this.method = method;
-        methodImplementation = method.getImplementation();
+        this.methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
         this.initialInstructionCount = getInstructions().size();
+        this.instrumentationPoints = new TreeSet<>();
     }
 
     public int getInitialInstructionCount() {
