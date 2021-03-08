@@ -87,6 +87,8 @@ public final class Analyzer {
                 instrumentationPoints.add(ip);
             }
 
+            assert catchBlocks.contains(consumedCodeUnits) || instruction.getInstruction().getOpcode() != Opcode.MOVE_EXCEPTION : "Move exceptions instructions should only appear as the first instruction of a catch-block";
+
             // Every catch block is a leader
             if(!catchBlocks.isEmpty()) {
                     if (catchBlocks.contains(consumedCodeUnits)) {
