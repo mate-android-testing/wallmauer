@@ -222,7 +222,7 @@ public final class Instrumentation {
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
         // check whether the instrumentation point (the original position) lies within a try block
-        if (tryBlocks.stream().anyMatch(range -> range.containsStrict(instrumentationPoint.getPosition()))) {
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
 
             /*
              * The bytecode verifier doesn't allow us to insert our tracer functionality directly within
@@ -494,14 +494,7 @@ public final class Instrumentation {
                         "computeBranchDistance",
                         Lists.newArrayList("Ljava/lang/String;", "I"), "V"));
 
-        // TODO: I have the fear that using the newly created registers for both branches (strings) and arguments (any type)
-        //  could break the verification process. As far as I remember, the type of a register must be consistent
-        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
-        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
-        //  solely for the operation opcode and the max 2 args of if stmts.
-
         // check whether if stmt is located within a try block
-        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
         if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
             /*
              * The bytecode verifier doesn't allow us to insert our functionality directly within
@@ -615,14 +608,7 @@ public final class Instrumentation {
                         "computeBranchDistance",
                         Lists.newArrayList("Ljava/lang/String;", "I", "I"), "V"));
 
-        // TODO: I have the fear that using the newly created registers for both branches (strings) and arguments (any type)
-        //  could break the verification process. As far as I remember, the type of a register must be consistent
-        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
-        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
-        //  solely for the operation opcode and the max 2 args of if stmts.
-
         // check whether if stmt is located within a try block
-        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
         if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
             /*
              * The bytecode verifier doesn't allow us to insert our functionality directly within
@@ -730,14 +716,7 @@ public final class Instrumentation {
                         "computeBranchDistance",
                         Lists.newArrayList("Ljava/lang/String;", "Ljava/lang/Object;"), "V"));
 
-        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
-        //  could break the verification process. As far as I remember, the type of a register must be consistent
-        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
-        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
-        //  solely for the operation opcode and the max 2 args of if stmts.
-
         // check whether if stmt is located within a try block
-        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
         if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
             /*
              * The bytecode verifier doesn't allow us to insert our functionality directly within
@@ -852,14 +831,7 @@ public final class Instrumentation {
                         Lists.newArrayList("Ljava/lang/String;", "Ljava/lang/Object;", "Ljava/lang/Object;"),
                         "V"));
 
-        // TODO: I have the fear that using the newly created for both branches (strings) and arguments (any type)
-        //  could break the verification process. As far as I remember, the type of a register must be consistent
-        //  throughout entire try-catch blocks. Thus, we may require 5 additional registers, where the first two
-        //  are used for branches (actually only 1, the second is for shifting of wide params) and the remaining 3
-        //  solely for the operation opcode and the max 2 args of if stmts.
-
         // check whether if stmt is located within a try block
-        // TODO: check whether 'contains()' is valid for if instruction, may adjust index or strictness relation
         if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
             /*
              * The bytecode verifier doesn't allow us to insert our functionality directly within

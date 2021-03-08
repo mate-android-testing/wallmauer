@@ -4,8 +4,7 @@ import java.util.Objects;
 
 /**
  * Describes a range or interval for integer values.
- * Note that this class is tailored for the description of try blocks.
- * In particular, the contains() method might not suit all needs.
+ * The primary usage of this class is to describe the length of a try block.
  */
 public class Range implements Comparable<Range> {
 

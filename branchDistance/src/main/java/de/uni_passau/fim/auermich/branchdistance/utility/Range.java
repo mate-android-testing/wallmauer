@@ -16,10 +16,6 @@ public class Range implements Comparable<Range> {
         this.end = end;
     }
 
-    public boolean containsStrict(int value) {
-        return start < value && value <= end;
-    }
-
     public boolean contains(int value) {
         return start <= value && value <= end;
     }
