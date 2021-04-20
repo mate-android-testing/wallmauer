@@ -1,32 +1,33 @@
 plugins {
-    id 'java'
+    id 'java-conventions'
+    id 'application'
 }
 
-version 'unspecified'
-
-sourceCompatibility = 1.8
-
-repositories {
-    google()
-    mavenCentral()
+application {
+    mainClass.set("de.uni_passau.fim.auermich.branchcoverage.BranchCoverage")
 }
 
 task customFatJar(type: Jar) {
+
     manifest {
         attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchcoverage.BranchCoverage'
     }
-    baseName = 'branchCoverage'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
 
-dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    compile depends.log4j
+    archiveFileName.set('branchCoverage.jar')
+
+    from {
+        (configurations.compile.findAll { !it.path.endsWith(".pom") }).collect {
+            it.isDirectory() ? it : zipTree(it) }
+
+        (configurations.runtimeClasspath.findAll { !it.path.endsWith(".pom") }).collect {
+            it.isDirectory() ? it : zipTree(it) }
+    }
+
+    with jar
 }
 
 // useful task that shows were dependencies are locally installed
 // https://stackoverflow.com/questions/21417419/how-to-convert-aar-to-jar
 task showMeCache {
-    configurations.compile.each { println it }
+    configurations.compile.findAll() { println it }
 }

@@ -1,6 +1,6 @@
 package de.uni_passau.fim.auermich.branchcoverage_evaluation;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,13 +12,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
-/**
- * Note that the test class only runs with the IntelliJ TestRunner, not with the gradle TestRunner.
- * You have to change under Settings->Build,Run,Execution->Gradle the field 'Run test using:'.
- */
 public class BranchCoverageEvaluationTest {
 
-    // the logger instance
     private static final Logger LOGGER = Logger.getLogger(BranchCoverageEvaluationTest.class
             .getName());
 
@@ -36,7 +31,7 @@ public class BranchCoverageEvaluationTest {
         BufferedReader branchesReader = new BufferedReader(new InputStreamReader(branchesInputStream));
 
         String line;
-        while((line = branchesReader.readLine()) != null){
+        while((line = branchesReader.readLine()) != null) {
             // each line consists of className: #branches
             String[] tuple = line.split(":");
             branches.put(tuple[0], Integer.parseInt(tuple[1].trim()));

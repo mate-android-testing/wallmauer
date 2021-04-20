@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.basicBlockCoverage.utility;
+package de.uni_passau.fim.auermich.basicblockcoverage.utility;
 
 import java.util.Objects;
 

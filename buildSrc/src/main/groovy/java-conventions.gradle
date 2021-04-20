@@ -1,0 +1,87 @@
+// Define Java conventions for this organization.
+// Projects need to use the Java, Checkstyle and Spotbugs plugins.
+
+plugins {
+    id 'java'
+    id 'idea'
+    id 'checkstyle'
+
+    // NOTE: external plugin version is specified in implementation dependency artifact of the project's build file
+    id 'com.github.spotbugs'
+}
+
+// Projects should use Maven Central for external dependencies
+// This could be the organization's private repository
+repositories {
+    mavenCentral()
+}
+
+group 'de.uni-passau.fim.auermich.instrumentation'
+// version '1.0-SNAPSHOT'
+
+compileJava {
+    sourceCompatibility = JavaVersion.VERSION_15
+    targetCompatibility = JavaVersion.VERSION_15
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = "UTF-8"
+}
+
+// includes the libs dir as a flat directory
+repositories {
+    flatDir {
+        dir rootProject.file('libs')
+    }
+}
+
+dependencies {
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.1")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.1")
+
+    // Declare here your shared dependencies.
+
+    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.1'
+
+    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.14.1'
+
+    // since the libs dir is flat, we can access the dependency by its name (don't specify .jar extension)
+    compile name: 'apktool-cli-all'
+    compile name: 'android'
+    compile name: 'androidx'
+
+    compile(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
+        // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2
+        exclude group: 'org.smali', module: 'dexlib2'
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+// Use the Checkstyle rules provided by the convention plugin
+// Do not allow any warnings
+checkstyle {
+    // config = resources.text.fromString(com.example.CheckstyleUtil.getCheckstyleConfig("/checkstyle.xml"))
+    maxWarnings = 0
+}
+
+// Enable deprecation messages when compiling Java code
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << "-Xlint:deprecation"
+}

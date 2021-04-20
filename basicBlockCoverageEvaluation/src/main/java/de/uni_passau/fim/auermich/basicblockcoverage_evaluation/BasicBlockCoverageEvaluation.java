@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.basicBlockCoverageEvaluation;
+package de.uni_passau.fim.auermich.basicblockcoverage_evaluation;
 
 import java.io.*;
 import java.util.HashMap;

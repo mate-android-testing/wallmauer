@@ -1,14 +1,13 @@
-package de.uni_passau.fim.auermich.basicBlockCoverage.analysis;
+package de.uni_passau.fim.auermich.basicblockcoverage.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.basicBlockCoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.basicBlockCoverage.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.basicBlockCoverage.utility.Range;
+import de.uni_passau.fim.auermich.basicblockcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.basicblockcoverage.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.basicblockcoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Format;
-import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
