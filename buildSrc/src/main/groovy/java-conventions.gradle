@@ -53,11 +53,11 @@ dependencies {
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.14.1'
 
     // since the libs dir is flat, we can access the dependency by its name (don't specify .jar extension)
-    compile name: 'apktool-cli-all'
-    compile name: 'android'
-    compile name: 'androidx'
+    implementation name: 'apktool-cli-all'
+    implementation name: 'android'
+    implementation name: 'androidx'
 
-    compile(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
+    implementation(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
         // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2
         exclude group: 'org.smali', module: 'dexlib2'
     }
