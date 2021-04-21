@@ -20,8 +20,8 @@ group 'de.uni-passau.fim.auermich.instrumentation'
 // version '1.0-SNAPSHOT'
 
 compileJava {
-    sourceCompatibility = JavaVersion.VERSION_15
-    targetCompatibility = JavaVersion.VERSION_15
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 tasks.withType(JavaCompile) {
