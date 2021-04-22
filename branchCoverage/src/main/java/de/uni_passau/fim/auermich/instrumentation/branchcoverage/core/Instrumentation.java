@@ -1,10 +1,10 @@
-package de.uni_passau.fim.auermich.branchcoverage.instrumentation;
+package de.uni_passau.fim.auermich.instrumentation.branchcoverage.core;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchcoverage.BranchCoverage;
-import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Range;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Range;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Opcode;

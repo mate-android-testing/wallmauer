@@ -1,11 +1,11 @@
-package de.uni_passau.fim.auermich.branchcoverage;
+package de.uni_passau.fim.auermich.instrumentation.branchcoverage;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchcoverage.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchcoverage.instrumentation.Instrumentation;
-import de.uni_passau.fim.auermich.branchcoverage.utility.Utility;
-import de.uni_passau.fim.auermich.branchcoverage.xml.ManifestParser;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.analysis.Analyzer;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.core.Instrumentation;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.xml.ManifestParser;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;

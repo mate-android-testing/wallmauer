@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.utility;
+package de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility;
 
 import java.util.Objects;
 

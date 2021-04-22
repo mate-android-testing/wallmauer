@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.xml;
+package de.uni_passau.fim.auermich.instrumentation.branchcoverage.xml;
 
 import org.junit.jupiter.api.Test;
 

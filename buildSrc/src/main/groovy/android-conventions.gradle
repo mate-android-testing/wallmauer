@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+// Projects should use Maven Central for external dependencies
+// This could be the organization's private repository
+repositories {
+    mavenCentral()
+}
+
+group 'de.uni-passau.fim.auermich.instrumentation'
+
+compileJava {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = "UTF-8"
+}
+
+// includes the libs dir as a flat directory
+repositories {
+    flatDir {
+        dir rootProject.file('libs')
+    }
+}
+
+dependencies {
+    implementation name: 'android'
+    implementation name: 'androidx'
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+// Enable deprecation messages when compiling Java code
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << "-Xlint:deprecation"
+}

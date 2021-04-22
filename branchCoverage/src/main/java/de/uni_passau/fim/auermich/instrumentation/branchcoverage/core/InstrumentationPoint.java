@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchcoverage.instrumentation;
+package de.uni_passau.fim.auermich.instrumentation.branchcoverage.core;
 
 import org.jf.dexlib2.builder.BuilderInstruction;
 
