@@ -4,13 +4,16 @@ plugins {
 }
 
 application {
-    mainClass.set("de.uni_passau.fim.auermich.branchcoverage.BranchCoverage")
+    mainClass.set("de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage")
 }
+
+// If we really need to include the resource directory from the tracer sub project, check out:
+// https://stackoverflow.com/questions/20136214/gradle-common-resource-dependency-for-multiple-java-projects/43686346
 
 task customFatJar(type: Jar) {
 
     manifest {
-        attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchcoverage.BranchCoverage'
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage'
     }
 
     archiveFileName.set('branchCoverage.jar')

@@ -20,8 +20,8 @@ group 'de.uni-passau.fim.auermich.instrumentation'
 // version '1.0-SNAPSHOT'
 
 compileJava {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_15
+    targetCompatibility = JavaVersion.VERSION_15
 }
 
 tasks.withType(JavaCompile) {
@@ -60,8 +60,6 @@ dependencies {
         // make use of the latest dexlib2 version
         exclude group: 'org.smali', module: 'dexlib2'
     }
-    implementation name: 'android'
-    implementation name: 'androidx'
 
     implementation(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
         // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2
