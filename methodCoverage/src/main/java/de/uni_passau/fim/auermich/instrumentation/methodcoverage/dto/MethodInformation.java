@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.methodcoverage.dto;
+package de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto;
 
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.iface.ClassDef;

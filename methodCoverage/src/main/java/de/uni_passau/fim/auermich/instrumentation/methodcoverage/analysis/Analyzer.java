@@ -1,8 +1,8 @@
-package de.uni_passau.fim.auermich.methodcoverage.analysis;
+package de.uni_passau.fim.auermich.instrumentation.methodcoverage.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.methodcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto.MethodInformation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.analysis.*;

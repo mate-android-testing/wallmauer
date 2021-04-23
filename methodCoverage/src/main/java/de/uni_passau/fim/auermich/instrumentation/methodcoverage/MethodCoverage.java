@@ -1,11 +1,11 @@
-package de.uni_passau.fim.auermich.methodcoverage;
+package de.uni_passau.fim.auermich.instrumentation.methodcoverage;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.methodcoverage.analysis.Analyzer;
-import de.uni_passau.fim.auermich.methodcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.methodcoverage.instrumentation.Instrumentation;
-import de.uni_passau.fim.auermich.methodcoverage.utility.Utility;
-import de.uni_passau.fim.auermich.methodcoverage.xml.ManifestParser;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.analysis.Analyzer;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.core.Instrumentation;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.xml.ManifestParser;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;

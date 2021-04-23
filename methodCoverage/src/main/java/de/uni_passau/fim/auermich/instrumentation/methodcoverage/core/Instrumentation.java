@@ -1,9 +1,9 @@
-package de.uni_passau.fim.auermich.methodcoverage.instrumentation;
+package de.uni_passau.fim.auermich.instrumentation.methodcoverage.core;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.methodcoverage.MethodCoverage;
-import de.uni_passau.fim.auermich.methodcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.methodcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.MethodCoverage;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.methodcoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Opcode;

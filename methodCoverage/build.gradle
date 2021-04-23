@@ -4,13 +4,13 @@ plugins {
 }
 
 application {
-    mainClass.set("de.uni_passau.fim.auermich.methodcoverage.MethodCoverage")
+    mainClass.set("de.uni_passau.fim.auermich.instrumentation.methodcoverage.MethodCoverage")
 }
 
 task customFatJar(type: Jar) {
 
     manifest {
-        attributes 'Main-Class': 'de.uni_passau.fim.auermich.methodcoverage.MethodCoverage'
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.instrumentation.methodcoverage.MethodCoverage'
     }
 
     archiveFileName.set('methodCoverage.jar')
