@@ -1,11 +1,11 @@
-package de.uni_passau.fim.auermich.branchdistance.instrumentation;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance.core;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
-import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchdistance.utility.Range;
-import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.BranchDistance;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis.Analyzer;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Utility;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;

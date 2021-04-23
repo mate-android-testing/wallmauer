@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchdistance.utility;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance.utility;
 
 import brut.androlib.Androlib;
 import brut.androlib.ApkDecoder;
@@ -7,10 +7,9 @@ import brut.common.BrutException;
 import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
-import de.uni_passau.fim.auermich.branchdistance.BranchDistance;
-import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.BranchDistance;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.InstrumentationPoint;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;

@@ -4,13 +4,13 @@ plugins {
 }
 
 application {
-    mainClass.set("de.uni_passau.fim.auermich.branchdistance.BranchDistance")
+    mainClass.set("de.uni_passau.fim.auermich.instrumentation.branchdistance.BranchDistance")
 }
 
 task customFatJar(type: Jar) {
 
     manifest {
-        attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchdistance.BranchDistance'
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.instrumentation.branchdistance.BranchDistance'
     }
 
     archiveFileName.set('branchDistance.jar')

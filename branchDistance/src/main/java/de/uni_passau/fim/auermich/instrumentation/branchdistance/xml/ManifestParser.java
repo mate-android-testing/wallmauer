@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchdistance.xml;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance.xml;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

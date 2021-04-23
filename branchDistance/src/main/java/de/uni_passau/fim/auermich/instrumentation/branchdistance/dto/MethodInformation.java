@@ -1,8 +1,8 @@
-package de.uni_passau.fim.auermich.branchdistance.dto;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance.dto;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.branchdistance.utility.Range;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;

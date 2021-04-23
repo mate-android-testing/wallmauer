@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchdistance.utility;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance.utility;
 
 import java.util.Objects;
 

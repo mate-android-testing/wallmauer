@@ -1,11 +1,11 @@
-package de.uni_passau.fim.auermich.branchdistance;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchdistance.analysis.Analyzer;
-import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchdistance.instrumentation.Instrumentation;
-import de.uni_passau.fim.auermich.branchdistance.utility.Utility;
-import de.uni_passau.fim.auermich.branchdistance.xml.ManifestParser;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis.Analyzer;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.Instrumentation;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Utility;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.xml.ManifestParser;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;

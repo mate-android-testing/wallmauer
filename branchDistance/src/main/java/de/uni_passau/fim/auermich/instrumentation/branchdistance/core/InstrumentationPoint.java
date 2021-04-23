@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.branchdistance.instrumentation;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance.core;
 
 import org.jf.dexlib2.builder.BuilderInstruction;
 import java.util.Objects;

@@ -1,10 +1,10 @@
-package de.uni_passau.fim.auermich.branchdistance.analysis;
+package de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.branchdistance.dto.MethodInformation;
-import de.uni_passau.fim.auermich.branchdistance.instrumentation.InstrumentationPoint;
-import de.uni_passau.fim.auermich.branchdistance.utility.Range;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Opcode;
