@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.basicblockcoverage.instrumentation;
+package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core;
 
 import org.jf.dexlib2.builder.BuilderInstruction;
 

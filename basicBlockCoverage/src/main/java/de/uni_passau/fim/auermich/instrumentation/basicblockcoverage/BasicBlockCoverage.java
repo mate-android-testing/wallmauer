@@ -1,11 +1,11 @@
-package de.uni_passau.fim.auermich.basicblockcoverage;
+package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage;
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.basicblockcoverage.analysis.Analyzer;
-import de.uni_passau.fim.auermich.basicblockcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.basicblockcoverage.instrumentation.Instrumentation;
-import de.uni_passau.fim.auermich.basicblockcoverage.utility.Utility;
-import de.uni_passau.fim.auermich.basicblockcoverage.xml.ManifestParser;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.analysis.Analyzer;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core.Instrumentation;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Utility;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.xml.ManifestParser;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;

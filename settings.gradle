@@ -7,6 +7,8 @@ include 'basicBlockCoverageEvaluation'
 include 'methodCoverage'
 include 'branchCoverage:tracer'
 include 'branchDistance:tracer'
+include 'basicBlockCoverage:tracer'
 findProject(':branchCoverage:tracer')?.name = 'tracer'
 findProject(':branchDistance:tracer')?.name = 'tracer'
+findProject(':basicBlockCoverage:tracer')?.name = 'tracer'
 

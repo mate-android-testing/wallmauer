@@ -4,13 +4,13 @@ plugins {
 }
 
 application {
-    mainClass.set("de.uni_passau.fim.auermich.basicblockcoverage.BasicBlockCoverage")
+    mainClass.set("de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.BasicBlockCoverage")
 }
 
 task customFatJar(type: Jar) {
 
     manifest {
-        attributes 'Main-Class': 'de.uni_passau.fim.auermich.basicblockcoverage.BasicBlockCoverage'
+        attributes 'Main-Class': 'de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.BasicBlockCoverage'
     }
 
     archiveFileName.set('basicBlockCoverage.jar')

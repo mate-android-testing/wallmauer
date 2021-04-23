@@ -1,0 +1,4 @@
+plugins {
+    id 'android-conventions'
+    id 'java-library'
+}

@@ -1,4 +1,4 @@
-package de.uni_passau.fim.auermich.basicblockcoverage.utility;
+package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility;
 
 import brut.androlib.Androlib;
 import brut.androlib.ApkDecoder;
@@ -7,9 +7,9 @@ import brut.common.BrutException;
 import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
-import de.uni_passau.fim.auermich.basicblockcoverage.BasicBlockCoverage;
-import de.uni_passau.fim.auermich.basicblockcoverage.dto.MethodInformation;
-import de.uni_passau.fim.auermich.basicblockcoverage.instrumentation.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.BasicBlockCoverage;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core.InstrumentationPoint;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
