@@ -91,7 +91,7 @@ modules.xml
 
 
 
-reated by https://www.gitignore.io/api/gradle
+# created by https://www.gitignore.io/api/gradle
 
 ### Gradle ###
 .gradle
