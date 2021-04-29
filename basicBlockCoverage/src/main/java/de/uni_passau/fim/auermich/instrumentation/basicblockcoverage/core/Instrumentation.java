@@ -31,6 +31,8 @@ public final class Instrumentation {
 
     private static final Logger LOGGER = LogManager.getLogger(Instrumentation.class);
 
+    private static final String TRACER = "Lde/uni_passau/fim/auermich/tracer/Tracer;";
+
     /**
      * Instruments the given basic block with the tracer functionality.
      *
@@ -84,7 +86,7 @@ public final class Instrumentation {
         // invoke-static-range
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 freeRegisterID, 1,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "trace",
+                new ImmutableMethodReference(TRACER, "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
         // check whether the branch is located within a try block

@@ -5,8 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ManifestParserTest {
 
@@ -23,6 +22,8 @@ public class ManifestParserTest {
         assertTrue(manifest.parseManifest(), "Couldn't parse manifest properly!");
         assertNotNull(manifest.getMainActivity(), "Couldn't parse MainActivity!");
         assertNotNull(manifest.getPackageName(), "Couldn't parse PackageName!");
+        assertEquals(manifest.getMainActivity(), "bbc.mobile.news.v3.app.TopLevelActivity");
+        assertEquals(manifest.getPackageName(), "bbc.mobile.news.ww");
     }
 
     /**
@@ -39,5 +40,7 @@ public class ManifestParserTest {
         assertTrue(manifest.parseManifest(), "Couldn't parse manifest properly!");
         assertNotNull(manifest.getMainActivity(), "Couldn't parse MainActivity!");
         assertNotNull(manifest.getPackageName(), "Couldn't parse PackageName!");
+        assertEquals(manifest.getMainActivity(), "com.simplemobiletools.calendar.activities.SplashActivity");
+        assertEquals(manifest.getPackageName(), "com.simplemobiletools.calendar");
     }
 }

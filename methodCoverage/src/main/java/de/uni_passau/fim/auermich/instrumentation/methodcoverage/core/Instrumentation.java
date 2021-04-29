@@ -29,6 +29,8 @@ public final class Instrumentation {
 
     private static final Logger LOGGER = LogManager.getLogger(Instrumentation.class);
 
+    private static final String TRACER = "Lde/uni_passau/fim/auermich/tracer/Tracer;";
+
     /**
      * Instruments the method entry with a trace. Also increases the method's registry count.
      *
@@ -56,7 +58,7 @@ public final class Instrumentation {
         // invoke trace(method id)
         BuilderInstruction3rc invokeStaticRange = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 freeRegisterID, 1,
-                new ImmutableMethodReference("Lde/uni_passau/fim/auermich/tracer/Tracer;", "trace",
+                new ImmutableMethodReference(TRACER, "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V"));
 
         mutableMethodImplementation.addInstruction(0, constString);

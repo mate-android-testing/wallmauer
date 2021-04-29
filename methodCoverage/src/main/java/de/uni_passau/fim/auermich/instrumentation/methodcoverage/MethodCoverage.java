@@ -198,7 +198,7 @@ public class MethodCoverage {
                  */
                 if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
-                    LOGGER.info("Instrumenting method " + method + " of class " + classDef.toString());
+                    LOGGER.info("Instrumenting method " + method + " of class " + classDef);
 
                     // determine the new local registers and free register IDs
                     Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);

@@ -57,8 +57,7 @@ public class ManifestParser {
                     LOGGER.warn("Couldn't derive package name!");
                     return false;
                 } else {
-                    // we need to add a missing slash to the packageName
-                    packageName = element.getAttribute("package") + "/";
+                    packageName = element.getAttribute("package");
                 }
             }
 
