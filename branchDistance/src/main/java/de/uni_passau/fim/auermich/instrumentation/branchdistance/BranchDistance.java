@@ -43,6 +43,9 @@ public class BranchDistance {
     // the API opcode level defined in the dex header (can be derived automatically)
     public static int OPCODE_API = 28;
 
+    // whether only classes belonging to the app package should be instrumented
+    private static boolean onlyInstrumentAUTClasses = false;
+
     /*
      * Defines the number of additional registers. We require one additional register
      * for storing the unique branch id. Then, we need two additional registers for holding
@@ -61,18 +64,27 @@ public class BranchDistance {
     private static final int MAX_TOTAL_REGISTERS = 255;
 
     /**
-     * Processes the command line arguments. The following
-     * arguments are mandatory:
+     * Processes the command line arguments. The following arguments are supported:
      * <p>
-     * 1) the path to the APK file.
+     * 1) The path to the APK file.
+     * 2) The flag --only-aut to instrument only classes belonging to the app package (optional).
      *
      * @param args The command line arguments.
      */
     private static void handleArguments(String[] args) {
-        assert args.length == 1;
+        assert args.length >= 1 && args.length <= 2;
 
         apkPath = Objects.requireNonNull(args[0]);
         LOGGER.info("The path to the APK file is: " + apkPath);
+
+        if (args.length == 2) {
+            if (args[1].equals("--only-aut")) {
+                LOGGER.info("Only instrumenting classes belonging to the app package!");
+                onlyInstrumentAUTClasses = true;
+            } else {
+                LOGGER.info("Argument " + args[1] + " not recognized!");
+            }
+        }
     }
 
     /**
@@ -80,14 +92,15 @@ public class BranchDistance {
      * solely the APK is required as input.
      *
      * @param args A single commandline argument specifying the path to the APK file.
-     * @throws IOException        Should never happen.
+     * @throws IOException Should never happen.
      */
     public static void main(String[] args) throws IOException {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
 
-        if (args.length != 1) {
-            LOGGER.info("Expect exactly one argument: path to the APK file");
+        if (args.length < 1 || args.length > 2) {
+            LOGGER.info("Wrong number of arguments!");
+            LOGGER.info("Usage: java -jar branchDistance.jar <path to the APK file> --only-aut (optional)");
         } else {
 
             // process command line arguments
@@ -102,6 +115,14 @@ public class BranchDistance {
             // decode the APK file
             decodedAPKPath = Utility.decodeAPK(apkFile);
 
+            ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
+
+            // retrieve package name and main activity
+            if (!manifest.parseManifest()) {
+                LOGGER.warn("Couldn't retrieve MainActivity and/or PackageName!");
+                return;
+            }
+
             /*
              * TODO: Directly read from APK file if possible (exception so far). This
              *  should be fixed with the next release, check the github page of (multi)dexlib2.
@@ -115,9 +136,7 @@ public class BranchDistance {
                     new BasicDexFileNamer(), null, null);
 
             // instrument + write merged dex file to directory
-            instrument(mergedDex, exclusionPattern);
-
-            ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
+            instrument(mergedDex, exclusionPattern, manifest.getPackageName());
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
@@ -156,9 +175,11 @@ public class BranchDistance {
      *
      * @param dexFile          The dexFile containing the classes and methods.
      * @param exclusionPattern A pattern describing classes that should be excluded from instrumentation.
+     * @param packageName      The package name of the app.
      * @throws IOException Should never happen.
      */
-    private static void instrument(DexFile dexFile, Pattern exclusionPattern) throws IOException {
+    private static void instrument(DexFile dexFile, final Pattern exclusionPattern,
+                                   final String packageName) throws IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
 
@@ -170,10 +191,19 @@ public class BranchDistance {
         // the set of classes we write into the instrumented classes.dex file
         List<ClassDef> classes = Lists.newArrayList();
 
+        LOGGER.info("Package Name: " + packageName);
+
         for (ClassDef classDef : dexFile.getClasses()) {
 
             // the class name is part of the method id
             String className = Utility.dottedClassName(classDef.getType());
+
+            // if only classes belonging to the app package should be instrumented
+            if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
+                LOGGER.info("Excluding class: " + className + " from instrumentation!");
+                classes.add(classDef);
+                continue;
+            }
 
             // exclude certain packages/classes from instrumentation, e.g. android.widget.*
             if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
@@ -232,7 +262,7 @@ public class BranchDistance {
                  */
                 if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
-                    LOGGER.info("Instrumenting method " + method.toString());
+                    LOGGER.info("Instrumenting method " + method);
 
                     // determine the new local registers and free register IDs
                     Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
@@ -278,7 +308,11 @@ public class BranchDistance {
                 }
             }
 
-            // add dummy implementation for missing activity/fragment lifecycle methods
+            /*
+            * We add a dummy implementation for missing activity/fragment lifecycle methods
+            * in order to get traces for those methods. Otherwise, the graph lacks markings
+            * for those lifecycle methods.
+             */
             if (isActivity) {
                 LOGGER.info("Missing activity lifecycle methods: " + activityLifeCycleMethods);
                 activityLifeCycleMethods.forEach(method -> Instrumentation.addLifeCycleMethod(method, methods, classDef));

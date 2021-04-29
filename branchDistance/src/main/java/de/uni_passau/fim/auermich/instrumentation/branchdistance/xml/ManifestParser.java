@@ -57,8 +57,7 @@ public class ManifestParser {
                     LOGGER.info("Couldn't derive package name!");
                     return false;
                 } else {
-                    // we need to add a missing slash to the packageName
-                    packageName = element.getAttribute("package") + "/";
+                    packageName = element.getAttribute("package");
                 }
             }
 
@@ -181,7 +180,6 @@ public class ManifestParser {
         LOGGER.info("Adding permission " + permission + " to Manifest!");
 
         try {
-
             File xmlFile = new File(MANIFEST);
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
@@ -223,8 +221,8 @@ public class ManifestParser {
         } catch (Exception e) {
             LOGGER.warn("Couldn't parse AndroidManifest.xml");
             LOGGER.warn(e.getMessage());
+            return false;
         }
-        return false;
     }
 
     /**

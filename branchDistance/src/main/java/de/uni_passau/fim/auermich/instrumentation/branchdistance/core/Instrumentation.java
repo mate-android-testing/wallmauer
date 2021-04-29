@@ -77,14 +77,13 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString() + "->" + method + "->entry")));
+                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                     0, 1,
                     new ImmutableMethodReference(TRACER, "trace",
                             Lists.newArrayList("Ljava/lang/String;"), "V")));
-
 
             // call super method (we have one register for this reference + one register for each parameter)
             implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
@@ -114,7 +113,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString() + "->" + method + "->entry")));
+                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
