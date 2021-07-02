@@ -77,7 +77,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
+                    new ImmutableStringReference(classDef + "->" + method + "->entry->0")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -93,7 +93,7 @@ public final class Instrumentation {
 
             // exit string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString() + "->" + method + "->exit")));
+                    new ImmutableStringReference(classDef + "->" + method + "->exit->1")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -113,7 +113,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
+                    new ImmutableStringReference(classDef + "->" + method + "->entry->0")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -132,7 +132,7 @@ public final class Instrumentation {
 
             // exit string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef.toString() + "->" + method + "->exit")));
+                    new ImmutableStringReference(classDef + "->" + method + "->exit->2")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
