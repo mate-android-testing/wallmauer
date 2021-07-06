@@ -44,6 +44,10 @@ public final class Instrumentation {
      * Adds a basic lifecycle method to the given activity or fragment class. This already
      * includes the instrumentation of the method.
      *
+     * NOTE: We don't assign the instruction index to the entry and exit traces, since
+     * the original APK don't contain these methods and in the graph those methods would be represented
+     * by dummy CFGs not defining any instruction vertex. Hence, the lookup would fail.
+     *
      * @param method   The lifecycle method name.
      * @param methods  The list of methods belonging to the class.
      * @param classDef The activity or fragment class.
@@ -77,7 +81,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->entry->0")));
+                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -93,7 +97,7 @@ public final class Instrumentation {
 
             // exit string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->exit->1")));
+                    new ImmutableStringReference(classDef + "->" + method + "->exit")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -113,7 +117,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->entry->0")));
+                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -132,7 +136,7 @@ public final class Instrumentation {
 
             // exit string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->exit->2")));
+                    new ImmutableStringReference(classDef + "->" + method + "->exit")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
