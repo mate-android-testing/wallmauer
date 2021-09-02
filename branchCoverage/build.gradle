@@ -33,4 +33,5 @@ task customFatJar(type: Jar) {
 // https://stackoverflow.com/questions/21417419/how-to-convert-aar-to-jar
 task showMeCache {
     configurations.compile.findAll() { println it }
+    configurations.runtimeClasspath.findAll() {println it }
 }
