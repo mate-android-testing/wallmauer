@@ -43,7 +43,7 @@ public final class Instrumentation {
     /**
      * Adds a basic lifecycle method to the given activity or fragment class. This already
      * includes the instrumentation of the method.
-     *
+     * <p>
      * NOTE: We don't assign the instruction index to the entry and exit traces, since
      * the original APK don't contain these methods and in the graph those methods would be represented
      * by dummy CFGs not defining any instruction vertex. Hence, the lookup would fail.
@@ -169,10 +169,10 @@ public final class Instrumentation {
     /**
      * Inserts the tracer functionality at the given instrumentation point.
      *
-     * @param methodInformation Stores all relevant information about the given method.
+     * @param methodInformation    Stores all relevant information about the given method.
      * @param instrumentationPoint Describes where to insert the tracer invocation.
-     * @param id                The id which identifies the given instrumentation point,
-     *                          e.g. packageName->className->method->branchID.
+     * @param id                   The id which identifies the given instrumentation point,
+     *                             e.g. packageName->className->method->branchID.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
@@ -333,7 +333,7 @@ public final class Instrumentation {
      * and exit is instrumented.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
-     * @param dexFile The dex file containing the method.
+     * @param dexFile           The dex file containing the method.
      */
     public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
 
@@ -458,10 +458,10 @@ public final class Instrumentation {
      * Inserts code to invoke the branch distance computation for an if statement that has
      * a single primitive argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, int argument)'.
      *
-     * @param methodInformation Encapsulates a method.
-     * @param instrumentationPoint  Wrapper for if instruction and its index.
-     * @param operation         The operation id, e.g. 0 for if-eqz.
-     * @param registerA         The register id of the argument register.
+     * @param methodInformation    Encapsulates a method.
+     * @param instrumentationPoint Wrapper for if instruction and its index.
+     * @param operation            The operation id, e.g. 0 for if-eqz.
+     * @param registerA            The register id of the argument register.
      */
     private static void handlePrimitiveUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                        int operation, int registerA) {
@@ -564,11 +564,11 @@ public final class Instrumentation {
      * two primitive arguments, e.g. if-eq v0, v1. We simply call '
      * branchDistance(int op_type, int argument1, int argument2)'.
      *
-     * @param methodInformation Encapsulates a method.
-     * @param instrumentationPoint  Wrapper for if instruction and its index.
-     * @param operation         The operation id, e.g. 0 for if-eq v0, v1.
-     * @param registerA         The register id of the first argument register.
-     * @param registerB         The register id of the second argument register.
+     * @param methodInformation    Encapsulates a method.
+     * @param instrumentationPoint Wrapper for if instruction and its index.
+     * @param operation            The operation id, e.g. 0 for if-eq v0, v1.
+     * @param registerA            The register id of the first argument register.
+     * @param registerB            The register id of the second argument register.
      */
     private static void handlePrimitiveBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                         int operation, int registerA, int registerB) {
@@ -680,10 +680,10 @@ public final class Instrumentation {
      * Inserts code to invoke the branch distance computation for an if statement that has
      * a single object argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, Object argument)'.
      *
-     * @param methodInformation Encapsulates a method.
-     * @param instrumentationPoint  Wrapper for if instruction and its index.
-     * @param operation         The operation id, e.g. 0 for if-eqz.
-     * @param registerA         The register id of the argument register.
+     * @param methodInformation    Encapsulates a method.
+     * @param instrumentationPoint Wrapper for if instruction and its index.
+     * @param operation            The operation id, e.g. 0 for if-eqz.
+     * @param registerA            The register id of the argument register.
      */
     private static void handleObjectUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                     int operation, int registerA) {
@@ -786,11 +786,11 @@ public final class Instrumentation {
      * two object arguments, e.g. if-eq v0, v1. We simply call '
      * branchDistance(int op_type, Object argument1, Object argument2)'.
      *
-     * @param methodInformation Encapsulates a method.
-     * @param instrumentationPoint  Wrapper for if instruction and its index.
-     * @param operation         The operation id, e.g. 0 for if-eq v0, v1.
-     * @param registerA         The register id of the first argument register.
-     * @param registerB         The register id of the second argument register.
+     * @param methodInformation    Encapsulates a method.
+     * @param instrumentationPoint Wrapper for if instruction and its index.
+     * @param operation            The operation id, e.g. 0 for if-eq v0, v1.
+     * @param registerA            The register id of the first argument register.
+     * @param registerB            The register id of the second argument register.
      */
     private static void handleObjectBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                      int operation, int registerA, int registerB) {
@@ -971,24 +971,45 @@ public final class Instrumentation {
      * Instruments the method entry, i.e. before the first or the first instruction within a catch block a trace is inserted.
      *
      * @param methodInformation Encapsulates the method to be instrumented.
-     * @param dexFile The dex file containing the method.
+     * @param dexFile           The dex file containing the method.
      */
     private static void instrumentMethodEntry(MethodInformation methodInformation, DexFile dexFile) {
 
         /*
-         * The builder instruction wrapped by an instrumentation point is not inherently updated.
-         * This causes that the method location, in particular the instruction index, is out of date.
+         * The builder instruction wrapped by an instrumentation point is not inherently updated. This causes that the
+         * method location, in particular the instruction index, is out of date, since we already instrumented branches.
          * We need to request the up-to-date instrumentation points again and overwrite the old instructions.
-         * Note that through the backward instrumentation the builder instruction index stays up to date.
          * See https://github.com/JesusFreke/smali/issues/786 for more details on this issue.
          */
         List<InstrumentationPoint> oldInstrumentationPoints = new ArrayList<>(methodInformation.getMethodEntries());
         List<InstrumentationPoint> newInstrumentationPoints
                 = new ArrayList<>(Analyzer.trackMethodEntries(methodInformation, dexFile));
 
-        for (int i=0; i < oldInstrumentationPoints.size(); i++) {
+        /*
+         * Since we instrument branches and if statements before, we may introduce/remove a method entry.
+         * For instance, assume that the first instruction is located both within a try block and a branch.
+         * Further assume that the first instruction can potentially throw an exception. By the definition of
+         * beginning instructions (in our context method entries), also the first instruction within the catch
+         * block is considered a method entry. Now, however, we first instrument branches and if statements.
+         * Since the first instruction is located within a branch, and in addition within a try block, a goto
+         * instruction gets inserted, which jumps to the end, calls the tracer and jumps backward. Because this
+         * goto instruction can not throw an exception, the second look up of the method entries only identifies
+         * the first instruction as a method entry, not anymore the first instruction of the catch block. For more
+         * details on this issue see: https://gitlab.infosun.fim.uni-passau.de/auermich/instrumentation/-/issues/25.
+         * The current fix is to simply ignore the lost method entry for the instrumentation.
+         */
+        if (oldInstrumentationPoints.size() != newInstrumentationPoints.size()) {
+            LOGGER.warn("Gained/Lost method entry due to instrumentation for method: " + methodInformation.getMethodID());
+            LOGGER.warn("Old method entries: " + oldInstrumentationPoints);
+            LOGGER.warn("New method entries: " + newInstrumentationPoints);
+        }
+
+        int min = Math.min(oldInstrumentationPoints.size(), newInstrumentationPoints.size());
+
+        for (int i = 0; i < min; i++) {
             InstrumentationPoint oldPoint = oldInstrumentationPoints.get(i);
             InstrumentationPoint newPoint = newInstrumentationPoints.get(i);
+
             // update old point with new instruction
             oldPoint.setInstruction(newPoint.getInstruction());
         }
@@ -1016,16 +1037,16 @@ public final class Instrumentation {
     private static void instrumentMethodExit(MethodInformation methodInformation) {
 
         /*
-        * The builder instruction wrapped by an instrumentation point is not inherently updated.
-        * This causes that the method location, in particular the instruction index, is out of date.
-        * We need to request the up-to-date instrumentation points again and overwrite the old instructions.
-        * Note that through the backward instrumentation the builder instruction index stays up to date.
-        * See https://github.com/JesusFreke/smali/issues/786 for more details on this issue.
+         * The builder instruction wrapped by an instrumentation point is not inherently updated.
+         * This causes that the method location, in particular the instruction index, is out of date.
+         * We need to request the up-to-date instrumentation points again and overwrite the old instructions.
+         * Note that through the backward instrumentation the builder instruction index stays up to date.
+         * See https://github.com/JesusFreke/smali/issues/786 for more details on this issue.
          */
         List<InstrumentationPoint> oldInstrumentationPoints = new ArrayList<>(methodInformation.getMethodExits());
         List<InstrumentationPoint> newInstrumentationPoints = new ArrayList<>(Analyzer.trackMethodExits(methodInformation));
 
-        for (int i=0; i < oldInstrumentationPoints.size(); i++) {
+        for (int i = 0; i < oldInstrumentationPoints.size(); i++) {
             InstrumentationPoint oldPoint = oldInstrumentationPoints.get(i);
             InstrumentationPoint newPoint = newInstrumentationPoints.get(i);
             // update old point with new instruction
