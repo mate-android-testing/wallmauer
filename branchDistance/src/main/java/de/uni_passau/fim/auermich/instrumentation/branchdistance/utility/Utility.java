@@ -8,8 +8,8 @@ import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.BranchDistance;
-import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
@@ -151,6 +151,40 @@ public final class Utility {
         } catch (IOException | RecognitionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Returns the super classes of the given class.
+     *
+     * @param dexFile The dex file containing all classes.
+     * @param classDef The class for which we look up its super classes.
+     * @return Returns the super classes of the given class if present in the dex file.
+     */
+    public static List<ClassDef> getSuperClasses(DexFile dexFile, ClassDef classDef) {
+
+        List<ClassDef> superClasses = new ArrayList<>();
+        Queue<String> queue = new LinkedList<>();
+        queue.offer(classDef.getSuperclass());
+
+        while (!queue.isEmpty()) {
+            String superClass = queue.poll();
+
+            if (superClass == null || superClass.equals("Ljava/lang/Object;")) {
+                break;
+            }
+
+            // try to find super class in dex file
+            for (ClassDef clazz : dexFile.getClasses()) {
+                if (clazz.toString().equals(superClass)) {
+                    // found super class, look up its super class
+                    superClasses.add(clazz);
+                    queue.offer(clazz.getSuperclass());
+                    break;
+                }
+            }
+        }
+
+        return superClasses;
     }
 
     /**

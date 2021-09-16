@@ -2,8 +2,8 @@ package de.uni_passau.fim.auermich.instrumentation.branchdistance;
 
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis.Analyzer;
-import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.Instrumentation;
+import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Utility;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.xml.ManifestParser;
 import lanchon.multidexlib2.BasicDexFileNamer;
@@ -315,11 +315,17 @@ public class BranchDistance {
              */
             if (isActivity) {
                 LOGGER.info("Missing activity lifecycle methods: " + activityLifeCycleMethods);
-                activityLifeCycleMethods.forEach(method -> Instrumentation.addLifeCycleMethod(method, methods, classDef));
+                List<ClassDef> superClasses = Utility.getSuperClasses(dexFile, classDef);
+                LOGGER.info("Super classes of activity " + className + ": " + superClasses);
+                activityLifeCycleMethods.forEach(method ->
+                        Instrumentation.addLifeCycleMethod(method, methods, classDef, superClasses));
                 modifiedMethod = true;
             } else if (isFragment) {
                 LOGGER.info("Missing fragment lifecycle methods: " + fragmentLifeCycleMethods);
-                fragmentLifeCycleMethods.forEach(method -> Instrumentation.addLifeCycleMethod(method, methods, classDef));
+                List<ClassDef> superClasses = Utility.getSuperClasses(dexFile, classDef);
+                LOGGER.info("Super classes of fragment " + className + ": " + superClasses);
+                fragmentLifeCycleMethods.forEach(method ->
+                        Instrumentation.addLifeCycleMethod(method, methods, classDef, superClasses));
                 modifiedMethod = true;
             }
 

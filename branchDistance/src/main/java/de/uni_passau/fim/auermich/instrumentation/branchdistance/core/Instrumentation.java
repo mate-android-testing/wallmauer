@@ -10,6 +10,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jf.dexlib2.AccessFlags;
 import org.jf.dexlib2.Format;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.AnalyzedInstruction;
@@ -51,8 +52,26 @@ public final class Instrumentation {
      * @param method   The lifecycle method name.
      * @param methods  The list of methods belonging to the class.
      * @param classDef The activity or fragment class.
+     * @param superClasses The super classes of the activity or fragment class.
      */
-    public static void addLifeCycleMethod(String method, List<Method> methods, ClassDef classDef) {
+    public static void addLifeCycleMethod(String method, List<Method> methods, ClassDef classDef, List<ClassDef> superClasses) {
+
+        /*
+        * We need to check that overriding the lifecycle method is actually permitted. It can happen that the method
+        * is declared final in one of its super classes. In this case, we can't overwrite the lifecycle method.
+         */
+        for (ClassDef superClass : superClasses) {
+            for (Method m : superClass.getMethods()) {
+                if (m.toString().endsWith(method)) {
+                    if (Arrays.stream(AccessFlags.getAccessFlagsForMethod(m.getAccessFlags()))
+                            .anyMatch(flag -> flag == AccessFlags.FINAL)) {
+                        LOGGER.info("Can't add lifecycle method " + method
+                                + " because the method is declared final in the super class " + superClass + "!");
+                        return;
+                    }
+                }
+            }
+        }
 
         String superClass = classDef.getSuperclass();
 
