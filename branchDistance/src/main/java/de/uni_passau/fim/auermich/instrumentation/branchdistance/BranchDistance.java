@@ -231,28 +231,40 @@ public class BranchDistance {
             // the set of methods included in the instrumented classes.dex
             List<Method> methods = Lists.newArrayList();
 
-            // track whether we modified the method or not
+            // track whether we modified a method or not
             boolean modifiedMethod = false;
 
             for (Method method : classDef.getMethods()) {
 
-                // each method is identified by its class name and method name
-                String id = method.toString();
+                String methodSignature = method.toString();
+
+                if (Utility.isJavaObjectMethod(methodSignature) || Utility.isARTMethod(methodSignature)) {
+                    /*
+                    * We don't instrument methods like hashCode() or equals(), since those methods are not explicitly
+                    * called in the most circumstances. Thus, these methods would constitute isolated methods in
+                    * the corresponding control flow graph and are excluded for that reason.
+                    * NOTE: We need to ensure that the excluded methods here are synced with excluded methods of
+                    * the graph construction process, otherwise the branch distance vector may diverge and coverage
+                    * calculations might not be accurate!
+                     */
+                    methods.add(method);
+                    continue;
+                }
 
                 // track which lifecycle methods are missing, i.e. not overwritten lifecycle methods
                 if (isActivity) {
-                    String methodName = id.split("->")[1];
+                    String methodName = Utility.getMethodName(methodSignature);
                     if (activityLifeCycleMethods.contains(methodName)) {
                         activityLifeCycleMethods.remove(methodName);
                     }
                 } else if (isFragment) {
-                    String methodName = id.split("->")[1];
+                    String methodName = Utility.getMethodName(methodSignature);
                     if (fragmentLifeCycleMethods.contains(methodName)) {
                         fragmentLifeCycleMethods.remove(methodName);
                     }
                 }
 
-                MethodInformation methodInformation = new MethodInformation(id, classDef, method, dexFile);
+                MethodInformation methodInformation = new MethodInformation(methodSignature, classDef, method, dexFile);
                 MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
                 /* We can only instrument methods with a given register count because
@@ -303,7 +315,7 @@ public class BranchDistance {
                     // write out the branches per method
                     Utility.writeBranches(methodInformation);
                 } else {
-                    // no modification necessary
+                    LOGGER.debug("Couldn't instrument method: " + methodSignature);
                     methods.add(method);
                 }
             }
