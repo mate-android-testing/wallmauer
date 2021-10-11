@@ -21,6 +21,7 @@ import org.jf.dexlib2.iface.MethodImplementation;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class MethodCoverage {
@@ -64,6 +65,9 @@ public class MethodCoverage {
      */
     private static void handleArguments(String[] args) {
         assert args.length >= 1 && args.length <= 2;
+
+        apkPath = Objects.requireNonNull(args[0]);
+        LOGGER.info("The path to the APK file is: " + apkPath);
 
         if (args.length == 2) {
             if (args[1].equals("--only-aut")) {
