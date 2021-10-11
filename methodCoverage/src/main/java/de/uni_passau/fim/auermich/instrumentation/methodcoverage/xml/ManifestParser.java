@@ -222,8 +222,8 @@ public class ManifestParser {
         } catch (Exception e) {
             LOGGER.warn("Couldn't parse AndroidManifest.xml");
             LOGGER.warn(e.getMessage());
+            return false;
         }
-        return false;
     }
 
     /**
