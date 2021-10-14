@@ -182,16 +182,14 @@ public class BranchDistance {
                                    final String packageName) throws IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
-
         LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
+        LOGGER.info("Package Name: " + packageName);
 
         // set the opcode api level
         OPCODE_API = dexFile.getOpcodes().api;
 
         // the set of classes we write into the instrumented classes.dex file
         List<ClassDef> classes = Lists.newArrayList();
-
-        LOGGER.info("Package Name: " + packageName);
 
         for (ClassDef classDef : dexFile.getClasses()) {
 

@@ -172,9 +172,7 @@ public class MethodCoverage {
                                    final String packageName) throws  IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
-
         LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
-
         LOGGER.info("Package Name: " + packageName);
 
         // set the opcode api level
