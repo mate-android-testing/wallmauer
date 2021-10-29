@@ -55,11 +55,23 @@ dependencies {
     // https://mvnrepository.com/artifact/org.smali/dexlib2
     implementation group: 'org.smali', name: 'dexlib2', version: '2.5.2'
 
-    // since the libs dir is flat, we can access the dependency by its name (don't specify .jar extension)
-    implementation (name: 'apktool-cli-all') {
-        // make use of the latest dexlib2 version
-        exclude group: 'org.smali', module: 'dexlib2'
-    }
+    // https://mvnrepository.com/artifact/org.apktool/apktool-lib
+    implementation group: 'org.apktool', name: 'apktool-lib', version: '2.6.0'
+
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
+
+    // https://mvnrepository.com/artifact/commons-io/commons-io
+    implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
+
+    // https://mvnrepository.com/artifact/org.smali/baksmali
+    implementation group: 'org.smali', name: 'baksmali', version: '2.5.2'
+
+    // https://mvnrepository.com/artifact/org.smali/smali
+    implementation group: 'org.smali', name: 'smali', version: '2.5.2'
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
 
     implementation(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
         // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2
