@@ -18,7 +18,6 @@ import java.util.Objects;
 
 public class ManifestParser {
 
-    // the logger instance
     private static final Logger LOGGER = LogManager.getLogger(ManifestParser.class);
 
     private final String MANIFEST;
@@ -64,6 +63,7 @@ public class ManifestParser {
 
             NodeList intentFilters = doc.getElementsByTagName("intent-filter");
             final String NAME_ATTRIBUTE = "android:name";
+            final String ALIAS_NAME_ATTRIBUTE = "android:targetActivity";
 
             // find intent-filter that describes the main activity
             for (int i = 0; i < intentFilters.getLength(); i++) {
@@ -96,15 +96,18 @@ public class ManifestParser {
                                 if (main.getTagName().equals("activity")) {
                                     mainActivity = main.getAttribute(NAME_ATTRIBUTE);
                                     return true;
+                                } else if (main.getTagName().equals("activity-alias")) {
+                                    mainActivity = main.getAttribute(ALIAS_NAME_ATTRIBUTE);
+                                    return true;
                                 }
                             }
                         }
                     }
                 }
             }
-            LOGGER.warn("Couldn't derive name of main-activity");
+            LOGGER.warn("Couldn't derive name of main-activity!");
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml");
+            LOGGER.warn("Couldn't parse AndroidManifest.xml!");
             LOGGER.warn(e.getMessage());
         }
         return false;
