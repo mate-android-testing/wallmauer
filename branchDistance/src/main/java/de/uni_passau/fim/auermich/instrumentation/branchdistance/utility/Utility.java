@@ -375,7 +375,7 @@ public final class Utility {
     public static void buildAPK(String decodedAPKPath, File outputFile) {
 
         ApkOptions apkOptions = new ApkOptions();
-        // apkOptions.useAapt2 = true;
+        apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
         // apkOptions.forceBuildAll = true;
 

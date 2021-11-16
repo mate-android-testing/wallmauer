@@ -159,7 +159,7 @@ public final class Utility {
     public static void buildAPK(File decodedAPKPath, File outputFile) {
 
         ApkOptions apkOptions = new ApkOptions();
-        // apkOptions.useAapt2 = true;
+        apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
 
         try {

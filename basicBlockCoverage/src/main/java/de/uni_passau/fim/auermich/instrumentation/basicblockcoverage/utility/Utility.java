@@ -8,8 +8,8 @@ import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.BasicBlockCoverage;
-import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
@@ -164,7 +164,7 @@ public final class Utility {
     public static void buildAPK(File decodedAPKPath, File outputFile) {
 
         ApkOptions apkOptions = new ApkOptions();
-        // apkOptions.useAapt2 = true;
+        apkOptions.useAapt2 = true;
         apkOptions.verbose = true;
 
         try {
