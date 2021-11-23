@@ -1,5 +1,5 @@
 
-# Instrumentation
+# Instrumentation:
 
 The instrumentation library offers five modules responsible for:
 
@@ -9,6 +9,14 @@ The instrumentation library offers five modules responsible for:
 * BasicBlockCoverage Instrumentation
 * BasicBlockCoverage Evaluation
 * MethodCoverage Instrumentation
+
+Note that you can supply to each instrumentation module the optional flag `--only-aut` to only instrument the classes
+belonging to the application package.
+
+# Limitations:
+
+The instrumentation only works for apps that expose a main activity. This is not a limitation of the instrumentation
+tool itself, but rather a pre-condition of our testing framework `MATE`.
 
 # BranchCoverage Instrumentation:
 
