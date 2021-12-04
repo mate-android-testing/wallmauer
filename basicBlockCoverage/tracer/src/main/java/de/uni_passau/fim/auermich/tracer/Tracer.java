@@ -215,11 +215,7 @@ public class Tracer extends BroadcastReceiver {
                 }
 
                 br.write(element);
-
-                // avoid new line at end
-                if (iterator.hasNext()) {
-                    br.newLine();
-                }
+                br.newLine();
             }
 
             if (!traces.isEmpty()) {
