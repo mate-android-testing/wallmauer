@@ -32,6 +32,7 @@ import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -316,11 +317,11 @@ public final class Utility {
      */
     public static String decodeAPK(File apkPath) {
 
-        // set 3rd party library (apktool) logging to 'WARNING'
+        // set 3rd party library (apktool) logging to 'SEVERE'
         java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
-        rootLogger.setLevel(java.util.logging.Level.WARNING);
+        rootLogger.setLevel(Level.SEVERE);
         for (Handler h : rootLogger.getHandlers()) {
-            h.setLevel(java.util.logging.Level.WARNING);
+            h.setLevel(Level.SEVERE);
         }
 
         try {
