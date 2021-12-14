@@ -87,7 +87,7 @@ public class BasicBlockCoverage {
      * Instruments a given APK file with basic block coverage information.
      *
      * @param args The path to the APK file.
-     * @throws IOException        Should never happen.
+     * @throws IOException Should never happen.
      */
     public static void main(String[] args) throws IOException {
 
@@ -168,16 +168,16 @@ public class BasicBlockCoverage {
      * @param packageName The package name of the app.
      * @throws IOException Should never happen.
      */
-    private static void instrument(final DexFile dexFile, final String packageName) throws  IOException {
+    private static void instrument(final DexFile dexFile, final String packageName) throws IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
         LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
         LOGGER.info("Package Name: " + packageName);
 
         /*
-        * TODO: We should use the minimum api level that is possible to not sacrifice compatibility. Since we use
-        *   invoke-range instructions the minimal dex version needs to be 038, which corresponds to API 26 according to:
-        *   https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
+         * TODO: We should use the minimum api level that is possible to not sacrifice compatibility. Since we use
+         *   invoke-range instructions the minimal dex version needs to be 038, which corresponds to API 26 according to:
+         *   https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
          */
         OPCODE_API = dexFile.getOpcodes().api;
 
@@ -265,7 +265,7 @@ public class BasicBlockCoverage {
             LOGGER.info("Instrumenting method " + method + " of class " + classDef);
 
             // determine the new local registers and free register IDs
-            Analyzer.computeRegisterStates(methodInformation,ADDITIONAL_REGISTERS);
+            Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
 
             // determine the location of the basic blocks
             methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
