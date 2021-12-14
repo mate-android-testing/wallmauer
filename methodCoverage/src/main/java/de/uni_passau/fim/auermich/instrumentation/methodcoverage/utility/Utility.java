@@ -318,6 +318,7 @@ public final class Utility {
             @Nonnull
             @Override
             public Opcodes getOpcodes() {
+                // https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
                 return Opcodes.forApi(opCode);
             }
         };

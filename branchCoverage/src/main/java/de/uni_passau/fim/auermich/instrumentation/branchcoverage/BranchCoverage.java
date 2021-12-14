@@ -38,9 +38,6 @@ public class BranchCoverage {
     // the output path of the decoded APK
     public static File decodedAPKPath;
 
-    // dex op code specified in header of classes.dex file
-    public static int OPCODE_API = 26;
-
     // whether only classes belonging to the app package should be instrumented
     private static boolean onlyInstrumentAUTClasses = false;
 
@@ -100,9 +97,6 @@ public class BranchCoverage {
 
             // process command line arguments
             handleArguments(args);
-
-            // describes class names we want to exclude from instrumentation
-            Pattern exclusionPattern = Utility.readExcludePatterns();
 
             // the APK file
             File apkFile = new File(apkPath);
@@ -177,13 +171,6 @@ public class BranchCoverage {
         LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
         LOGGER.info("Package Name: " + packageName);
 
-        /*
-         * TODO: We should use the minimum api level that is possible to not sacrifice compatibility. Since we use
-         *   invoke-range instructions the minimal dex version needs to be 038, which corresponds to API 26 according to:
-         *   https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
-         */
-        OPCODE_API = dexFile.getOpcodes().api;
-
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
 
@@ -192,11 +179,11 @@ public class BranchCoverage {
                 .collect(Collectors.toList());
 
         // insert tracer class
-        ClassDef tracerClass = Utility.loadTracer(OPCODE_API);
+        ClassDef tracerClass = Utility.loadTracer(dexFile.getOpcodes().api);
         instrumentedClasses.add(tracerClass);
 
         // write modified (merged) dex file to directory
-        Utility.writeMultiDexFile(decodedAPKPath, instrumentedClasses, OPCODE_API);
+        Utility.writeMultiDexFile(decodedAPKPath, instrumentedClasses, dexFile.getOpcodes().api);
     }
 
     /**

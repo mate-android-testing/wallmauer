@@ -40,9 +40,6 @@ public class BranchDistance {
     // the output path of the decoded APK
     public static String decodedAPKPath;
 
-    // the API opcode level defined in the dex header (can be derived automatically)
-    public static int OPCODE_API = 28;
-
     // whether only classes belonging to the app package should be instrumented
     private static boolean onlyInstrumentAUTClasses = false;
 
@@ -184,9 +181,6 @@ public class BranchDistance {
         LOGGER.info("Starting Instrumentation of App!");
         LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
         LOGGER.info("Package Name: " + packageName);
-
-        // set the opcode api level
-        OPCODE_API = dexFile.getOpcodes().api;
 
         // the set of classes we write into the instrumented classes.dex file
         List<ClassDef> classes = Lists.newArrayList();
@@ -348,11 +342,11 @@ public class BranchDistance {
         }
 
         // insert tracer class
-        ClassDef tracerClass = Utility.loadTracer(OPCODE_API);
+        ClassDef tracerClass = Utility.loadTracer(dexFile.getOpcodes().api);
         classes.add(tracerClass);
 
         // write modified (merged) dex file to directory
-        Utility.writeMultiDexFile(decodedAPKPath, classes, OPCODE_API);
+        Utility.writeMultiDexFile(decodedAPKPath, classes, dexFile.getOpcodes().api);
     }
 
 }
