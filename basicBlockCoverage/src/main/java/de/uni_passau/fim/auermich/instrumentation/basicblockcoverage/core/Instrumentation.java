@@ -13,7 +13,6 @@ import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
@@ -232,9 +231,8 @@ public final class Instrumentation {
      * statement.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
-     * @param dexFile           The dex file containing the method.
      */
-    public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
+    public static void modifyMethod(MethodInformation methodInformation) {
 
         LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
