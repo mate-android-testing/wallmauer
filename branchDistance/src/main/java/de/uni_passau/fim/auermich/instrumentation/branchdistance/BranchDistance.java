@@ -22,7 +22,6 @@ import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -132,7 +131,7 @@ public class BranchDistance {
                     new BasicDexFileNamer(), null, null);
 
             // instrument + write merged dex file to directory
-            instrument(mergedDex, exclusionPattern, manifest.getPackageName());
+            instrument(mergedDex, manifest.getPackageName());
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
@@ -223,43 +222,21 @@ public class BranchDistance {
             return classDef;
         }
 
-        // check whether the current class is an activity/fragment class
-        final boolean isActivity = Utility.isActivity(dexFile.getClasses(), classDef);
-        final boolean isFragment = !isActivity && Utility.isFragment(dexFile.getClasses(), classDef);
-
-        // track which activity/fragment lifecycle methods are missing
-        Set<String> activityLifeCycleMethods = Collections.synchronizedSet(Utility.getActivityLifeCycleMethods());
-        Set<String> fragmentLifeCycleMethods = Collections.synchronizedSet(Utility.getFragmentLifeCycleMethods());
-
+        // instrument the methods
         List<Method> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).parallelStream()
-                .map(method -> instrumentMethod(dexFile, classDef, method, isActivity, isFragment,
-                        activityLifeCycleMethods, fragmentLifeCycleMethods))
+                .map(method -> instrumentMethod(dexFile, classDef, method))
                 .collect(Collectors.toList());
 
         /*
          * We add a dummy implementation for missing activity/fragment lifecycle methods in order to get traces for
          * those methods. Otherwise, the graph lacks markings for those lifecycle methods.
          */
-        if (isActivity) {
-
-            LOGGER.info("Missing activity lifecycle methods: " + activityLifeCycleMethods);
-            List<ClassDef> superClasses = Utility.getSuperClasses(dexFile, classDef);
-            LOGGER.info("Super classes of activity " + className + ": " + superClasses);
-
-            instrumentedMethods.addAll(activityLifeCycleMethods.parallelStream()
-                    .map(method -> Instrumentation.addLifeCycleMethod(method, classDef, superClasses))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList()));
-        } else if (isFragment) {
-
-            LOGGER.info("Missing fragment lifecycle methods: " + fragmentLifeCycleMethods);
-            List<ClassDef> superClasses = Utility.getSuperClasses(dexFile, classDef);
-            LOGGER.info("Super classes of fragment " + className + ": " + superClasses);
-
-            instrumentedMethods.addAll(activityLifeCycleMethods.parallelStream()
-                    .map(method -> Instrumentation.addLifeCycleMethod(method, classDef, superClasses))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList()));
+        if (Utility.isActivity(dexFile.getClasses(), classDef)) {
+            Set<String> activityLifeCycleMethods = Utility.getActivityLifeCycleMethods();
+            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, activityLifeCycleMethods));
+        } else if (Utility.isFragment(dexFile.getClasses(), classDef)) {
+            Set<String> fragmentLifeCycleMethods = Utility.getFragmentLifeCycleMethods();
+            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, fragmentLifeCycleMethods));
         }
 
         return new ImmutableClassDef(
@@ -279,15 +256,9 @@ public class BranchDistance {
      * @param dexFile The dex file containing the method.
      * @param classDef The class containing the method.
      * @param method The method to be instrumented.
-     * @param isActivity Whether the given class represents an activity.
-     * @param isFragment Whether the given class represents a fragment.
-     * @param activityLifeCycleMethods The set of activity lifecycle methods that haven't been instrumented yet.
-     * @param fragmentLifeCycleMethods The set of fragment lifecycle methods that haven't been instrumented yet.
      * @return Returns the instrumented method.
      */
-    private static Method instrumentMethod(DexFile dexFile, ClassDef classDef, Method method, boolean isActivity,
-                                           boolean isFragment, Set<String> activityLifeCycleMethods,
-                                           Set<String> fragmentLifeCycleMethods) {
+    private static Method instrumentMethod(DexFile dexFile, ClassDef classDef, Method method) {
 
         String methodSignature = method.toString();
 
@@ -301,15 +272,6 @@ public class BranchDistance {
              * calculations might not be accurate!
              */
             return method;
-        }
-
-        // track which lifecycle methods are missing, i.e. not overwritten lifecycle methods
-        if (isActivity) {
-            String methodName = Utility.getMethodName(methodSignature);
-            activityLifeCycleMethods.remove(methodName);
-        } else if (isFragment) {
-            String methodName = Utility.getMethodName(methodSignature);
-            fragmentLifeCycleMethods.remove(methodName);
         }
 
         MethodInformation methodInformation = new MethodInformation(methodSignature, classDef, method, dexFile);
@@ -374,5 +336,33 @@ public class BranchDistance {
             LOGGER.info("Couldn't instrument method: " + methodSignature);
             return method;
         }
+    }
+
+    /**
+     * Adds the missing lifecycle methods to the given class. Note that the class needs to be either an activity
+     * or fragment!
+     *
+     * @param dexFile The dex file containing the class.
+     * @param classDef The class for which the missing lifecycle methods should be added.
+     * @param lifeCycleMethods The list of all possible lifecycle methods for the given class.
+     * @return Returns the missing and instrumented lifecycle methods.
+     */
+    private static List<Method> addMissingLifeCycleMethods(final DexFile dexFile, final ClassDef classDef,
+                                                           Set<String> lifeCycleMethods) {
+
+        // track which lifecycle methods are missing, i.e. not overwritten lifecycle methods
+        for (Method method : classDef.getVirtualMethods()) {
+            String methodName = Utility.getMethodName(method.toString());
+            lifeCycleMethods.remove(methodName);
+        }
+
+        LOGGER.info("Missing lifecycle methods: " + lifeCycleMethods);
+        List<ClassDef> superClasses = Utility.getSuperClasses(dexFile, classDef);
+        LOGGER.info("Super classes of class " + classDef + ": " + superClasses);
+
+        return lifeCycleMethods.parallelStream()
+                .map(method -> Instrumentation.addLifeCycleMethod(method, classDef, superClasses))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 }
