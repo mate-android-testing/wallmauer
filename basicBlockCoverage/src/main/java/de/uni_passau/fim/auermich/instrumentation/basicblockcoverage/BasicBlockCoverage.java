@@ -293,7 +293,8 @@ public class BasicBlockCoverage {
                     null, // necessary since dexlib2 2.4.0
                     methodInformation.getMethodImplementation());
         } else {
-            // not possible to instrument
+            // not possible to instrument method -> leave unchanged
+            LOGGER.info("Couldn't instrument method: " + method);
             return method;
         }
     }

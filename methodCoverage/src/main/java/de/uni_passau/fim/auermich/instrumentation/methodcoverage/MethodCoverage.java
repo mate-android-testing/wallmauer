@@ -278,6 +278,9 @@ public class MethodCoverage {
             if (methodInformation.getParamRegisterCount() > 0) {
                 Instrumentation.shiftParamRegisters(methodInformation);
             }
+        } else {
+            // not possible to instrument method -> leave unchanged
+            LOGGER.info("Couldn't instrument method: " + method);
         }
         return methodInformation;
     }
