@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -175,11 +176,11 @@ public final class Utility {
      */
     public static File decodeAPK(File apkPath) {
 
-        // set 3rd party library (apktool) logging to 'WARNING'
+        // set 3rd party library (apktool) logging to 'SEVERE'
         java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
-        rootLogger.setLevel(java.util.logging.Level.WARNING);
+        rootLogger.setLevel(Level.SEVERE);
         for (Handler h : rootLogger.getHandlers()) {
-            h.setLevel(java.util.logging.Level.WARNING);
+            h.setLevel(Level.SEVERE);
         }
 
         try {
@@ -218,23 +219,26 @@ public final class Utility {
     }
 
     /**
-     * Appends the instrumented method names to the methods.txt file.
+     * Appends the instrumented method to the methods.txt file.
      *
-     * @param methods The name of the instrumented methods.
-     * @throws FileNotFoundException Should never be thrown.
+     * @param instrumentedMethods The list of the instrumented instrumentedMethods.
      */
-    public static void writeMethods(List<Method> methods) throws FileNotFoundException {
+    public static void writeMethods(List<MethodInformation> instrumentedMethods) {
 
         File file = new File(OUTPUT_METHODS_FILE);
-        OutputStream outputStream = new FileOutputStream(file, true);
-        PrintStream printStream = new PrintStream(outputStream);
 
-        for (Method method : methods) {
-            printStream.println(method);
+        try (OutputStream outputStream = new FileOutputStream(file, true);
+             PrintStream printStream = new PrintStream(outputStream)) {
+
+            for (MethodInformation instrumentedMethod : instrumentedMethods) {
+                printStream.println(instrumentedMethod.getMethod());
+            }
+
+            printStream.flush();
+        } catch (IOException e) {
+            LOGGER.error("Couldn't write methods to methods.txt");
+            throw new IllegalStateException("Couldn't write methods to methods.txt");
         }
-
-        printStream.flush();
-        printStream.close();
     }
 
     /**
@@ -314,6 +318,7 @@ public final class Utility {
             @Nonnull
             @Override
             public Opcodes getOpcodes() {
+                // https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
                 return Opcodes.forApi(opCode);
             }
         };

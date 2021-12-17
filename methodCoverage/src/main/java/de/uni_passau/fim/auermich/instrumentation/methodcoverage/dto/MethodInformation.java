@@ -1,12 +1,16 @@
 package de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto;
 
-import org.jf.dexlib2.analysis.*;
+import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.immutable.ImmutableMethod;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Stores all the relevant information
@@ -50,6 +54,9 @@ public class MethodInformation {
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
 
+    // whether the method got modified
+    private boolean modified = false;
+
     public MethodInformation(String methodID, ClassDef classDef, Method method, DexFile dexFile) {
         this.methodID = methodID;
         this.classDef = classDef;
@@ -62,12 +69,42 @@ public class MethodInformation {
         return methodID;
     }
 
+    public boolean isModified() {
+        return modified;
+    }
+
+    public void setModified(boolean modified) {
+        this.modified = modified;
+    }
+
     public ClassDef getClassDef() {
         return classDef;
     }
 
     public Method getMethod() {
         return method;
+    }
+
+    /**
+     * Returns the instrumented method or the original method if no modification took place.
+     *
+     * @return Returns the instrumented method.
+     */
+    public Method getInstrumentedMethod() {
+
+        if (!modified) {
+            return method;
+        } else {
+            return new ImmutableMethod(
+                    method.getDefiningClass(),
+                    method.getName(),
+                    method.getParameters(),
+                    method.getReturnType(),
+                    method.getAccessFlags(),
+                    method.getAnnotations(),
+                    null, // necessary since dexlib2 2.4.0
+                    methodImplementation);
+        }
     }
 
     public List<Integer> getFreeRegisters() {

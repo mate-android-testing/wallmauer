@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -180,11 +181,11 @@ public final class Utility {
      */
     public static File decodeAPK(File apkPath) {
 
-        // set 3rd party library (apktool) logging to 'WARNING'
+        // set 3rd party library (apktool) logging to 'SEVERE'
         java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
-        rootLogger.setLevel(java.util.logging.Level.WARNING);
+        rootLogger.setLevel(Level.SEVERE);
         for (Handler h : rootLogger.getHandlers()) {
-            h.setLevel(java.util.logging.Level.WARNING);
+            h.setLevel(Level.SEVERE);
         }
 
         try {
@@ -223,33 +224,35 @@ public final class Utility {
     }
 
     /**
-     * Writes the number of instructions and number of branches per method.
-     * Methods which are not instrumented are omitted.
+     * Writes the number of instructions and number of branches per method. Methods which are not instrumented are omitted.
      *
      * @param methodInformation A description of the instrumented method.
-     * @throws FileNotFoundException Should never be thrown.
      */
-    public static void writeBasicBlocks(final MethodInformation methodInformation) throws FileNotFoundException {
+    public static void writeBasicBlocks(final MethodInformation methodInformation) {
 
         File file = new File(OUTPUT_BLOCKS_FILE);
-        OutputStream outputStream = new FileOutputStream(file, true);
-        PrintStream printStream = new PrintStream(outputStream);
 
-        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
+        try (OutputStream outputStream = new FileOutputStream(file, true);
+             PrintStream printStream = new PrintStream(outputStream)) {
 
-        if (instrumentationPoints.size() > 0) {
+            Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
 
-            final String method = methodInformation.getMethodID();
+            if (instrumentationPoints.size() > 0) {
 
-            for (InstrumentationPoint instrumentationPoint : instrumentationPoints) {
-                int basicBlockID = instrumentationPoint.getPosition();
-                int basicBlockSize = instrumentationPoint.getCoveredInstructions();
-                String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
-                printStream.println(method + SEPARATOR + basicBlockID + SEPARATOR + basicBlockSize + SEPARATOR + isBranch);
+                final String method = methodInformation.getMethodID();
+
+                for (InstrumentationPoint instrumentationPoint : instrumentationPoints) {
+                    int basicBlockID = instrumentationPoint.getPosition();
+                    int basicBlockSize = instrumentationPoint.getCoveredInstructions();
+                    String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
+                    printStream.println(method + SEPARATOR + basicBlockID + SEPARATOR + basicBlockSize + SEPARATOR + isBranch);
+                }
+                printStream.flush();
             }
-            printStream.flush();
+        } catch (IOException e) {
+            LOGGER.error("Couldn't write basic blocks to blocks.txt");
+            throw new IllegalStateException("Couldn't write basic blocks to blocks.txt");
         }
-        printStream.close();
     }
 
     /**
@@ -353,6 +356,7 @@ public final class Utility {
             @Nonnull
             @Override
             public Opcodes getOpcodes() {
+                // https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
                 return Opcodes.forApi(opCode);
             }
         };

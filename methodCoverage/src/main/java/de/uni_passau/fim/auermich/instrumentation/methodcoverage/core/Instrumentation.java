@@ -66,6 +66,7 @@ public final class Instrumentation {
 
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
+        methodInformation.setModified(true);
     }
 
     /**

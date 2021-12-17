@@ -17,12 +17,14 @@ import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.immutable.ImmutableClassDef;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class MethodCoverage {
 
@@ -33,9 +35,6 @@ public class MethodCoverage {
 
     // the output path of the decoded APK
     public static File decodedAPKPath;
-
-    // dex op code specified in header of classes.dex file
-    public static int OPCODE_API = 28;
 
     // whether only classes belonging to the app package should be instrumented
     private static boolean onlyInstrumentAUTClasses = false;
@@ -97,9 +96,6 @@ public class MethodCoverage {
             // process command line arguments
             handleArguments(args);
 
-            // describes class names we want to exclude from instrumentation
-            Pattern exclusionPattern = Utility.readExcludePatterns();
-
             // the APK file
             File apkFile = new File(apkPath);
 
@@ -126,7 +122,7 @@ public class MethodCoverage {
             DexFile mergedDex = MultiDexIO.readDexFile(true, decodedAPKPath,
                     new BasicDexFileNamer(), null, null);
 
-            instrument(mergedDex, exclusionPattern, manifest.getPackageName());
+            instrument(mergedDex, manifest.getPackageName());
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
@@ -164,110 +160,128 @@ public class MethodCoverage {
      * Instruments the classes respectively methods within a (merged) dex file.
      *
      * @param dexFile The dexFile containing the classes and methods.
-     * @param exclusionPattern A pattern describing classes that should be excluded from instrumentation.
      * @param packageName The package name of the app.
      * @throws IOException Should never happen.
      */
-    private static void instrument(DexFile dexFile, Pattern exclusionPattern,
-                                   final String packageName) throws  IOException {
+    private static void instrument(final DexFile dexFile, final String packageName) throws IOException {
 
         LOGGER.info("Starting Instrumentation of App!");
         LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
         LOGGER.info("Package Name: " + packageName);
 
-        // set the opcode api level
-        OPCODE_API = dexFile.getOpcodes().api;
+        // describes class names we want to exclude from instrumentation
+        final Pattern exclusionPattern = Utility.readExcludePatterns();
 
-        // the set of classes we write into the instrumented classes.dex file
-        List<ClassDef> classes = Lists.newArrayList();
-
-        for (ClassDef classDef : dexFile.getClasses()) {
-
-            // the class name is part of the method id
-            String className = Utility.dottedClassName(classDef.getType());
-
-            // if only classes belonging to the app package should be instrumented
-            if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
-                LOGGER.info("Excluding class: " + className + " from instrumentation!");
-                classes.add(classDef);
-                continue;
-            }
-
-            // exclude certain packages/classes from instrumentation, e.g. android.widget.*
-            if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
-                    || Utility.isResourceClass(classDef)
-                    || Utility.isBuildConfigClass(classDef)) {
-                LOGGER.info("Excluding class: " + className + " from instrumentation!");
-                classes.add(classDef);
-                continue;
-            }
-
-            // the set of methods included in the instrumented classes.dex
-            List<Method> methods = Lists.newArrayList();
-
-            // track whether we modified the method or not
-            boolean modifiedMethod = false;
-
-            for (Method method : classDef.getMethods()) {
-
-                MethodInformation methodInformation = new MethodInformation(method.toString(), classDef, method, dexFile);
-                MethodImplementation methImpl = methodInformation.getMethodImplementation();
-
-                /* We can only instrument methods with a given register count because
-                 * our instrumentation code uses instructions that only allow the usage of
-                 * registers with a register ID < MAX_TOTAL_REGISTERS, i.e. the newly
-                 * inserted registers aren't allowed to exceed this limit.
-                 */
-                if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
-
-                    LOGGER.info("Instrumenting method " + method + " of class " + classDef);
-
-                    // determine the new local registers and free register IDs
-                    Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
-
-                    // determine the register type of the param registers if the method has param registers
-                    if (methodInformation.getParamRegisterCount() > 0) {
-                        Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
-                    }
-
-                    // instrument method entry
-                    Instrumentation.modifyMethod(methodInformation);
-                    modifiedMethod = true;
-
-                    /*
-                     * We need to shift param registers by two positions to the left,
-                     * e.g. move p1, p2, such that the last (two) param register(s) is/are
-                     * free for use. We need two regs for wide types which span over 2 regs.
-                     */
-                    if (methodInformation.getParamRegisterCount() > 0) {
-                        Instrumentation.shiftParamRegisters(methodInformation);
-                    }
-
-                    // add instrumented method implementation
-                    Utility.addInstrumentedMethod(methods, methodInformation);
-                } else {
-                    // no modification necessary
-                    methods.add(method);
-                }
-            }
-
-            if (!modifiedMethod) {
-                classes.add(classDef);
-            } else {
-
-                // write out the instrumented methods
-                Utility.writeMethods(methods);
-
-                // add modified class including its method to the list of classes
-                Utility.addInstrumentedClass(classes, methods, classDef);
-            }
-        }
+        List<ClassDef> instrumentedClasses = dexFile.getClasses().parallelStream()
+                .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
+                .collect(Collectors.toList());
 
         // insert tracer class
-        ClassDef tracerClass = Utility.loadTracer(OPCODE_API);
-        classes.add(tracerClass);
+        ClassDef tracerClass = Utility.loadTracer(dexFile.getOpcodes().api);
+        instrumentedClasses.add(tracerClass);
 
         // write modified (merged) dex file to directory
-        Utility.writeMultiDexFile(decodedAPKPath, classes, OPCODE_API);
+        Utility.writeMultiDexFile(decodedAPKPath, instrumentedClasses, dexFile.getOpcodes().api);
+    }
+
+    /**
+     * Instruments the given class.
+     *
+     * @param dexFile The dex file containing the class.
+     * @param classDef The class to be instrumented.
+     * @param packageName The package name of the app.
+     * @param exclusionPattern A pattern of classes that should be excluded from the instrumentation process.
+     * @return Returns the instrumented class.
+     */
+    private static ClassDef instrumentClass(DexFile dexFile, ClassDef classDef, String packageName, Pattern exclusionPattern) {
+
+        // the class name is part of the method id
+        String className = Utility.dottedClassName(classDef.getType());
+
+        // if only classes belonging to the app package should be instrumented
+        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
+            LOGGER.info("Excluding class: " + className + " from instrumentation!");
+            return classDef;
+        }
+
+        // exclude certain packages/classes from instrumentation, e.g. android.widget.*
+        if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
+                || Utility.isResourceClass(classDef)
+                || Utility.isBuildConfigClass(classDef)) {
+            LOGGER.info("Excluding class: " + className + " from instrumentation!");
+            return classDef;
+        }
+
+        List<MethodInformation> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).parallelStream()
+                .map(method -> instrumentMethod(dexFile, classDef, method))
+                .collect(Collectors.toList());
+
+        // write out the instrumented methods
+        Utility.writeMethods(instrumentedMethods.stream()
+                .filter(MethodInformation::isModified)
+                .collect(Collectors.toList()));
+
+        return new ImmutableClassDef(
+                classDef.getType(),
+                classDef.getAccessFlags(),
+                classDef.getSuperclass(),
+                classDef.getInterfaces(),
+                classDef.getSourceFile(),
+                classDef.getAnnotations(),
+                classDef.getFields(),
+                instrumentedMethods.stream()
+                        .map(MethodInformation::getInstrumentedMethod)
+                        .collect(Collectors.toList()));
+    }
+
+    /**
+     * Instruments the given method.
+     *
+     * @param dexFile The dex file containing the method.
+     * @param classDef The class containing the method.
+     * @param method The method to be instrumented.
+     * @return Returns the instrumented method.
+     */
+    private static MethodInformation instrumentMethod(DexFile dexFile, ClassDef classDef, Method method) {
+
+        // each method is identified by its class name and method name
+        String id = method.toString();
+
+        MethodInformation methodInformation = new MethodInformation(id, classDef, method, dexFile);
+        MethodImplementation methImpl = methodInformation.getMethodImplementation();
+
+        /* We can only instrument methods with a given register count because
+         * our instrumentation code uses instructions that only allow the usage of
+         * registers with a register ID < MAX_TOTAL_REGISTERS, i.e. the newly
+         * inserted registers aren't allowed to exceed this limit.
+         */
+        if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
+
+            LOGGER.info("Instrumenting method " + method + " of class " + classDef);
+
+            // determine the new local registers and free register IDs
+            Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
+
+            // determine the register type of the param registers if the method has param registers
+            if (methodInformation.getParamRegisterCount() > 0) {
+                Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
+            }
+
+            // instrument method entry
+            Instrumentation.modifyMethod(methodInformation);
+
+            /*
+             * We need to shift param registers by two positions to the left,
+             * e.g. move p1, p2, such that the last (two) param register(s) is/are
+             * free for use. We need two regs for wide types which span over 2 regs.
+             */
+            if (methodInformation.getParamRegisterCount() > 0) {
+                Instrumentation.shiftParamRegisters(methodInformation);
+            }
+        } else {
+            // not possible to instrument method -> leave unchanged
+            LOGGER.info("Couldn't instrument method: " + method);
+        }
+        return methodInformation;
     }
 }

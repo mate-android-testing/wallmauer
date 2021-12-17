@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 public final class Utility {
@@ -179,11 +180,11 @@ public final class Utility {
      */
     public static File decodeAPK(File apkPath) {
 
-        // set 3rd party library (apktool) logging to 'WARNING'
+        // set 3rd party library (apktool) logging to 'SEVERE'
         java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
-        rootLogger.setLevel(java.util.logging.Level.WARNING);
+        rootLogger.setLevel(Level.SEVERE);
         for (Handler h : rootLogger.getHandlers()) {
-            h.setLevel(java.util.logging.Level.WARNING);
+            h.setLevel(Level.SEVERE);
         }
 
         try {
@@ -248,25 +249,28 @@ public final class Utility {
      * Writes out the branches of method. Methods without any branches are omitted.
      *
      * @param methodInformation Encapsulates a method.
-     * @throws FileNotFoundException Should never be thrown.
      */
-    public static void writeBranches(MethodInformation methodInformation) throws FileNotFoundException {
+    public static void writeBranches(MethodInformation methodInformation) {
 
         File file = new File(OUTPUT_BRANCHES_FILE);
-        OutputStream outputStream = new FileOutputStream(file, true);
-        PrintStream printStream = new PrintStream(outputStream);
 
-        for (InstrumentationPoint instrumentationPoint : methodInformation.getInstrumentationPoints()) {
+        try (OutputStream outputStream = new FileOutputStream(file, true);
+             PrintStream printStream = new PrintStream(outputStream)) {
 
-            if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_BRANCH
-                    || instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH) {
-                String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
-                printStream.println(trace);
+            for (InstrumentationPoint instrumentationPoint : methodInformation.getInstrumentationPoints()) {
+
+                if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_BRANCH
+                        || instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH) {
+                    String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+                    printStream.println(trace);
+                }
             }
-        }
 
-        printStream.flush();
-        printStream.close();
+            printStream.flush();
+        } catch (IOException e) {
+            LOGGER.error("Couldn't write branches to branches.txt");
+            throw new IllegalStateException("Couldn't write branches to branches.txt");
+        }
     }
 
     /**
@@ -329,7 +333,7 @@ public final class Utility {
             @Nonnull
             @Override
             public Set<? extends ClassDef> getClasses() {
-                return new AbstractSet<ClassDef>() {
+                return new AbstractSet<>() {
                     @Nonnull
                     @Override
                     public Iterator<ClassDef> iterator() {
@@ -346,6 +350,7 @@ public final class Utility {
             @Nonnull
             @Override
             public Opcodes getOpcodes() {
+                // https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
                 return Opcodes.forApi(opCode);
             }
         };
