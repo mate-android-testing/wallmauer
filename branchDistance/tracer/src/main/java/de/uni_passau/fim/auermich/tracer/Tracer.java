@@ -37,17 +37,51 @@ public class Tracer extends BroadcastReceiver {
      *  might be related to the fact that the AUT is reset by MATE shortly after the broadcast is sent.
      */
 
+    // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
+    private static final Logger LOGGER = Logger.getLogger(Tracer.class.getName());
+
+    /*
+     * We provide a custom uncaught exception handler that calls through Tracer.writeRemainingTraces() before the
+     * exception is passed to the default uncaught exception handler. This ensures that we don't loose any traces
+     * caused through a crash.
+     */
+    private static Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
+
+    /*
+     * We initialize our custom uncaught exception handler once the class is loaded. In order to ensure that no other
+     * class overrides this exception handler, we save our exception handler and perform a check whenever we write out
+     * the collected traces. If the exception handler has been overridden, we simply override it again.
+     */
+    static {
+
+        LOGGER.info("Initializing custom uncaught exception handler!");
+        Thread.UncaughtExceptionHandler defaultUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
+
+        Thread.UncaughtExceptionHandler uncaughtExceptionHandler = new Thread.UncaughtExceptionHandler() {
+
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                LOGGER.info("Uncaught exception!");
+                Tracer.writeRemainingTraces();
+                defaultUncaughtExceptionHandler.uncaughtException(t, e);
+            }
+        };
+
+        Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
+        Tracer.uncaughtExceptionHandler = uncaughtExceptionHandler;
+    }
+
     // contains the collected traces per 'CACHE_SIZE'
     private static Set<String> traces = new LinkedHashSet<>();
 
     // the output file containing the covered branches and branch distance values
     private static final String TRACES_FILE = "traces.txt";
 
+    // the file containing the number of generated traces
+    private static final String INFO_FILE = "info.txt";
+
     // keeps track of the total number of generated traces per test case / trace file
     private static int numberOfTraces = 0;
-
-    // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
-    private static final Logger LOGGER = Logger.getLogger(Tracer.class.getName());
 
     // how many traces should be cached before written to the traces file
     private static final int CACHE_SIZE = 5000;
@@ -63,7 +97,6 @@ public class Tracer extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
 
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
-            String packageName = intent.getStringExtra("packageName");
             LOGGER.info("Received Broadcast");
 
             if (!isPermissionGranted(context, WRITE_EXTERNAL_STORAGE)) {
@@ -76,7 +109,7 @@ public class Tracer extends BroadcastReceiver {
              * and 'Tracer.class' can only be used in the static trace() method.
              */
             synchronized (Tracer.class) {
-                write(packageName);
+                writeRemainingTraces();
                 traces.clear();
             }
         }
@@ -127,17 +160,22 @@ public class Tracer extends BroadcastReceiver {
             traces.add(identifier);
 
             if (traces.size() == CACHE_SIZE) {
-                write();
+                writeTraces();
                 traces.clear();
             }
         }
     }
 
     /**
-     * Writes the collected traces to the external storage. Only called
-     * once the specified cache size is reached.
+     * Writes the collected traces to the external storage. Only called once the specified cache size is reached.
      */
-    private static void write() {
+    private static void writeTraces() {
+
+        // re-overwrite uncaught exception handler if necessary
+        if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
+            LOGGER.info("Default exception handler has been overridden!");
+            Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
+        }
 
         File sdCard = Environment.getExternalStorageDirectory();
         File traceFile = new File(sdCard, TRACES_FILE);
@@ -182,13 +220,16 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
-     * Writes the remaining traces to the external storage.
-     * Also writes a file 'info.txt' to the internal storage containing the number
-     * collected traces since the last broadcast.
-     *
-     * @param packageName The packageName of the AUT.
+     * Writes the remaining traces to the external storage. Also writes a file 'info.txt' to the external storage
+     * containing the number collected traces since the last broadcast.
      */
-    private static void write(String packageName) {
+    private static void writeRemainingTraces() {
+
+        // re-overwrite uncaught exception handler if necessary
+        if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
+            LOGGER.info("Default exception handler has been overridden!");
+            Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
+        }
 
         // sd card
         File sdCard = Environment.getExternalStorageDirectory();
@@ -232,10 +273,10 @@ public class Tracer extends BroadcastReceiver {
         }
 
         // signal that we finished writing out traces
+        final File infoFile = new File(sdCard, INFO_FILE);
+
         try {
-            String filePath = "data/data/" + packageName;
-            File info = new File(filePath, "info.txt");
-            FileWriter writer = new FileWriter(info);
+            FileWriter writer = new FileWriter(infoFile);
 
             numberOfTraces = numberOfTraces + traces.size();
             writer.append(String.valueOf(numberOfTraces));
