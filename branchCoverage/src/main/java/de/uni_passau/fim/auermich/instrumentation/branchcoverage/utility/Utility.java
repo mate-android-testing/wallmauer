@@ -42,8 +42,7 @@ public final class Utility {
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
 
     /**
-     * It seems that certain resource classes are API dependent, e.g.
-     * "R$interpolator" is only available in API 21.
+     * It seems that certain resource classes are API dependent, e.g. "R$interpolator" is only available in API 21.
      */
     private static final Set<String> resourceClasses = new HashSet<String>() {{
         add("R$anim");
@@ -141,6 +140,13 @@ public final class Utility {
         return tracerClasses;
     }
 
+    /**
+     * Loads a smali class from the resources folder.
+     *
+     * @param apiLevel The api level of the smali class.
+     * @param className The smali class name.
+     * @return Returns the loaded class.
+     */
     public static ClassDef loadClass(int apiLevel, String className) {
 
         InputStream inputStream = BranchCoverage.class.getClassLoader().getResourceAsStream(className);
