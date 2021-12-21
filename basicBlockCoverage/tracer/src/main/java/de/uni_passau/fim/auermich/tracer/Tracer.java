@@ -128,7 +128,7 @@ public class Tracer extends BroadcastReceiver {
             traces.add(identifier);
 
             if (traces.size() == CACHE_SIZE) {
-                writeRemainingTraces();
+                writeTraces();
                 traces.clear();
             }
         }
