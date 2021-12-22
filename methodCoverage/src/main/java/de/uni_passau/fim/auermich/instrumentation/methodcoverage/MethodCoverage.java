@@ -176,9 +176,8 @@ public class MethodCoverage {
                 .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
                 .collect(Collectors.toList());
 
-        // insert tracer class
-        ClassDef tracerClass = Utility.loadTracer(dexFile.getOpcodes().api);
-        instrumentedClasses.add(tracerClass);
+        // insert tracer
+        instrumentedClasses.addAll(Utility.loadTracer(dexFile.getOpcodes().api));
 
         // write modified (merged) dex file to directory
         Utility.writeMultiDexFile(decodedAPKPath, instrumentedClasses, dexFile.getOpcodes().api);
