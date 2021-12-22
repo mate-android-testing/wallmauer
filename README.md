@@ -80,12 +80,12 @@ Now, it is time to explore the application. Whenever a new branch is visited, a 
 In order to pull all traces, invoke the following commands:
 
 `adb root` (only works on rooted devices!) <br />
-`adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.auermich.tracer.Tracer --es packageName "<package-name>"` <br />
+`adb shell am broadcast -a STORE_TRACES -n <package-name>/de.uni_passau.fim.auermich.tracer.Tracer` <br />
 `adb pull storage/emulated/0/traces.txt` <br />
-`adb pull data/data/<package-name>/info.txt` (may require an additional slash on Linux, i.e. /data/data/)
+`adb pull storage/emulated/0/info.txt` (may require an additional slash on Linux, i.e. /storage)
 
-The broadcast ensures that all collected traces are written to the **traces.txt** file. You have to specify at the two
-placeholders the package name of the application. You can find this information within the **AndroidManifest.xml** 
+The broadcast ensures that all collected traces are written to the **traces.txt** file. You have to specify at the
+placeholder the package name of the application. You can find this information within the **AndroidManifest.xml** 
 (first line) or run the command: `aapt dump badging <path-to-apk> | grep package:\ name` <br >
 The second pull command retrieves a file called **info.txt**, which solely contains the number of collected traces.
 This file is present once writing the traces to the file is completed.
