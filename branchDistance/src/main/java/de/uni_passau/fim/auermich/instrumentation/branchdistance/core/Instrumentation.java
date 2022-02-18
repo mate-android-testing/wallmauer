@@ -376,7 +376,7 @@ public final class Instrumentation {
             String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
 
             if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT) {
-                // compute branch distance + trace
+                // instrument if statement with branch distance computation call
                 computeBranchDistance(methodInformation, instrumentationPoint);
 
                 // we only need to add a trace if it is not yet covered -> avoids instrumenting same location multiple times
@@ -504,7 +504,7 @@ public final class Instrumentation {
                 new ImmutableStringReference(operationParam));
 
         // we need to move the content of single if instruction argument to the second free register
-        // this enables us to us it with the invoke-static range instruction
+        // this enables us to use it with the invoke-static range instruction
         BuilderInstruction32x move = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
 
         // invoke-static-range
@@ -614,11 +614,11 @@ public final class Instrumentation {
                 new ImmutableStringReference(operationParam));
 
         // we need to move the content of the first if instruction argument to the second free register
-        // this enables us to us it with the invoke-static range instruction
+        // this enables us to use it with the invoke-static range instruction
         BuilderInstruction32x moveA = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
 
         // we need to move the content of the second if instruction argument to the third free register
-        // this enables us to us it with the invoke-static range instruction
+        // this enables us to use it with the invoke-static range instruction
         BuilderInstruction32x moveB = new BuilderInstruction32x(Opcode.MOVE_16, thirdFreeRegister, registerB);
 
         // invoke-static-range
@@ -726,7 +726,7 @@ public final class Instrumentation {
                 new ImmutableStringReference(operationParam));
 
         // we need to move the content of single if instruction argument to the second free register
-        // this enables us to us it with the invoke-static range instruction
+        // this enables us to use it with the invoke-static range instruction
         BuilderInstruction32x move = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, secondFreeRegister, registerA);
 
         // invoke-static-range
@@ -836,11 +836,11 @@ public final class Instrumentation {
                 new ImmutableStringReference(operationParam));
 
         // we need to move the content of the first if instruction argument to the second free register
-        // this enables us to us it with the invoke-static range instruction
+        // this enables us to use it with the invoke-static range instruction
         BuilderInstruction32x moveA = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, secondFreeRegister, registerA);
 
         // we need to move the content of the second if instruction argument to the third free register
-        // this enables us to us it with the invoke-static range instruction
+        // this enables us to use it with the invoke-static range instruction
         BuilderInstruction32x moveB = new BuilderInstruction32x(Opcode.MOVE_OBJECT_16, thirdFreeRegister, registerB);
 
         // invoke-static-range
@@ -920,8 +920,7 @@ public final class Instrumentation {
      * Maps an opcode to an internal operation type identifier.
      *
      * @param opcode The given opcode.
-     * @return Returns the internal operation type identifier
-     * for the given opcode.
+     * @return Returns the internal operation type identifier for the given opcode.
      */
     private static int mapOpCodeToOperation(Opcode opcode) {
 
