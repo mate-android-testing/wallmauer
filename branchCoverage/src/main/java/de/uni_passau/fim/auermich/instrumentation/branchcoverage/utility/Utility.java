@@ -200,16 +200,19 @@ public final class Utility {
             h.setLevel(Level.SEVERE);
         }
 
+        ApkDecoder decoder = new ApkDecoder(apkPath);
+
+        // path where we want to decode the APK (the same directory as the APK)
+        File parentDir = apkPath.getParentFile();
+        File outputDir = new File(parentDir, "decodedAPK");
+
+        LOGGER.info("Decoding Output Dir: " + outputDir);
+        decoder.setOutDir(outputDir);
+
+        // overwrites existing dir: -f
+        decoder.setForceDelete(true);
+
         try {
-            // ApkDecoder decoder = new ApkDecoder(new Androlib());
-            ApkDecoder decoder = new ApkDecoder(apkPath);
-
-            // path where we want to decode the APK (the same directory as the APK)
-            File parentDir = apkPath.getParentFile();
-            File outputDir = new File(parentDir, "decodedAPK");
-
-            LOGGER.info("Decoding Output Dir: " + outputDir);
-            decoder.setOutDir(outputDir);
 
             // whether to decode classes.dex into smali files: -s
             decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
@@ -221,17 +224,15 @@ public final class Utility {
             // TODO: there seems to be some problem with the AndroidManifest if we don't fully decode resources
             // decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
 
-            // overwrites existing dir: -f
-            decoder.setForceDelete(true);
-
             decoder.decode();
+            decoder.close();
 
             // the dir where the decoded content can be found
             return outputDir;
         } catch (BrutException | IOException e) {
             LOGGER.warn("Failed to decode APK file!");
             LOGGER.warn(e.getMessage());
-            throw new IllegalStateException("Decoding APK failed");
+            throw new IllegalStateException(e);
         }
     }
 

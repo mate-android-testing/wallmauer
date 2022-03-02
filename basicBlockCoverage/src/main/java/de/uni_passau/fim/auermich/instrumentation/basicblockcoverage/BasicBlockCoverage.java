@@ -154,7 +154,11 @@ public class BasicBlockCoverage {
             Utility.buildAPK(decodedAPKPath, outputAPKFile);
 
             // remove the decoded APK files
-            FileUtils.deleteDirectory(decodedAPKPath);
+            try {
+                FileUtils.deleteDirectory(decodedAPKPath);
+            } catch (IOException e) {
+                LOGGER.warn("Couldn't delete directory " + decodedAPKPath + " properly!");
+            }
         }
     }
 

@@ -332,7 +332,7 @@ public final class Utility {
     /**
      * Decodes a given APK using apktool.
      */
-    public static String decodeAPK(File apkPath) {
+    public static File decodeAPK(File apkPath) {
 
         // set 3rd party library (apktool) logging to 'SEVERE'
         java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
@@ -341,44 +341,48 @@ public final class Utility {
             h.setLevel(Level.SEVERE);
         }
 
+        ApkDecoder decoder = new ApkDecoder(apkPath);
+
+        // path where we want to decode the APK (the same directory as the APK)
+        File parentDir = apkPath.getParentFile();
+        File outputDir = new File(parentDir, "decodedAPK");
+
+        LOGGER.info("Decoding Output Dir: " + outputDir);
+        decoder.setOutDir(outputDir);
+
+        // overwrites existing dir: -f
+        decoder.setForceDelete(true);
+
         try {
-            ApkDecoder decoder = new ApkDecoder(apkPath);
-
-            // path where we want to decode the APK
-            String parentDir = apkPath.getParent();
-            String outputDir = parentDir + File.separator + "decodedAPK";
-
-            LOGGER.info("Decoding Output Dir: " + outputDir);
-            decoder.setOutDir(new File(outputDir));
 
             // whether to decode classes.dex into smali files: -s
             decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
 
             /*
-            * Although the decoding of only the AndroidManifest works and even
-            * the building of the APK works, the installing of the APK fails.
-            * See https://github.com/iBotPeaches/Apktool/issues/2374 for more details.
-            * Thus, we need to fully decode the resources right now. Hopefully
-            * this bug can be fixed in the future, decoding/encoding resources is a
-            * time consuming task.
+             * Although the decoding of only the AndroidManifest works and even
+             * the building of the APK works, the installing of the APK fails.
+             * See https://github.com/iBotPeaches/Apktool/issues/2374 for more details.
+             * Thus, we need to fully decode the resources right now. Hopefully
+             * this bug can be fixed in the future, decoding/encoding resources is a
+             * time consuming task.
              */
 
-            // decode no resources: -r
-            // decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
-            // decode only the manifest: --force-manifest
+            // whether to decode the AndroidManifest.xml
             // decoder.setForceDecodeManifest(ApkDecoder.FORCE_DECODE_MANIFEST_FULL);
 
-            // overwrites existing dir: -f
-            decoder.setForceDelete(true);
+            // whether to decode resources: -r
+            // TODO: there seems to be some problem with the AndroidManifest if we don't fully decode resources
+            // decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
 
             decoder.decode();
+            decoder.close();
 
             // the dir where the decoded content can be found
             return outputDir;
         } catch (BrutException | IOException e) {
             LOGGER.warn("Failed to decode APK file!");
             LOGGER.warn(e.getMessage());
-            throw new IllegalStateException("Decoding APK failed");
+            throw new IllegalStateException(e);
         }
     }
 
@@ -390,7 +394,7 @@ public final class Utility {
      *                   is specified, the default location ('dist' directory)
      *                   and the original APK name is used.
      */
-    public static void buildAPK(String decodedAPKPath, File outputFile) {
+    public static void buildAPK(File decodedAPKPath, File outputFile) {
 
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.useAapt2 = true;
@@ -398,7 +402,7 @@ public final class Utility {
         // apkOptions.forceBuildAll = true;
 
         try {
-            new Androlib(buildOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
+            new Androlib(buildOptions).build(new ExtFile(decodedAPKPath), outputFile);
         } catch (BrutException e) {
             LOGGER.warn("Failed to build APK file!");
             LOGGER.warn(e.getMessage());
@@ -414,7 +418,7 @@ public final class Utility {
      * @param opCode The API opcode level, e.g. API 28 (Android).
      * @throws IOException Should never happen.
      */
-    public static void writeMultiDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
+    public static void writeMultiDexFile(File filePath, List<ClassDef> classes, int opCode) throws IOException {
 
         // TODO: directly update merged dex file instance instead of creating new dex file instance here
         DexFile dexFile = new DexFile() {
@@ -443,7 +447,7 @@ public final class Utility {
             }
         };
 
-        MultiDexIO.writeDexFile(true, new File(filePath), new BasicDexFileNamer(),
+        MultiDexIO.writeDexFile(true, filePath, new BasicDexFileNamer(),
                 dexFile, DexIO.DEFAULT_MAX_DEX_POOL_SIZE, null);
     }
 
