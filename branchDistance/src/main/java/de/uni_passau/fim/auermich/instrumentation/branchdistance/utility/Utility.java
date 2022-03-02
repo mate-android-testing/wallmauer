@@ -2,7 +2,7 @@ package de.uni_passau.fim.auermich.instrumentation.branchdistance.utility;
 
 import brut.androlib.Androlib;
 import brut.androlib.ApkDecoder;
-import brut.androlib.ApkOptions;
+import brut.androlib.options.BuildOptions;
 import brut.common.BrutException;
 import brut.directory.ExtFile;
 import com.google.common.base.Charsets;
@@ -392,13 +392,13 @@ public final class Utility {
      */
     public static void buildAPK(String decodedAPKPath, File outputFile) {
 
-        ApkOptions apkOptions = new ApkOptions();
-        apkOptions.useAapt2 = true;
-        apkOptions.verbose = true;
+        BuildOptions buildOptions = new BuildOptions();
+        buildOptions.useAapt2 = true;
+        buildOptions.verbose = true;
         // apkOptions.forceBuildAll = true;
 
         try {
-            new Androlib(apkOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
+            new Androlib(buildOptions).build(new ExtFile(new File(decodedAPKPath)), outputFile);
         } catch (BrutException e) {
             LOGGER.warn("Failed to build APK file!");
             LOGGER.warn(e.getMessage());
