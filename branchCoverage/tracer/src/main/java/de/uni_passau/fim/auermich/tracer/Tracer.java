@@ -109,7 +109,6 @@ public class Tracer extends BroadcastReceiver {
              */
             synchronized (Tracer.class) {
                 writeRemainingTraces();
-                traces.clear();
             }
         }
     }
@@ -126,7 +125,6 @@ public class Tracer extends BroadcastReceiver {
 
             if (traces.size() == CACHE_SIZE) {
                 writeTraces();
-                traces.clear();
             }
         }
     }
@@ -167,6 +165,10 @@ public class Tracer extends BroadcastReceiver {
      * Writes the collected traces to the external storage. Only called once the specified cache size is reached.
      */
     private static synchronized void writeTraces() {
+
+        if (traces.isEmpty()) {
+            return; // minor optimization
+        }
 
         // re-overwrite uncaught exception handler if necessary
         if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
@@ -213,6 +215,9 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Writing to external storage failed.");
             e.printStackTrace();
         }
+
+        // reset traces
+        traces.clear();
     }
 
     /**
@@ -220,6 +225,10 @@ public class Tracer extends BroadcastReceiver {
      * containing the number collected traces since the last broadcast.
      */
     private static synchronized void writeRemainingTraces() {
+
+        if (traces.isEmpty()) {
+            return; // minor optimization
+        }
 
         // re-overwrite uncaught exception handler if necessary
         if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
@@ -288,5 +297,8 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Writing to internal storage failed.");
             e.printStackTrace();
         }
+
+        // reset traces
+        traces.clear();
     }
 }
