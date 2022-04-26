@@ -280,37 +280,12 @@
     .registers 12
 
     .prologue
-    .line 229
+    .line 226
     const-class v9, Lde/uni_passau/fim/auermich/tracer/Tracer;
 
     monitor-enter v9
 
     :try_start_3
-    sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->traces:Ljava/util/Set;
-
-    invoke-interface {v8}, Ljava/util/Set;->isEmpty()Z
-    :try_end_8
-    .catchall {:try_start_3 .. :try_end_8} :catchall_e2
-
-    move-result v8
-
-    if-eqz v8, :cond_d
-
-    .line 303
-    .local v3, "infoFile":Ljava/io/File;
-    .local v5, "sdCard":Ljava/io/File;
-    .local v6, "traceFile":Ljava/io/File;
-    :goto_b
-    monitor-exit v9
-
-    return-void
-
-    .line 234
-    .end local v3    # "infoFile":Ljava/io/File;
-    .end local v5    # "sdCard":Ljava/io/File;
-    .end local v6    # "traceFile":Ljava/io/File;
-    :cond_d
-    :try_start_d
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->uncaughtExceptionHandler:Ljava/lang/Thread$UncaughtExceptionHandler;
 
     invoke-static {}, Ljava/lang/Thread;->getDefaultUncaughtExceptionHandler()Ljava/lang/Thread$UncaughtExceptionHandler;
@@ -321,36 +296,36 @@
 
     move-result v8
 
-    if-nez v8, :cond_25
+    if-nez v8, :cond_1b
 
-    .line 235
+    .line 227
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v10, "Default exception handler has been overridden!"
 
     invoke-virtual {v8, v10}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 236
+    .line 228
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->uncaughtExceptionHandler:Ljava/lang/Thread$UncaughtExceptionHandler;
 
     invoke-static {v8}, Ljava/lang/Thread;->setDefaultUncaughtExceptionHandler(Ljava/lang/Thread$UncaughtExceptionHandler;)V
 
-    .line 240
-    :cond_25
+    .line 232
+    :cond_1b
     invoke-static {}, Landroid/os/Environment;->getExternalStorageDirectory()Ljava/io/File;
 
     move-result-object v5
 
-    .line 241
-    .restart local v5    # "sdCard":Ljava/io/File;
+    .line 233
+    .local v5, "sdCard":Ljava/io/File;
     new-instance v6, Ljava/io/File;
 
     const-string v8, "traces.txt"
 
     invoke-direct {v6, v5, v8}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 243
-    .restart local v6    # "traceFile":Ljava/io/File;
+    .line 235
+    .local v6, "traceFile":Ljava/io/File;
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     new-instance v10, Ljava/lang/StringBuilder;
@@ -378,24 +353,24 @@
     move-result-object v10
 
     invoke-virtual {v8, v10}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
-    :try_end_4e
-    .catchall {:try_start_d .. :try_end_4e} :catchall_e2
+    :try_end_44
+    .catchall {:try_start_3 .. :try_end_44} :catchall_109
 
-    .line 248
-    :try_start_4e
+    .line 240
+    :try_start_44
     new-instance v7, Ljava/io/FileWriter;
 
     const/4 v8, 0x1
 
     invoke-direct {v7, v6, v8}, Ljava/io/FileWriter;-><init>(Ljava/io/File;Z)V
 
-    .line 249
+    .line 241
     .local v7, "writer":Ljava/io/FileWriter;
     new-instance v0, Ljava/io/BufferedWriter;
 
     invoke-direct {v0, v7}, Ljava/io/BufferedWriter;-><init>(Ljava/io/Writer;)V
 
-    .line 251
+    .line 243
     .local v0, "br":Ljava/io/BufferedWriter;
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->traces:Ljava/util/Set;
 
@@ -403,23 +378,23 @@
 
     move-result-object v4
 
-    .line 252
+    .line 244
     .local v4, "iterator":Ljava/util/Iterator;, "Ljava/util/Iterator<Ljava/lang/String;>;"
     const/4 v2, 0x0
 
-    .line 254
+    .line 246
     .local v2, "element":Ljava/lang/String;
-    :goto_60
+    :goto_56
     invoke-interface {v4}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v8
 
-    if-eqz v8, :cond_ec
+    if-eqz v8, :cond_df
 
-    .line 256
-    if-nez v2, :cond_e5
+    .line 248
+    if-nez v2, :cond_d8
 
-    .line 257
+    .line 249
     invoke-interface {v4}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
     move-result-object v2
@@ -427,7 +402,7 @@
     .end local v2    # "element":Ljava/lang/String;
     check-cast v2, Ljava/lang/String;
 
-    .line 258
+    .line 250
     .restart local v2    # "element":Ljava/lang/String;
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
@@ -451,57 +426,57 @@
 
     invoke-virtual {v8, v10}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 263
-    :goto_86
+    .line 255
+    :goto_7c
     invoke-virtual {v0, v2}, Ljava/io/BufferedWriter;->write(Ljava/lang/String;)V
 
-    .line 264
+    .line 256
     invoke-virtual {v0}, Ljava/io/BufferedWriter;->newLine()V
-    :try_end_8c
-    .catch Ljava/io/IOException; {:try_start_4e .. :try_end_8c} :catch_8d
-    .catchall {:try_start_4e .. :try_end_8c} :catchall_e2
+    :try_end_82
+    .catch Ljava/io/IOException; {:try_start_44 .. :try_end_82} :catch_83
+    .catchall {:try_start_44 .. :try_end_82} :catchall_109
 
-    goto :goto_60
+    goto :goto_56
 
-    .line 275
+    .line 267
     .end local v0    # "br":Ljava/io/BufferedWriter;
     .end local v2    # "element":Ljava/lang/String;
     .end local v4    # "iterator":Ljava/util/Iterator;, "Ljava/util/Iterator<Ljava/lang/String;>;"
     .end local v7    # "writer":Ljava/io/FileWriter;
-    :catch_8d
+    :catch_83
     move-exception v1
 
-    .line 276
+    .line 268
     .local v1, "e":Ljava/io/IOException;
-    :try_start_8e
+    :try_start_84
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v10, "Writing to external storage failed."
 
     invoke-virtual {v8, v10}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 277
+    .line 269
     invoke-virtual {v1}, Ljava/io/IOException;->printStackTrace()V
 
-    .line 281
+    .line 273
     .end local v1    # "e":Ljava/io/IOException;
-    :goto_98
+    :goto_8e
     new-instance v3, Ljava/io/File;
 
     const-string v8, "info.txt"
 
     invoke-direct {v3, v5, v8}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
-    :try_end_9f
-    .catchall {:try_start_8e .. :try_end_9f} :catchall_e2
+    :try_end_95
+    .catchall {:try_start_84 .. :try_end_95} :catchall_109
 
-    .line 284
-    .restart local v3    # "infoFile":Ljava/io/File;
-    :try_start_9f
+    .line 276
+    .local v3, "infoFile":Ljava/io/File;
+    :try_start_95
     new-instance v7, Ljava/io/FileWriter;
 
     invoke-direct {v7, v3}, Ljava/io/FileWriter;-><init>(Ljava/io/File;)V
 
-    .line 286
+    .line 278
     .restart local v7    # "writer":Ljava/io/FileWriter;
     sget v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->numberOfTraces:I
 
@@ -515,7 +490,7 @@
 
     sput v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->numberOfTraces:I
 
-    .line 287
+    .line 279
     sget v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->numberOfTraces:I
 
     invoke-static {v8}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
@@ -524,7 +499,7 @@
 
     invoke-virtual {v7, v8}, Ljava/io/FileWriter;->append(Ljava/lang/CharSequence;)Ljava/io/Writer;
 
-    .line 288
+    .line 280
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     new-instance v10, Ljava/lang/StringBuilder;
@@ -549,50 +524,43 @@
 
     invoke-virtual {v8, v10}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 291
+    .line 283
     const/4 v8, 0x0
 
     sput v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->numberOfTraces:I
 
-    .line 293
+    .line 285
     invoke-virtual {v7}, Ljava/io/FileWriter;->flush()V
 
-    .line 294
+    .line 286
     invoke-virtual {v7}, Ljava/io/FileWriter;->close()V
-    :try_end_db
-    .catch Ljava/io/IOException; {:try_start_9f .. :try_end_db} :catch_116
-    .catchall {:try_start_9f .. :try_end_db} :catchall_e2
+    :try_end_d1
+    .catch Ljava/io/IOException; {:try_start_95 .. :try_end_d1} :catch_10c
+    .catchall {:try_start_95 .. :try_end_d1} :catchall_109
 
-    .line 302
+    .line 294
     .end local v7    # "writer":Ljava/io/FileWriter;
-    :goto_db
-    :try_start_db
+    :goto_d1
+    :try_start_d1
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->traces:Ljava/util/Set;
 
     invoke-interface {v8}, Ljava/util/Set;->clear()V
-    :try_end_e0
-    .catchall {:try_start_db .. :try_end_e0} :catchall_e2
+    :try_end_d6
+    .catchall {:try_start_d1 .. :try_end_d6} :catchall_109
 
-    goto/16 :goto_b
-
-    .line 229
-    .end local v3    # "infoFile":Ljava/io/File;
-    .end local v6    # "traceFile":Ljava/io/File;
-    :catchall_e2
-    move-exception v8
-
+    .line 295
     monitor-exit v9
 
-    throw v8
+    return-void
 
-    .line 260
+    .line 252
+    .end local v3    # "infoFile":Ljava/io/File;
     .restart local v0    # "br":Ljava/io/BufferedWriter;
     .restart local v2    # "element":Ljava/lang/String;
     .restart local v4    # "iterator":Ljava/util/Iterator;, "Ljava/util/Iterator<Ljava/lang/String;>;"
-    .restart local v6    # "traceFile":Ljava/io/File;
     .restart local v7    # "writer":Ljava/io/FileWriter;
-    :cond_e5
-    :try_start_e5
+    :cond_d8
+    :try_start_d8
     invoke-interface {v4}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
     move-result-object v2
@@ -601,19 +569,19 @@
     check-cast v2, Ljava/lang/String;
 
     .restart local v2    # "element":Ljava/lang/String;
-    goto :goto_86
+    goto :goto_7c
 
-    .line 267
-    :cond_ec
+    .line 259
+    :cond_df
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->traces:Ljava/util/Set;
 
     invoke-interface {v8}, Ljava/util/Set;->isEmpty()Z
 
     move-result v8
 
-    if-nez v8, :cond_10c
+    if-nez v8, :cond_ff
 
-    .line 268
+    .line 260
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     new-instance v10, Ljava/lang/StringBuilder;
@@ -636,80 +604,67 @@
 
     invoke-virtual {v8, v10}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 271
-    :cond_10c
+    .line 263
+    :cond_ff
     invoke-virtual {v0}, Ljava/io/BufferedWriter;->flush()V
 
-    .line 272
+    .line 264
     invoke-virtual {v0}, Ljava/io/BufferedWriter;->close()V
 
-    .line 273
+    .line 265
     invoke-virtual {v7}, Ljava/io/FileWriter;->close()V
-    :try_end_115
-    .catch Ljava/io/IOException; {:try_start_e5 .. :try_end_115} :catch_8d
-    .catchall {:try_start_e5 .. :try_end_115} :catchall_e2
+    :try_end_108
+    .catch Ljava/io/IOException; {:try_start_d8 .. :try_end_108} :catch_83
+    .catchall {:try_start_d8 .. :try_end_108} :catchall_109
 
-    goto :goto_98
+    goto :goto_8e
 
-    .line 296
+    .line 226
     .end local v0    # "br":Ljava/io/BufferedWriter;
     .end local v2    # "element":Ljava/lang/String;
     .end local v4    # "iterator":Ljava/util/Iterator;, "Ljava/util/Iterator<Ljava/lang/String;>;"
+    .end local v6    # "traceFile":Ljava/io/File;
     .end local v7    # "writer":Ljava/io/FileWriter;
+    :catchall_109
+    move-exception v8
+
+    monitor-exit v9
+
+    throw v8
+
+    .line 288
     .restart local v3    # "infoFile":Ljava/io/File;
-    :catch_116
+    .restart local v6    # "traceFile":Ljava/io/File;
+    :catch_10c
     move-exception v1
 
-    .line 297
+    .line 289
     .restart local v1    # "e":Ljava/io/IOException;
-    :try_start_117
+    :try_start_10d
     sget-object v8, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v10, "Writing to internal storage failed."
 
     invoke-virtual {v8, v10}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 298
+    .line 290
     invoke-virtual {v1}, Ljava/io/IOException;->printStackTrace()V
-    :try_end_121
-    .catchall {:try_start_117 .. :try_end_121} :catchall_e2
+    :try_end_117
+    .catchall {:try_start_10d .. :try_end_117} :catchall_109
 
-    goto :goto_db
+    goto :goto_d1
 .end method
 
 .method private static declared-synchronized writeTraces()V
     .registers 16
 
     .prologue
-    .line 169
+    .line 170
     const-class v11, Lde/uni_passau/fim/auermich/tracer/Tracer;
 
     monitor-enter v11
 
     :try_start_3
-    sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->traces:Ljava/util/Set;
-
-    invoke-interface {v10}, Ljava/util/Set;->isEmpty()Z
-    :try_end_8
-    .catchall {:try_start_3 .. :try_end_8} :catchall_f2
-
-    move-result v10
-
-    if-eqz v10, :cond_d
-
-    .line 221
-    .local v2, "sdCard":Ljava/io/File;
-    .local v8, "traceFile":Ljava/io/File;
-    :goto_b
-    monitor-exit v11
-
-    return-void
-
-    .line 174
-    .end local v2    # "sdCard":Ljava/io/File;
-    .end local v8    # "traceFile":Ljava/io/File;
-    :cond_d
-    :try_start_d
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->uncaughtExceptionHandler:Ljava/lang/Thread$UncaughtExceptionHandler;
 
     invoke-static {}, Ljava/lang/Thread;->getDefaultUncaughtExceptionHandler()Ljava/lang/Thread$UncaughtExceptionHandler;
@@ -720,36 +675,36 @@
 
     move-result v10
 
-    if-nez v10, :cond_25
+    if-nez v10, :cond_1b
 
-    .line 175
+    .line 171
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v12, "Default exception handler has been overridden!"
 
     invoke-virtual {v10, v12}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 176
+    .line 172
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->uncaughtExceptionHandler:Ljava/lang/Thread$UncaughtExceptionHandler;
 
     invoke-static {v10}, Ljava/lang/Thread;->setDefaultUncaughtExceptionHandler(Ljava/lang/Thread$UncaughtExceptionHandler;)V
 
-    .line 179
-    :cond_25
+    .line 175
+    :cond_1b
     invoke-static {}, Landroid/os/Environment;->getExternalStorageDirectory()Ljava/io/File;
 
     move-result-object v2
 
-    .line 180
-    .restart local v2    # "sdCard":Ljava/io/File;
+    .line 176
+    .local v2, "sdCard":Ljava/io/File;
     new-instance v8, Ljava/io/File;
 
     const-string v10, "traces.txt"
 
     invoke-direct {v8, v2, v10}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .line 182
-    .restart local v8    # "traceFile":Ljava/io/File;
+    .line 178
+    .local v8, "traceFile":Ljava/io/File;
     const/4 v10, 0x0
 
     const-string v12, "android.permission.WRITE_EXTERNAL_STORAGE"
@@ -758,33 +713,33 @@
 
     move-result v10
 
-    if-nez v10, :cond_40
+    if-nez v10, :cond_36
 
-    .line 183
+    .line 179
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v12, "Permissions got dropped unexpectedly!"
 
     invoke-virtual {v10, v12}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
-    :try_end_40
-    .catchall {:try_start_d .. :try_end_40} :catchall_f2
+    :try_end_36
+    .catchall {:try_start_3 .. :try_end_36} :catchall_f4
 
-    .line 188
-    :cond_40
-    :try_start_40
+    .line 184
+    :cond_36
+    :try_start_36
     new-instance v9, Ljava/io/FileWriter;
 
     const/4 v10, 0x1
 
     invoke-direct {v9, v8, v10}, Ljava/io/FileWriter;-><init>(Ljava/io/File;Z)V
 
-    .line 189
+    .line 185
     .local v9, "writer":Ljava/io/FileWriter;
     new-instance v0, Ljava/io/BufferedWriter;
 
     invoke-direct {v0, v9}, Ljava/io/BufferedWriter;-><init>(Ljava/io/Writer;)V
 
-    .line 191
+    .line 187
     .local v0, "br":Ljava/io/BufferedWriter;
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->traces:Ljava/util/Set;
 
@@ -792,12 +747,12 @@
 
     move-result-object v10
 
-    :goto_51
+    :goto_47
     invoke-interface {v10}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v12
 
-    if-eqz v12, :cond_c2
+    if-eqz v12, :cond_b8
 
     invoke-interface {v10}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -805,41 +760,41 @@
 
     check-cast v7, Ljava/lang/String;
 
-    .line 192
+    .line 188
     .local v7, "trace":Ljava/lang/String;
     invoke-virtual {v0, v7}, Ljava/io/BufferedWriter;->write(Ljava/lang/String;)V
 
-    .line 193
+    .line 189
     invoke-virtual {v0}, Ljava/io/BufferedWriter;->newLine()V
-    :try_end_63
-    .catch Ljava/lang/IndexOutOfBoundsException; {:try_start_40 .. :try_end_63} :catch_64
-    .catch Ljava/io/IOException; {:try_start_40 .. :try_end_63} :catch_f5
-    .catchall {:try_start_40 .. :try_end_63} :catchall_f2
+    :try_end_59
+    .catch Ljava/lang/IndexOutOfBoundsException; {:try_start_36 .. :try_end_59} :catch_5a
+    .catch Ljava/io/IOException; {:try_start_36 .. :try_end_59} :catch_e8
+    .catchall {:try_start_36 .. :try_end_59} :catchall_f4
 
-    goto :goto_51
+    goto :goto_47
 
-    .line 204
+    .line 200
     .end local v0    # "br":Ljava/io/BufferedWriter;
     .end local v7    # "trace":Ljava/lang/String;
     .end local v9    # "writer":Ljava/io/FileWriter;
-    :catch_64
+    :catch_5a
     move-exception v1
 
-    .line 205
+    .line 201
     .local v1, "e":Ljava/lang/IndexOutOfBoundsException;
-    :try_start_65
+    :try_start_5b
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v12, "Synchronization issue!"
 
     invoke-virtual {v10, v12}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 206
+    .line 202
     invoke-static {}, Ljava/lang/Thread;->getAllStackTraces()Ljava/util/Map;
 
     move-result-object v6
 
-    .line 207
+    .line 203
     .local v6, "threadStackTraces":Ljava/util/Map;, "Ljava/util/Map<Ljava/lang/Thread;[Ljava/lang/StackTraceElement;>;"
     invoke-interface {v6}, Ljava/util/Map;->keySet()Ljava/util/Set;
 
@@ -849,12 +804,12 @@
 
     move-result-object v12
 
-    :cond_78
+    :cond_6e
     invoke-interface {v12}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v10
 
-    if-eqz v10, :cond_eb
+    if-eqz v10, :cond_e1
 
     invoke-interface {v12}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -862,7 +817,7 @@
 
     check-cast v5, Ljava/lang/Thread;
 
-    .line 208
+    .line 204
     .local v5, "thread":Ljava/lang/Thread;
     invoke-interface {v6, v5}, Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object;
 
@@ -870,7 +825,7 @@
 
     check-cast v3, [Ljava/lang/StackTraceElement;
 
-    .line 209
+    .line 205
     .local v3, "stackTrace":[Ljava/lang/StackTraceElement;
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
@@ -908,17 +863,17 @@
 
     invoke-virtual {v10, v13}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 210
+    .line 206
     array-length v13, v3
 
     const/4 v10, 0x0
 
-    :goto_b2
-    if-ge v10, v13, :cond_78
+    :goto_a8
+    if-ge v10, v13, :cond_6e
 
     aget-object v4, v3, v10
 
-    .line 211
+    .line 207
     .local v4, "stackTraceElement":Ljava/lang/StackTraceElement;
     sget-object v14, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
@@ -927,15 +882,15 @@
     move-result-object v15
 
     invoke-virtual {v14, v15}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
-    :try_end_bf
-    .catchall {:try_start_65 .. :try_end_bf} :catchall_f2
+    :try_end_b5
+    .catchall {:try_start_5b .. :try_end_b5} :catchall_f4
 
-    .line 210
+    .line 206
     add-int/lit8 v10, v10, 0x1
 
-    goto :goto_b2
+    goto :goto_a8
 
-    .line 197
+    .line 193
     .end local v1    # "e":Ljava/lang/IndexOutOfBoundsException;
     .end local v3    # "stackTrace":[Ljava/lang/StackTraceElement;
     .end local v4    # "stackTraceElement":Ljava/lang/StackTraceElement;
@@ -943,15 +898,15 @@
     .end local v6    # "threadStackTraces":Ljava/util/Map;, "Ljava/util/Map<Ljava/lang/Thread;[Ljava/lang/StackTraceElement;>;"
     .restart local v0    # "br":Ljava/io/BufferedWriter;
     .restart local v9    # "writer":Ljava/io/FileWriter;
-    :cond_c2
-    :try_start_c2
+    :cond_b8
+    :try_start_b8
     sget v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->numberOfTraces:I
 
     add-int/lit16 v10, v10, 0x1388
 
     sput v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->numberOfTraces:I
 
-    .line 198
+    .line 194
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     new-instance v12, Ljava/lang/StringBuilder;
@@ -976,62 +931,65 @@
 
     invoke-virtual {v10, v12}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 200
+    .line 196
     invoke-virtual {v0}, Ljava/io/BufferedWriter;->flush()V
 
-    .line 201
+    .line 197
     invoke-virtual {v0}, Ljava/io/BufferedWriter;->close()V
 
-    .line 202
+    .line 198
     invoke-virtual {v9}, Ljava/io/FileWriter;->close()V
-    :try_end_eb
-    .catch Ljava/lang/IndexOutOfBoundsException; {:try_start_c2 .. :try_end_eb} :catch_64
-    .catch Ljava/io/IOException; {:try_start_c2 .. :try_end_eb} :catch_f5
-    .catchall {:try_start_c2 .. :try_end_eb} :catchall_f2
+    :try_end_e1
+    .catch Ljava/lang/IndexOutOfBoundsException; {:try_start_b8 .. :try_end_e1} :catch_5a
+    .catch Ljava/io/IOException; {:try_start_b8 .. :try_end_e1} :catch_e8
+    .catchall {:try_start_b8 .. :try_end_e1} :catchall_f4
 
-    .line 220
+    .line 216
     .end local v0    # "br":Ljava/io/BufferedWriter;
     .end local v9    # "writer":Ljava/io/FileWriter;
-    :cond_eb
-    :goto_eb
-    :try_start_eb
+    :cond_e1
+    :goto_e1
+    :try_start_e1
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->traces:Ljava/util/Set;
 
     invoke-interface {v10}, Ljava/util/Set;->clear()V
-    :try_end_f0
-    .catchall {:try_start_eb .. :try_end_f0} :catchall_f2
+    :try_end_e6
+    .catchall {:try_start_e1 .. :try_end_e6} :catchall_f4
 
-    goto/16 :goto_b
-
-    .line 169
-    .end local v8    # "traceFile":Ljava/io/File;
-    :catchall_f2
-    move-exception v10
-
+    .line 217
     monitor-exit v11
 
-    throw v10
+    return-void
 
-    .line 214
-    .restart local v8    # "traceFile":Ljava/io/File;
-    :catch_f5
+    .line 210
+    :catch_e8
     move-exception v1
 
-    .line 215
+    .line 211
     .local v1, "e":Ljava/io/IOException;
-    :try_start_f6
+    :try_start_e9
     sget-object v10, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     const-string v12, "Writing to external storage failed."
 
     invoke-virtual {v10, v12}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 216
+    .line 212
     invoke-virtual {v1}, Ljava/io/IOException;->printStackTrace()V
-    :try_end_100
-    .catchall {:try_start_f6 .. :try_end_100} :catchall_f2
+    :try_end_f3
+    .catchall {:try_start_e9 .. :try_end_f3} :catchall_f4
 
-    goto :goto_eb
+    goto :goto_e1
+
+    .line 170
+    .end local v1    # "e":Ljava/io/IOException;
+    .end local v8    # "traceFile":Ljava/io/File;
+    :catchall_f4
+    move-exception v10
+
+    monitor-exit v11
+
+    throw v10
 .end method
 
 

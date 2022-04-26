@@ -169,10 +169,6 @@ public class Tracer extends BroadcastReceiver {
      */
     private static void writeTraces() {
 
-        if (traces.isEmpty()) {
-            return; // minor optimization
-        }
-
         // re-overwrite uncaught exception handler if necessary
         if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
             LOGGER.info("Default exception handler has been overridden!");
@@ -228,10 +224,6 @@ public class Tracer extends BroadcastReceiver {
      * containing the number collected traces since the last broadcast.
      */
     private static void writeRemainingTraces() {
-
-        if (traces.isEmpty()) {
-            return; // minor optimization
-        }
 
         // re-overwrite uncaught exception handler if necessary
         if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
