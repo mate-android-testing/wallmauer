@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Environment;
 
 import java.io.BufferedWriter;
@@ -54,7 +55,6 @@ public class Tracer extends BroadcastReceiver {
      */
     static {
 
-        LOGGER.info("Initializing custom uncaught exception handler!");
         Thread.UncaughtExceptionHandler defaultUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
 
         Thread.UncaughtExceptionHandler uncaughtExceptionHandler = new Thread.UncaughtExceptionHandler() {
@@ -99,8 +99,10 @@ public class Tracer extends BroadcastReceiver {
 
             LOGGER.info("Received Broadcast");
 
-            if (!isPermissionGranted(context, WRITE_EXTERNAL_STORAGE)) {
-                LOGGER.info("Permissions got dropped unexpectedly!");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (!isPermissionGranted(context, WRITE_EXTERNAL_STORAGE)) {
+                    LOGGER.info("Permissions got dropped unexpectedly!");
+                }
             }
 
             /*
@@ -157,6 +159,7 @@ public class Tracer extends BroadcastReceiver {
         if (context == null) {
             throw new IllegalStateException("Couldn't access context object!");
         } else {
+            // requires at least API 23
             return context.checkSelfPermission(permission) == PERMISSION_GRANTED;
         }
     }
@@ -175,8 +178,10 @@ public class Tracer extends BroadcastReceiver {
         File sdCard = Environment.getExternalStorageDirectory();
         File traceFile = new File(sdCard, TRACES_FILE);
 
-        if (!isPermissionGranted(null, WRITE_EXTERNAL_STORAGE)) {
-            LOGGER.info("Permissions got dropped unexpectedly!");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!isPermissionGranted(null, WRITE_EXTERNAL_STORAGE)) {
+                LOGGER.info("Permissions got dropped unexpectedly!");
+            }
         }
 
         try {
