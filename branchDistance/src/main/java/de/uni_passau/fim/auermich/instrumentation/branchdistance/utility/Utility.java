@@ -239,7 +239,7 @@ public final class Utility {
      *
      * @param methodInformation Encapsulates a method.
      */
-    public static void writeBranches(MethodInformation methodInformation) {
+    public static synchronized void writeBranches(MethodInformation methodInformation) {
 
         File file = new File(OUTPUT_BRANCHES_FILE);
 

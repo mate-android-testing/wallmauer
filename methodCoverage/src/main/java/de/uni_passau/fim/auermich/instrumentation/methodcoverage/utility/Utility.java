@@ -238,7 +238,7 @@ public final class Utility {
      *
      * @param instrumentedMethods The list of the instrumented instrumentedMethods.
      */
-    public static void writeMethods(List<MethodInformation> instrumentedMethods) {
+    public static synchronized void writeMethods(List<MethodInformation> instrumentedMethods) {
 
         File file = new File(OUTPUT_METHODS_FILE);
 

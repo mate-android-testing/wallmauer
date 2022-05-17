@@ -243,7 +243,7 @@ public final class Utility {
      *
      * @param methodInformation A description of the instrumented method.
      */
-    public static void writeBasicBlocks(final MethodInformation methodInformation) {
+    public static synchronized void writeBasicBlocks(final MethodInformation methodInformation) {
 
         File file = new File(OUTPUT_BLOCKS_FILE);
 
