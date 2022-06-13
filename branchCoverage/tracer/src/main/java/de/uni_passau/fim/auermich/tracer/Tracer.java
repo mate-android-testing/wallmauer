@@ -10,7 +10,6 @@ import android.os.Environment;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -212,8 +211,8 @@ public class Tracer extends BroadcastReceiver {
                     LOGGER.info(String.valueOf(stackTraceElement));
                 }
             }
-        } catch (IOException e) {
-            LOGGER.info("Writing to external storage failed.");
+        } catch (Exception e) {
+            LOGGER.info("Writing traces.txt to external storage failed.");
             e.printStackTrace();
         }
 
@@ -269,8 +268,8 @@ public class Tracer extends BroadcastReceiver {
             br.close();
             writer.close();
 
-        } catch (IOException e) {
-            LOGGER.info("Writing to external storage failed.");
+        } catch (Exception e) {
+            LOGGER.info("Writing traces.txt to external storage failed.");
             e.printStackTrace();
         }
 
@@ -290,8 +289,8 @@ public class Tracer extends BroadcastReceiver {
             writer.flush();
             writer.close();
 
-        } catch (IOException e) {
-            LOGGER.info("Writing to internal storage failed.");
+        } catch (Exception e) {
+            LOGGER.info("Writing info.txt to external storage failed.");
             e.printStackTrace();
         }
 
