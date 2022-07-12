@@ -114,14 +114,15 @@ public class ManifestParser {
     }
 
     /**
-     * Marks the application as debuggable.
+     * Adds the given application attribute to the manifest.
      *
-     * @return Returns {@code true} if inserting the debuggable attribute succeeded,
-     *      otherwise {@code false}.
+     * @param attribute The attribute that should be inserted.
+     * @param value The value of the attribute.
+     * @return Returns {@code true} if inserting the attribute succeeded, otherwise {@code false} is returned.
      */
-    public boolean addDebuggableFlag() {
+    public boolean addApplicationAttribute(String attribute, boolean value) {
 
-        LOGGER.info("Adding debuggable attribute to Manifest!");
+        LOGGER.info("Adding application attribute " + attribute + " to Manifest!");
 
         try {
 
@@ -139,21 +140,20 @@ public class ManifestParser {
             if (applicationTag.getNodeType() == Node.ELEMENT_NODE) {
 
                 Element application = (Element) applicationTag;
-                final String debuggableAttribute = "android:debuggable";
 
-                // check whether the application tag already defines a debuggable attribute
-                if (application.hasAttribute(debuggableAttribute)) {
-                    boolean isDebuggable = Boolean.parseBoolean(application.getAttribute(debuggableAttribute));
-                    if (isDebuggable) {
-                        // the app is already debuggable
+                // check whether the application tag already defines such attribute
+                if (application.hasAttribute(attribute)) {
+                    boolean isEnabled = Boolean.parseBoolean(application.getAttribute(attribute));
+                    if (isEnabled == value) {
+                        // the app has already the attribute with the correct value
                         return true;
                     } else {
-                        // change the attribute value to true
-                        application.setAttribute(debuggableAttribute, "true");
+                        // change the attribute value to the desired value
+                        application.setAttribute(attribute, String.valueOf(value));
                     }
                 } else {
-                    // we need to add the attribute android:debuggable
-                    application.setAttribute(debuggableAttribute, "true");
+                    // we need to add the attribute first
+                    application.setAttribute(attribute, String.valueOf(value));
                 }
             } else {
                 // should never happen
@@ -175,6 +175,12 @@ public class ManifestParser {
         return false;
     }
 
+    /**
+     * Adds the given permission tag to the AndroidManifest.xml file.
+     *
+     * @param permission The permission that should be added.
+     * @return Returns {@code true} if inserting the permission tag succeeded, otherwise {@code false} is returned.
+     */
     public boolean addPermissionTag(String permission) {
 
         LOGGER.info("Adding permission " + permission + " to Manifest!");
