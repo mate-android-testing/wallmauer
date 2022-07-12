@@ -142,8 +142,9 @@ public class BasicBlockCoverage {
 
             // add external storage write permission
             if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")
-                    || !manifest.addPermissionTag("android.permission.READ_EXTERNAL_STORAGE")) {
-                LOGGER.warn("Couldn't add read/write permission for external storage!");
+                    || !manifest.addPermissionTag("android.permission.READ_EXTERNAL_STORAGE")
+                    || !manifest.addPermissionTag("android.permission.MANAGE_EXTERNAL_STORAGE")) {
+                LOGGER.warn("Couldn't add read/write/manage permission for external storage!");
                 return;
             }
 
