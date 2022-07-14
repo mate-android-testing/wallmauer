@@ -262,10 +262,21 @@ public class BasicBlockBranchDistance {
      */
     private static Method instrumentMethod(DexFile dexFile, ClassDef classDef, Method method) {
 
-        // each method is identified by its class name and method name
-        String id = method.toString();
+        String methodSignature = method.toString();
 
-        MethodInformation methodInformation = new MethodInformation(id, classDef, method, dexFile);
+        if (Utility.isJavaObjectMethod(methodSignature) || Utility.isARTMethod(methodSignature)) {
+            /*
+             * We don't instrument methods like hashCode() or equals(), since those methods are not explicitly
+             * called in the most circumstances. Thus, these methods would constitute isolated methods in
+             * the corresponding control flow graph and are excluded for that reason.
+             * NOTE: We need to ensure that the excluded methods here are synced with excluded methods of
+             * the graph construction process, otherwise the branch distance vector may diverge and coverage
+             * calculations might not be accurate!
+             */
+            return method;
+        }
+
+        MethodInformation methodInformation = new MethodInformation(methodSignature, classDef, method, dexFile);
         MethodImplementation methImpl = methodInformation.getMethodImplementation();
 
         /* We can only instrument methods with a given register count because
@@ -280,7 +291,9 @@ public class BasicBlockBranchDistance {
             // determine the new local registers and free register IDs
             Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
 
-            // determine the location of the basic blocks
+            // TODO: Check whether method entries and exits are necessary
+
+            // determine the location of the basic blocks + if statements
             methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
             // determine the location of try blocks

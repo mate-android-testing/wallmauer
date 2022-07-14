@@ -65,6 +65,38 @@ public final class Utility {
         add("R$array");
     }};
 
+    /**
+     * The methods contained in the java.lang.Object class.
+     */
+    private static final Set<String> JAVA_OBJECT_METHODS = new HashSet<>() {{
+        add("hashCode()I");
+        add("equals(Ljava/lang/Object;)Z");
+        add("getClass()Ljava/lang/Class;");
+        add("clone()Ljava/lang/Object;");
+        add("toString()Ljava/lang/String;");
+        add("notify()V");
+        add("notifyAll()V");
+        add("wait(J)V");
+        add("wait(JI)V");
+        add("wait()V");
+        add("finalize()V");
+    }};
+
+    /**
+     * The recognized ART methods excluding component invocation methods, e.g. startActivity().
+     */
+    private static final Set<String> ART_METHODS = new HashSet<>() {{
+        add("findViewById(I)Landroid/view/View;");
+        add("setContentView(I)V");
+        add("setContentView(Landroid/view/View;)V");
+        add("setContentView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V");
+        add("getSupportFragmentManager()Landroid/support/v4/app/FragmentManager;");
+        add("addContentView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V");
+        add("getMenuInflater()Landroid/view/MenuInflater;");
+        add("invalidateOptionsMenu()V");
+        add("writeToParcel(Landroid/os/Parcel;I)V");
+    }};
+
     private Utility() {
         throw new UnsupportedOperationException("Utility class!");
     }
@@ -562,6 +594,30 @@ public final class Utility {
         fragmentLifeCycleMethods.add("onDestroy()V");
         fragmentLifeCycleMethods.add("onDetach()V");
         return fragmentLifeCycleMethods;
+    }
+
+    /**
+     * Checks whether the given method is an inherited method from the java.lang.Object class.
+     *
+     * @param fullyQualifiedMethodName The method signature.
+     * @return Returns {@code true} if the given method is a java.lang.Object method,
+     * otherwise {@code false}.
+     */
+    public static boolean isJavaObjectMethod(final String fullyQualifiedMethodName) {
+        String method = getMethodName(fullyQualifiedMethodName);
+        return JAVA_OBJECT_METHODS.contains(method);
+    }
+
+    /**
+     * Checks whether the given method is an (inherited) ART method, e.g. setContentView().
+     *
+     * @param fullyQualifiedMethodName The method signature.
+     * @return Returns {@code true} if the given method is an ART method,
+     * otherwise {@code false}.
+     */
+    public static boolean isARTMethod(final String fullyQualifiedMethodName) {
+        String method = getMethodName(fullyQualifiedMethodName);
+        return ART_METHODS.contains(method);
     }
 
     /**
