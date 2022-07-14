@@ -5,15 +5,23 @@ import de.uni_passau.fim.auermich.instrumentation.branchdistance.BasicBlockBranc
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Utility;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jf.dexlib2.AccessFlags;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
+import org.jf.dexlib2.iface.ClassDef;
+import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.iface.MethodParameter;
+import org.jf.dexlib2.immutable.ImmutableMethod;
+import org.jf.dexlib2.immutable.ImmutableMethodParameter;
 import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
 import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
@@ -416,5 +424,149 @@ public final class Instrumentation {
         }
         // update implementation
         methodInformation.setMethodImplementation(mutableMethodImplementation);
+    }
+
+    /**
+     * Adds a basic lifecycle method to the given activity or fragment class. This already includes the instrumentation
+     * of the method.
+     * <p>
+     * NOTE: We don't assign the instruction index to the entry and exit traces, since the original APK don't contain
+     * these methods and in the graph those methods would be represented by dummy CFGs not defining any instruction
+     * vertex. Hence, the lookup would fail.
+     *
+     * @param method   The lifecycle method name.
+     * @param classDef The activity or fragment class.
+     * @param superClasses The super classes of the activity or fragment class.
+     * @return Returns the instrumented lifecycle method or {@code null} if the lifecycle method couldn't be instrumented.
+     */
+    public static Method addLifeCycleMethod(final String method, final ClassDef classDef, final List<ClassDef> superClasses) {
+
+        // TODO: Fix implementation for basic block branch distance
+
+        /*
+         * We need to check that overriding the lifecycle method is actually permitted. It can happen that the method
+         * is declared final in one of its super classes. In this case, we can't overwrite the lifecycle method.
+         */
+        for (ClassDef superClass : superClasses) {
+            for (Method m : superClass.getMethods()) {
+                if (m.toString().endsWith(method)) {
+                    if (Arrays.stream(AccessFlags.getAccessFlagsForMethod(m.getAccessFlags()))
+                            .anyMatch(flag -> flag == AccessFlags.FINAL)) {
+                        LOGGER.info("Can't add lifecycle method " + method
+                                + " because the method is declared final in the super class " + superClass + "!");
+                        return null;
+                    }
+                }
+            }
+        }
+
+        String superClass = classDef.getSuperclass();
+
+        String methodName = method.split("\\(")[0];
+        String parameters = method.split("\\(")[1].split("\\)")[0];
+        String returnType = method.split("\\)")[1];
+
+        // ASSUMPTION: all parameters are objects (this is true for lifecycle methods)
+        int paramCount = StringUtils.countMatches(parameters, ";");
+        List<String> params = new ArrayList<>();
+
+        if (paramCount > 0) {
+            // the params have the form L../../../..; e.g. Landroid/view/View;
+            params = Arrays.stream(parameters.split(";")).map(param -> param + ";").collect(Collectors.toList());
+        }
+
+        MutableMethodImplementation implementation;
+
+        if (returnType.equals("V")) {
+
+            // one local register v0 required -> p0 has index 0
+            int paramIndex = 1;
+
+            // we require one additional parameter for the invisible 'this'-reference p0 + one for trace
+            implementation = new MutableMethodImplementation(2 + paramCount);
+
+            // entry string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference(TRACER, "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            // call super method (we have one register for this reference + one register for each parameter)
+            implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
+                    paramIndex++, paramIndex++, paramIndex++, paramIndex++, paramIndex++,
+                    new ImmutableMethodReference(superClass, methodName, params, returnType)));
+
+            // exit string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef + "->" + method + "->exit")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference(TRACER, "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            // we have to add return-statement as well, though void!
+            implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
+        } else {
+
+            // two local registers v0,v1 required -> p0 has index 2
+            int paramIndex = 2;
+
+            // we require one additional parameter for the invisible 'this'-reference p0, one for the trace and one
+            // for the return value
+            implementation = new MutableMethodImplementation(3 + paramCount);
+
+            // entry string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference(TRACER, "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            // call super method (we have one register for this reference + one register for each parameter)
+            implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
+                    paramIndex++, paramIndex++, paramIndex++, paramIndex++, paramIndex++,
+                    new ImmutableMethodReference(superClass, methodName, params, returnType)));
+
+            // move-result v1
+            implementation.addInstruction(new BuilderInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1));
+
+            // exit string trace
+            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                    new ImmutableStringReference(classDef + "->" + method + "->exit")));
+
+            // invoke-static-range
+            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    0, 1,
+                    new ImmutableMethodReference(TRACER, "trace",
+                            Lists.newArrayList("Ljava/lang/String;"), "V")));
+
+            // only onCreateView(..) returns Landroid/view/View; which is stored in v1
+            implementation.addInstruction(new BuilderInstruction11x(Opcode.RETURN_OBJECT, 1));
+        }
+
+        List<MethodParameter> methodParams = params.stream().map(p ->
+                new ImmutableMethodParameter(p, null,
+                        // use three random letters as param names
+                        RandomStringUtils.random(3, true, false).toLowerCase()))
+                .collect(Collectors.toList());
+
+        return new ImmutableMethod(
+                classDef.toString(),
+                methodName,
+                methodParams,
+                returnType,
+                4,
+                null,
+                null,
+                implementation);
     }
 }

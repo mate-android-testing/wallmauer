@@ -447,6 +447,168 @@ public final class Utility {
     }
 
     /**
+     * Checks whether the given class represents an activity by checking against the super class.
+     *
+     * @param classes The set of classes.
+     * @param currentClass The class to be inspected.
+     * @return Returns {@code true} if the current class is an activity,
+     *          otherwise {@code false}.
+     */
+    public static boolean isActivity(Set<? extends ClassDef> classes, ClassDef currentClass) {
+
+        // TODO: this approach might be quite time-consuming, may find a better solution
+
+        String superClass = currentClass.getSuperclass();
+        boolean abort = false;
+
+        while (!abort && superClass != null && !superClass.equals("Ljava/lang/Object;")) {
+
+            abort = true;
+
+            if (superClass.equals("Landroid/app/Activity;")
+                    || superClass.equals("Landroidx/appcompat/app/AppCompatActivity;")
+                    || superClass.equals("Landroid/support/v7/app/AppCompatActivity;")
+                    || superClass.equals("Landroid/support/v7/app/ActionBarActivity;")
+                    || superClass.equals("Landroid/support/v4/app/FragmentActivity;")) {
+                return true;
+            } else {
+                // step up in the class hierarchy
+                for (ClassDef classDef : classes) {
+                    if (classDef.toString().equals(superClass)) {
+                        superClass = classDef.getSuperclass();
+                        abort = false;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks whether the given class represents a fragment by checking against the super class.
+     *
+     * @param classes The set of classes.
+     * @param currentClass The class to be inspected.
+     * @return Returns {@code true} if the current class is a fragment,
+     *          otherwise {@code false}.
+     */
+    public static boolean isFragment(Set<? extends ClassDef> classes, ClassDef currentClass) {
+
+        // TODO: this approach might be quite time-consuming, may find a better solution
+
+        String superClass = currentClass.getSuperclass();
+        boolean abort = false;
+
+        while (!abort && superClass != null && !superClass.equals("Ljava/lang/Object;")) {
+
+            abort = true;
+
+            // https://developer.android.com/reference/android/app/Fragment
+            if (superClass.equals("Landroid/app/Fragment;")
+                    || superClass.equals("Landroidx/fragment/app/Fragment;")
+                    || superClass.equals("Landroid/support/v4/app/Fragment;")
+                    || superClass.equals("Landroid/app/DialogFragment;")
+                    || superClass.equals("Landroid/app/ListFragment;")
+                    || superClass.equals("Landroid/preference/PreferenceFragment;")
+                    || superClass.equals("Landroid/webkit/WebViewFragment;")) {
+                return true;
+            } else {
+                // step up in the class hierarchy
+                for (ClassDef classDef : classes) {
+                    if (classDef.toString().equals(superClass)) {
+                        superClass = classDef.getSuperclass();
+                        abort = false;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the set of activity lifecycle methods.
+     *
+     * @return Returns the method names of the activity lifecycle methods.
+     */
+    public static Set<String> getActivityLifeCycleMethods() {
+        Set<String> activityLifeCycleMethods = new HashSet<>();
+        activityLifeCycleMethods.add("onCreate(Landroid/os/Bundle;)V");
+        activityLifeCycleMethods.add("onStart()V");
+        activityLifeCycleMethods.add("onResume()V");
+        activityLifeCycleMethods.add("onPause()V");
+        activityLifeCycleMethods.add("onStop()V");
+        activityLifeCycleMethods.add("onDestroy()V");
+        activityLifeCycleMethods.add("onRestart()V");
+        return activityLifeCycleMethods;
+    }
+
+    /**
+     * Returns the set of fragment lifecycle methods.
+     *
+     * @return Returns the method names of the fragment lifecycle methods.
+     */
+    public static Set<String> getFragmentLifeCycleMethods() {
+
+        // TODO: add the deprecated onAttach method
+
+        Set<String> fragmentLifeCycleMethods = new HashSet<>();
+        fragmentLifeCycleMethods.add("onAttach(Landroid/content/Context;)V");
+        fragmentLifeCycleMethods.add("onCreate(Landroid/os/Bundle;)V");
+        fragmentLifeCycleMethods.add("onCreateView(Landroid/view/LayoutInflater;"
+                + "Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;");
+        fragmentLifeCycleMethods.add("onActivityCreated(Landroid/os/Bundle;)V");
+        fragmentLifeCycleMethods.add("onViewStateRestored(Landroid/os/Bundle;)V");
+        fragmentLifeCycleMethods.add("onDestroyView()V");
+        fragmentLifeCycleMethods.add("onDestroy()V");
+        fragmentLifeCycleMethods.add("onDetach()V");
+        return fragmentLifeCycleMethods;
+    }
+
+    /**
+     * Retrieves solely the method name from the full-qualified method signature.
+     *
+     * @param methodSignature The given method signature.
+     * @return Returns the method name from the given method signature.
+     */
+    public static String getMethodName(String methodSignature) {
+        return methodSignature.split("->")[1];
+    }
+
+    /**
+     * Returns the super classes of the given class.
+     *
+     * @param dexFile The dex file containing all classes.
+     * @param classDef The class for which we look up its super classes.
+     * @return Returns the super classes of the given class if present in the dex file.
+     */
+    public static List<ClassDef> getSuperClasses(DexFile dexFile, ClassDef classDef) {
+
+        List<ClassDef> superClasses = new ArrayList<>();
+        Queue<String> queue = new LinkedList<>();
+        queue.offer(classDef.getSuperclass());
+
+        while (!queue.isEmpty()) {
+            String superClass = queue.poll();
+
+            if (superClass == null || superClass.equals("Ljava/lang/Object;")) {
+                break;
+            }
+
+            // try to find super class in dex file
+            for (ClassDef clazz : dexFile.getClasses()) {
+                if (clazz.toString().equals(superClass)) {
+                    // found super class, look up its super class
+                    superClasses.add(clazz);
+                    queue.offer(clazz.getSuperclass());
+                    break;
+                }
+            }
+        }
+
+        return superClasses;
+    }
+
+    /**
      * Adds the modified method implementation to the list of methods that are written to
      * the instrumented dex file.
      *

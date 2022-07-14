@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -228,6 +229,18 @@ public class BasicBlockBranchDistance {
                 .map(method -> instrumentMethod(dexFile, classDef, method))
                 .collect(Collectors.toList());
 
+        /*
+         * We add a dummy implementation for missing activity/fragment lifecycle methods in order to get traces for
+         * those methods. Otherwise, the graph lacks markings for those lifecycle methods.
+         */
+        if (Utility.isActivity(dexFile.getClasses(), classDef)) {
+            Set<String> activityLifeCycleMethods = Utility.getActivityLifeCycleMethods();
+            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, activityLifeCycleMethods));
+        } else if (Utility.isFragment(dexFile.getClasses(), classDef)) {
+            Set<String> fragmentLifeCycleMethods = Utility.getFragmentLifeCycleMethods();
+            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, fragmentLifeCycleMethods));
+        }
+
         return new ImmutableClassDef(
                 classDef.getType(),
                 classDef.getAccessFlags(),
@@ -307,5 +320,33 @@ public class BasicBlockBranchDistance {
             LOGGER.info("Couldn't instrument method: " + method);
             return method;
         }
+    }
+
+    /**
+     * Adds the missing lifecycle methods to the given class. Note that the class needs to be either an activity
+     * or fragment!
+     *
+     * @param dexFile The dex file containing the class.
+     * @param classDef The class for which the missing lifecycle methods should be added.
+     * @param lifeCycleMethods The list of all possible lifecycle methods for the given class.
+     * @return Returns the missing and instrumented lifecycle methods.
+     */
+    private static List<Method> addMissingLifeCycleMethods(final DexFile dexFile, final ClassDef classDef,
+                                                           Set<String> lifeCycleMethods) {
+
+        // track which lifecycle methods are missing, i.e. not overwritten lifecycle methods
+        for (Method method : classDef.getVirtualMethods()) {
+            String methodName = Utility.getMethodName(method.toString());
+            lifeCycleMethods.remove(methodName);
+        }
+
+        LOGGER.info("Missing lifecycle methods: " + lifeCycleMethods);
+        List<ClassDef> superClasses = Utility.getSuperClasses(dexFile, classDef);
+        LOGGER.info("Super classes of class " + classDef + ": " + superClasses);
+
+        return lifeCycleMethods.parallelStream()
+                .map(method -> Instrumentation.addLifeCycleMethod(method, classDef, superClasses))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 }
