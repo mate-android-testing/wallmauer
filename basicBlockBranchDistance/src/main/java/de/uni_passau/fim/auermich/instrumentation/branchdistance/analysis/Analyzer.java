@@ -29,6 +29,37 @@ public final class Analyzer {
     private static final Logger LOGGER = LogManager.getLogger(Analyzer.class);
 
     /**
+     * Tracks the if instrumentation points, i.e. instructions that represent if statements.
+     *
+     * @param methodInformation Encapsulates a method.
+     * @return Returns the set of if instrumentation points.
+     */
+    public static Set<InstrumentationPoint> trackIfInstrumentationPoints(final MethodInformation methodInformation) {
+
+        final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
+        final List<BuilderInstruction> builderInstructions
+                = new MutableMethodImplementation(methodInformation.getMethodImplementation()).getInstructions();
+        final Set<InstrumentationPoint> ifInstrumentationPoints = new TreeSet<>();
+
+        LOGGER.debug("Method if statements: " + methodInformation.getMethodID());
+        LOGGER.debug("Instructions: " + instructions.size());
+
+        for (final AnalyzedInstruction instruction : instructions) {
+            final int index = instruction.getInstructionIndex();
+
+            // branches define a new basic block
+            if (isBranchingInstruction(instruction)) {
+                LOGGER.debug("If statement at index: " + index);
+                final BuilderInstruction ifInstruction = builderInstructions.get(index);
+                final InstrumentationPoint ifIP = new InstrumentationPoint(ifInstruction, InstrumentationPoint.Type.IF_STMT);
+                ifInstrumentationPoints.add(ifIP);
+            }
+        }
+
+        return ifInstrumentationPoints;
+    }
+
+    /**
      * Tracks the instrumentation points, i.e. instructions that define new basic blocks.
      *
      * @param methodInformation Encapsulates a method.
@@ -65,7 +96,7 @@ public final class Analyzer {
                 LOGGER.debug("If target at index: " + ifTarget);
 
                 final BuilderInstruction ifTargetInstruction = builderInstructions.get(ifTarget);
-                final InstrumentationPoint ifIP
+                final InstrumentationPoint ifBranchIP
                         = new InstrumentationPoint(ifTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
 
                 /*
@@ -76,15 +107,15 @@ public final class Analyzer {
                 * If we can tell which kind of label (goto, branch, try/catch) is attached to the instruction,
                 * we could avoid this. Track the progress of: https://github.com/JesusFreke/smali/issues/808.
                  */
-                instrumentationPoints.remove(ifIP);
-                instrumentationPoints.add(ifIP);
+                instrumentationPoints.remove(ifBranchIP);
+                instrumentationPoints.add(ifBranchIP);
 
                 final int elseTarget = ((BuilderOffsetInstruction) builderInstructions.get(index)).getTarget()
                         .getLocation().getIndex();
                 LOGGER.debug("Else target at index: " + elseTarget);
 
                 final BuilderInstruction elseTargetInstruction = builderInstructions.get(elseTarget);
-                final InstrumentationPoint elseIP
+                final InstrumentationPoint elseBranchIP
                         = new InstrumentationPoint(elseTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
 
                 /*
@@ -95,8 +126,8 @@ public final class Analyzer {
                  * If we can tell which kind of label (goto, branch, try/catch) is attached to the instruction,
                  * we could avoid this. Track the progress of: https://github.com/JesusFreke/smali/issues/808.
                  */
-                instrumentationPoints.remove(elseIP);
-                instrumentationPoints.add(elseIP);
+                instrumentationPoints.remove(elseBranchIP);
+                instrumentationPoints.add(elseBranchIP);
 
             } else if (isGotoInstruction(instruction)) {
                 // the target of a goto instruction defines a new basic block

@@ -45,9 +45,9 @@ public class BasicBlockBranchDistance {
     /*
      * Defines the number of additional registers. We require one additional register
      * for storing the unique branch id. We require a second register when shifting
-     * wide types.
+     * wide types. We require a third register for the argument to the branch distance calls.
      */
-    public static final int ADDITIONAL_REGISTERS = 2;
+    public static final int ADDITIONAL_REGISTERS = 3;
 
     /*
      * We can't instrument methods with more than 256 registers in total,
@@ -186,7 +186,7 @@ public class BasicBlockBranchDistance {
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
 
-        List<ClassDef> instrumentedClasses = dexFile.getClasses().parallelStream()
+        List<ClassDef> instrumentedClasses = dexFile.getClasses().stream()
                 .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
                 .collect(Collectors.toList());
 
@@ -225,7 +225,7 @@ public class BasicBlockBranchDistance {
             return classDef;
         }
 
-        List<Method> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).parallelStream()
+        List<Method> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).stream()
                 .map(method -> instrumentMethod(dexFile, classDef, method))
                 .collect(Collectors.toList());
 
@@ -293,8 +293,11 @@ public class BasicBlockBranchDistance {
 
             // TODO: Check whether method entries and exits are necessary
 
-            // determine the location of the basic blocks + if statements
+            // determine the location of the basic blocks
             methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
+
+            // determine the location of if statements
+            methodInformation.setIfInstrumentationPoints(Analyzer.trackIfInstrumentationPoints(methodInformation));
 
             // determine the location of try blocks
             methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
@@ -304,7 +307,7 @@ public class BasicBlockBranchDistance {
                 Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
             }
 
-            // instrument basic blocks
+            // instrument basic blocks + if statements
             Instrumentation.modifyMethod(methodInformation);
 
             /*

@@ -9,8 +9,11 @@ import java.util.Objects;
  */
 public final class InstrumentationPoint implements Comparable<InstrumentationPoint> {
 
-    private final BuilderInstruction instruction;
+    private BuilderInstruction instruction;
+
+    // the original position in the un-instrumented code
     private final int position;
+
     private final Type type;
     private final boolean attachedToLabel;
     private int coveredInstructions = -1;
@@ -22,6 +25,12 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         this.attachedToLabel = !instruction.getLocation().getLabels().isEmpty();
     }
 
+    /**
+     * Whether a label is attached to the instruction.
+     *
+     * @return Returns {@code true} if a label is attached to the instruction,
+     *          otherwise {@code false} is returned.
+     */
     public boolean isAttachedToLabel() {
         return attachedToLabel;
     }
@@ -44,6 +53,10 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     public BuilderInstruction getInstruction() {
         return instruction;
+    }
+
+    public void setInstruction(BuilderInstruction instruction) {
+        this.instruction = instruction;
     }
 
     public boolean hasBranchType() {
@@ -82,6 +95,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
     }
 
     public enum Type {
+        IF_STMT,
         IS_BRANCH,
         NO_BRANCH;
 

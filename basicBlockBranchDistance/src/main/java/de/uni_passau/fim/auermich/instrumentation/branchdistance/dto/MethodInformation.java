@@ -8,6 +8,7 @@ import org.jf.dexlib2.iface.ClassDef;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import java.util.*;
 
@@ -24,8 +25,10 @@ public class MethodInformation {
     private final ClassDef classDef;
 
     // a reference to the actual method
-    private final Method method;
+    private Method method;
+
     private final int initialInstructionCount;
+
     // a reference to the dex file
     private final DexFile dexFile;
     // a list of free/usable register IDs
@@ -49,6 +52,9 @@ public class MethodInformation {
     // describes the ranges of try blocks
     private Set<Range> tryBlocks = new TreeSet<>();
 
+    // track the location of the if instructions
+    private Set<InstrumentationPoint> ifInstrumentationPoints;
+
     public MethodInformation(String methodID, ClassDef classDef, Method method, DexFile dexFile) {
         this.methodID = methodID;
         this.classDef = classDef;
@@ -57,6 +63,7 @@ public class MethodInformation {
         this.dexFile = dexFile;
         this.initialInstructionCount = getInstructions().size();
         this.instrumentationPoints = new TreeSet<>();
+        this.ifInstrumentationPoints = new TreeSet<>();
     }
 
     public int getInitialInstructionCount() {
@@ -100,6 +107,14 @@ public class MethodInformation {
         this.instrumentationPoints = instrumentationPoints;
     }
 
+    public void setIfInstrumentationPoints(Set<InstrumentationPoint> ifInstrumentationPoints) {
+        this.ifInstrumentationPoints = ifInstrumentationPoints;
+    }
+
+    public Set<InstrumentationPoint> getIfInstrumentationPoints() {
+        return ifInstrumentationPoints;
+    }
+
     public String getMethodID() {
         return methodID;
     }
@@ -134,6 +149,20 @@ public class MethodInformation {
 
     public void setMethodImplementation(MethodImplementation methodImplementation) {
         this.methodImplementation = methodImplementation;
+        // whenever the method implementation changes also the method object has to be updated
+        updateMethod(methodImplementation);
+    }
+
+    private void updateMethod(MethodImplementation methodImplementation) {
+        this.method = new ImmutableMethod(
+                method.getDefiningClass(),
+                method.getName(),
+                method.getParameters(),
+                method.getReturnType(),
+                method.getAccessFlags(),
+                method.getAnnotations(),
+                null,
+                methodImplementation);
     }
 
     public int getTotalRegisterCount() {
