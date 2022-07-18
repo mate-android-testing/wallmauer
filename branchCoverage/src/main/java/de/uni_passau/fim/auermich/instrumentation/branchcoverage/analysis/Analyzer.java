@@ -2,22 +2,21 @@ package de.uni_passau.fim.auermich.instrumentation.branchcoverage.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.core.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Range;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction21t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction22t;
+import org.jf.dexlib2.builder.instruction.*;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
 import org.jf.dexlib2.iface.TryBlock;
 import org.jf.dexlib2.util.MethodUtil;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 
@@ -57,6 +56,32 @@ public final class Analyzer {
                 InstrumentationPoint elseBranch = new InstrumentationPoint(instructions.get(elseBranchPosition),
                         InstrumentationPoint.Type.ELSE_BRANCH);
                 instrumentationPoints.add(elseBranch);
+            } else if (instruction instanceof BuilderInstruction31t) { // switch-case instruction
+
+                /*
+                * The packed-switch instruction defines a switch-case construct. To access the individual cases of
+                * the switch statement, one needs to follow the packed-switch-payload instruction that contains this
+                * information. However, the default case or fall-through case is not listed in this payload instruction
+                * and needs to be addressed explicitly. This is simply the next instruction following the switch instruction.
+                 */
+                int packedSwitchPayloadPosition = ((BuilderInstruction31t) instruction).getTarget().getLocation().getIndex();
+
+                BuilderPackedSwitchPayload packedSwitchPayloadInstruction
+                        = (BuilderPackedSwitchPayload) instructions.get(packedSwitchPayloadPosition);
+
+                for (BuilderSwitchElement switchElement : packedSwitchPayloadInstruction.getSwitchElements()) {
+                    int switchCasePosition = switchElement.getTarget().getLocation().getIndex();
+                    InstrumentationPoint switchCase
+                            = new InstrumentationPoint(instructions.get(switchCasePosition),
+                            InstrumentationPoint.Type.ELSE_BRANCH);
+                    instrumentationPoints.add(switchCase);
+                }
+
+                // the direct successor of the packed-switch instruction represents the fall-through case (default case)
+                int defaultCasePosition = instruction.getLocation().getIndex() + 1;
+                InstrumentationPoint defaultCase = new InstrumentationPoint(instructions.get(defaultCasePosition),
+                        InstrumentationPoint.Type.ELSE_BRANCH);
+                instrumentationPoints.add(defaultCase);
             }
         }
 
