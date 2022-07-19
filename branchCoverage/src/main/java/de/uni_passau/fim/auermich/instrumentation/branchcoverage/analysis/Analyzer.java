@@ -7,11 +7,16 @@ import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInfor
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
+import org.jf.dexlib2.builder.BuilderSwitchPayload;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction21t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction22t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction31t;
+import org.jf.dexlib2.builder.instruction.BuilderSwitchElement;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
@@ -56,20 +61,21 @@ public final class Analyzer {
                 InstrumentationPoint elseBranch = new InstrumentationPoint(instructions.get(elseBranchPosition),
                         InstrumentationPoint.Type.ELSE_BRANCH);
                 instrumentationPoints.add(elseBranch);
-            } else if (instruction instanceof BuilderInstruction31t) { // switch-case instruction
+            } else if (instruction instanceof BuilderInstruction31t
+                    && instruction.getOpcode() != Opcode.FILL_ARRAY_DATA) { // sparse-/packed-switch instruction
 
                 /*
-                * The packed-switch instruction defines a switch-case construct. To access the individual cases of
-                * the switch statement, one needs to follow the packed-switch-payload instruction that contains this
-                * information. However, the default case or fall-through case is not listed in this payload instruction
-                * and needs to be addressed explicitly. This is simply the next instruction following the switch instruction.
+                 * The packed-switch instruction defines a switch-case construct. To access the individual cases of
+                 * the switch statement, one needs to follow the packed-switch-payload instruction that contains this
+                 * information. However, the default case or fall-through case is not listed in this payload instruction
+                 * and needs to be addressed explicitly. This is simply the next instruction following the switch instruction.
                  */
-                int packedSwitchPayloadPosition = ((BuilderInstruction31t) instruction).getTarget().getLocation().getIndex();
+                int switchPayloadPosition = ((BuilderInstruction31t) instruction).getTarget().getLocation().getIndex();
 
-                BuilderPackedSwitchPayload packedSwitchPayloadInstruction
-                        = (BuilderPackedSwitchPayload) instructions.get(packedSwitchPayloadPosition);
+                BuilderSwitchPayload switchPayloadInstruction
+                        = (BuilderSwitchPayload) instructions.get(switchPayloadPosition);
 
-                for (BuilderSwitchElement switchElement : packedSwitchPayloadInstruction.getSwitchElements()) {
+                for (BuilderSwitchElement switchElement : switchPayloadInstruction.getSwitchElements()) {
                     int switchCasePosition = switchElement.getTarget().getLocation().getIndex();
                     InstrumentationPoint switchCase
                             = new InstrumentationPoint(instructions.get(switchCasePosition),
@@ -77,7 +83,7 @@ public final class Analyzer {
                     instrumentationPoints.add(switchCase);
                 }
 
-                // the direct successor of the packed-switch instruction represents the fall-through case (default case)
+                // the direct successor of the switch instruction represents the fall-through case (default case)
                 int defaultCasePosition = instruction.getLocation().getIndex() + 1;
                 InstrumentationPoint defaultCase = new InstrumentationPoint(instructions.get(defaultCasePosition),
                         InstrumentationPoint.Type.ELSE_BRANCH);
@@ -184,7 +190,7 @@ public final class Analyzer {
 
         Set<BuilderInstruction> branches = new HashSet<>();
 
-        for(BuilderInstruction instruction : instructions) {
+        for (BuilderInstruction instruction : instructions) {
 
             if (instruction instanceof BuilderInstruction21t
                     || instruction instanceof BuilderInstruction22t) {
@@ -201,7 +207,7 @@ public final class Analyzer {
      * Determines the new total amount of registers and derives the register IDs of
      * the new registers as well as the free/usable registers.
      *
-     * @param methodInformation   Contains the relevant information about a method.
+     * @param methodInformation Contains the relevant information about a method.
      * @param additionalRegisters The amount of additional registers.
      */
     public static void computeRegisterStates(MethodInformation methodInformation, int additionalRegisters) {
@@ -261,7 +267,7 @@ public final class Analyzer {
      * Determines the register types of the parameter registers at the method entry.
      *
      * @param methodInformation Stores relevant information about a method.
-     * @param dexFile           The un-instrumented dex file.
+     * @param dexFile The un-instrumented dex file.
      */
     public static void analyzeParamRegisterTypes(MethodInformation methodInformation, DexFile dexFile) {
 
