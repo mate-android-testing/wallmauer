@@ -133,7 +133,7 @@ public class Tracer extends BroadcastReceiver {
      * @param context The application context object.
      * @param permission The permission to check.
      * @return Returns {@code true} if the permission is granted,
-     *          otherwise {@code false} is returned.
+     *         otherwise {@code false} is returned.
      */
     private static boolean isPermissionGranted(Context context, final String permission) {
 
@@ -317,10 +317,10 @@ public class Tracer extends BroadcastReceiver {
         final String identifier = tokens[1];
 
         /*
-        * The branch distance computation is based on the following two resources:
-        *
-        * https://github.com/EvoSuite/evosuite/blob/master/client/src/main/java/org/evosuite/testcase/execution/ExecutionTracer.java#L540
-        * https://ieeexplore.ieee.org/document/5477082
+         * The branch distance computation is based on the following two resources:
+         *
+         * https://github.com/EvoSuite/evosuite/blob/master/client/src/main/java/org/evosuite/testcase/execution/ExecutionTracer.java#L540
+         * https://ieeexplore.ieee.org/document/5477082
          */
         switch (opcode) {
             case 0: // if-eqz, if-eq
@@ -403,7 +403,7 @@ public class Tracer extends BroadcastReceiver {
                     distanceThenBranch = Math.abs(argument1 - argument2);
                     distanceElseBranch = 0;
                 }
-                    break;
+                break;
             case 3: // if-ltz, if-lt
                 if (argument1 < argument2) {
                     distanceThenBranch = 0;
@@ -442,5 +442,20 @@ public class Tracer extends BroadcastReceiver {
         final String traceElseBranch = identifier + ":" + distanceElseBranch;
         trace(traceThenBranch);
         trace(traceElseBranch);
+    }
+
+    /**
+     * Computes the branch distance for a case statement of a switch instruction.
+     *
+     * @param trace The trace describing the switch instruction.
+     * @param switchValue The value of the switch instruction to be compared with each case statement.
+     * @param caseValue The value of the case statement.
+     */
+    public static void computeBranchDistanceSwitch(String trace, int switchValue, int caseValue) {
+        // a switch case instruction is nothing else than a if-eq instruction
+        final int distance = Math.abs(switchValue - caseValue);
+        LOGGER.info("Branch distance of case value " + caseValue + " for " + trace + ": " + distance);
+        final String distanceTrace = trace + ":" + distance;
+        trace(distanceTrace);
     }
 }

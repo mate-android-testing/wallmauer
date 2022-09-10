@@ -71,19 +71,32 @@ public final class Analyzer {
             } else if (instruction instanceof BuilderInstruction31t
                     && instruction.getOpcode() != Opcode.FILL_ARRAY_DATA) { // sparse-/packed-switch instruction
 
+                // https://stackoverflow.com/questions/19855800/difference-between-packed-switch-and-sparse-switch-dalvik-opcode
+
                 /*
-                 * The packed-switch instruction defines a switch-case construct. To access the individual cases of
-                 * the switch statement, one needs to follow the packed-switch-payload instruction that contains this
+                 * The packed-/sparse-switch instruction defines a switch-case construct. To access the individual cases
+                 * of the switch statement, one needs to follow the switch-payload instruction that contains this
                  * information. However, the default case or fall-through case is not listed in this payload instruction
                  * and needs to be addressed explicitly. This is simply the next instruction following the switch instruction.
+                 * This is not true when the default label is shared with another case statement.
                  */
                 int switchPayloadPosition = ((BuilderInstruction31t) instruction).getTarget().getLocation().getIndex();
 
                 BuilderSwitchPayload switchPayloadInstruction
                         = (BuilderSwitchPayload) instructions.get(switchPayloadPosition);
 
+                // We need to compute a branch distance similar to a regular if instruction.
+                InstrumentationPoint switchInstruction = new InstrumentationPoint(instruction, switchPayloadInstruction,
+                        InstrumentationPoint.Type.SWITCH_STMT);
+                instrumentationPoints.add(switchInstruction);
+
+                LOGGER.info("Switch case in method " + methodInformation.getMethodID());
+
+                // We need to instrument each case of the switch statement as a regular branch.
                 for (BuilderSwitchElement switchElement : switchPayloadInstruction.getSwitchElements()) {
                     int switchCasePosition = switchElement.getTarget().getLocation().getIndex();
+                    LOGGER.info("Key: " + switchElement.getKey());
+                    LOGGER.info("Offset: " + switchElement.getOffset());
                     InstrumentationPoint switchCase
                             = new InstrumentationPoint(instructions.get(switchCasePosition),
                             InstrumentationPoint.Type.ELSE_BRANCH);

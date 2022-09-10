@@ -1,6 +1,7 @@
 package de.uni_passau.fim.auermich.instrumentation.branchdistance.core;
 
 import org.jf.dexlib2.builder.BuilderInstruction;
+
 import java.util.Objects;
 
 /**
@@ -8,7 +9,15 @@ import java.util.Objects;
  */
 public final class InstrumentationPoint implements Comparable<InstrumentationPoint> {
 
+    /**
+     * The instruction representing the instrumentation point.
+     */
     private BuilderInstruction instruction;
+
+    /**
+     * The pseudo payload instruction; only set for switch instructions.
+     */
+    private BuilderInstruction payloadInstruction;
 
     // original position of instruction
     private final int position;
@@ -21,6 +30,30 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         this.position = instruction.getLocation().getIndex();
         this.type = type;
         this.attachedToLabel = instruction.getLocation().getLabels().size() > 0;
+    }
+
+    /**
+     * Defines a new instrumentation point for the given instruction.
+     *
+     * @param instruction The instruction representing the instrumentation point.
+     * @param payloadInstruction The pseudo payload instruction; only set for switch instructions.
+     * @param type The statement type.
+     */
+    public InstrumentationPoint(BuilderInstruction instruction, BuilderInstruction payloadInstruction, Type type) {
+        this.instruction = instruction;
+        this.payloadInstruction = payloadInstruction;
+        this.position = instruction.getLocation().getIndex();
+        this.type = type;
+        this.attachedToLabel = instruction.getLocation().getLabels().size() > 0;
+    }
+
+    /**
+     * Returns the pseudo payload instruction. Only set for switch instructions.
+     *
+     * @return Returns the pseudo payload instruction.
+     */
+    public BuilderInstruction getPayloadInstruction() {
+        return payloadInstruction;
     }
 
     /**
@@ -90,12 +123,12 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
         if (comparePosition == 0) {
             /*
-            * This can happen when a branch starts with an if stmt.
-            * We need to ensure that an if stmt comes before the branch instrumentation point.
+            * This can happen when a branch starts with an if or a switch stmt.
+            * We need to ensure that an if or a switch stmt comes before the branch instrumentation point.
              */
-            if (this.getType() == Type.IF_STMT) {
+            if (this.getType() == Type.IF_STMT || this.getType() == Type.SWITCH_STMT) {
                 return -1;
-            } else if (other.getType() == Type.IF_STMT) {
+            } else if (other.getType() == Type.IF_STMT || other.getType() == Type.SWITCH_STMT) {
                 return +1;
             } else {
                 // shared else branch -> duplicate
@@ -118,6 +151,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         EXIT_STMT,
         TRY_BLOCK_STMT,
         CATCH_BLOCK_STMT,
-        IF_STMT;
+        IF_STMT,
+        SWITCH_STMT;
     }
 }

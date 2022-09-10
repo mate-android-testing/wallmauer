@@ -16,6 +16,7 @@ import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.AnalyzedInstruction;
 import org.jf.dexlib2.analysis.RegisterType;
 import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.BuilderSwitchPayload;
 import org.jf.dexlib2.builder.Label;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.*;
@@ -382,7 +383,7 @@ public final class Instrumentation {
                 // we only need to add a trace if it is not yet covered -> avoids instrumenting same location multiple times
                 // this would happen when an if stmt is the first instruction of another branch
                 if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
-                    // instrument branch with trace
+                    // instrument if with trace
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
 
                     /*
@@ -391,6 +392,26 @@ public final class Instrumentation {
                      * coverage evaluation procedure would count the trace as an additional branch.
                      */
                     trace = methodInformation.getMethodID() + "->if->" + instrumentationPoint.getPosition();
+                    insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
+                }
+
+            } else if (instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT) {
+
+                // instrument switch statement with branch distance computation call
+                computeBranchDistanceSwitch(methodInformation, instrumentationPoint);
+
+                // we only need to add a trace if it is not yet covered -> avoids instrumenting same location multiple times
+                // this would happen when a switch stmt is the first instruction of another branch
+                if (!coveredInstructionPoints.contains(instrumentationPoint.getPosition())) {
+                    // instrument switch with trace
+                    coveredInstructionPoints.add(instrumentationPoint.getPosition());
+
+                    /*
+                     * We need to distinguish between a branch and an switch stmt trace. This is required
+                     * to use a uniformed tracer in combination with MATE. Otherwise, the branch
+                     * coverage evaluation procedure would count the trace as an additional branch.
+                     */
+                    trace = methodInformation.getMethodID() + "->switch->" + instrumentationPoint.getPosition();
                     insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
                 }
 
@@ -404,6 +425,153 @@ public final class Instrumentation {
         instrumentMethodEntry(methodInformation, dexFile);
         instrumentMethodExit(methodInformation);
         // instrumentTryCatchBlocks(methodInformation);
+    }
+
+    /**
+     * Inserts instructions before every switch stmt in order to invoke the branch distance computation.
+     *
+     * @param methodInformation    Encapsulates the method.
+     * @param instrumentationPoint Encapsulates information about the switch stmt.
+     */
+    private static void computeBranchDistanceSwitch(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
+
+        MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
+        MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
+
+        // the location of try blocks
+        Set<Range> tryBlocks = methodInformation.getTryBlocks();
+
+        int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
+        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+
+        // we require one parameter for the trace
+        int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
+
+        // we need another free register for the switch value
+        int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
+
+        // we need another free register for the case value
+        int thirdFreeRegister = methodInformation.getFreeRegisters().get(2);
+
+        // const/4 vA, #+B - stores the trace
+        BuilderInstruction21c traceConst = new BuilderInstruction21c(Opcode.CONST_STRING, firstFreeRegister,
+                new ImmutableStringReference(trace));
+
+        BuilderInstruction31t switchInstruction = (BuilderInstruction31t) instrumentationPoint.getInstruction();
+        BuilderSwitchPayload switchPayloadInstruction = (BuilderSwitchPayload) instrumentationPoint.getPayloadInstruction();
+
+        // get the register where the switch value is residing
+        int registerA = switchInstruction.getRegisterA();
+
+        // we need to move the content of the switch instruction to the second free register
+        // this enables us to use it with the invoke-static range instruction
+        BuilderInstruction32x moveA = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
+
+        final List<BuilderInstruction> branchDistanceCalls = new ArrayList<>();
+
+        // We need to call for each case statement the branch distance invocation
+        for (BuilderSwitchElement switchElement : switchPayloadInstruction.getSwitchElements()) {
+
+            /*
+            * TODO: Handle the default case of a switch statement. It seems like this depends on the chosen switch
+            *  statement. For a packed-switch instruction, the default case is encoded as a case statement, at least
+            *  when the default label is shared with another case statement. For a sparse-switched statement the default
+            *  case is not encoded as a case statement typically.
+             */
+
+            // the key defines the case value
+            int caseValue = switchElement.getKey();
+
+            // we need to move the content of the case statement to the third free register
+            // this enables us to use it with the invoke-static range instruction
+            BuilderInstruction31i caseValueConst = new BuilderInstruction31i(Opcode.CONST, thirdFreeRegister, caseValue);
+
+            // invoke-static-range
+            BuilderInstruction3rc branchDistanceCall = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                    firstFreeRegister, 3,
+                    new ImmutableMethodReference(TRACER,
+                            "computeBranchDistanceSwitch",
+                            Lists.newArrayList("Ljava/lang/String;", "I", "I"), "V"));
+
+            branchDistanceCalls.add(caseValueConst);
+            branchDistanceCalls.add(branchDistanceCall);
+        }
+
+        // check whether if stmt is located within a try block
+        if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
+            /*
+             * The bytecode verifier doesn't allow us to insert our functionality directly within
+             * try blocks. Actually, only (implicit) try blocks around a synchronized block are affected,
+             * but we consider here any try block. The problem arises from the fact that an invoke instruction
+             * within a try block introduces an additional edge to corresponding catch blocks, although it may
+             * never throw an exception. As a result, the register type of the monitor enter/exit instruction, e.g. v1,
+             * might be two-fold (conflicted), which is rejected by the verifier, see
+             * https://android.googlesource.com/platform/art/+/master/runtime/verifier/register_line.cc#367.
+             *
+             * Actually we can bypass the verifier by introducing a jump forward and backward mechanism. Instead of
+             * inserting the functionality directly, we insert a goto instruction, which jumps to the end of the
+             * method and calls the tracer functionality and afterwards jumps back to the original position. Since
+             * a goto instruction can't throw any exception, the verifier doesn't complain. However, we have to ensure
+             * that we don't introduce a control flow to the pseudo instructions packed-switch-data, sparse-switch-data
+             * or fill-array-data, see the constraint B22 at https://source.android.com/devices/tech/dalvik/constraints.
+             *
+             * The idea of this kind of hack was taken from the paper 'Fine-grained Code Coverage Measurement in
+             * Automated Black-box Android Testing', see section 4.3.
+             */
+
+            LOGGER.debug("Switch-Statement within try block at offset: "
+                    + instrumentationPoint.getInstruction().getLocation().getCodeAddress());
+
+            // the label + tracer functionality comes after the last instruction
+            int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
+
+            // insert goto to jump to method end
+            Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
+            BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
+
+            // consider always as an 'else branch', the switch stmt could be the target of a goto instruction
+            mutableMethodImplementation.addInstruction(instructionIndex + 1, jumpForward);
+            mutableMethodImplementation.swapInstructions(instructionIndex, instructionIndex + 1);
+
+            // create label at switch after forward jump
+            Label branchLabel = mutableMethodImplementation.newLabelForIndex(instructionIndex + 1);
+
+            // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
+            mutableMethodImplementation.addInstruction(++afterLastInstruction, traceConst);
+            mutableMethodImplementation.addInstruction(++afterLastInstruction, moveA);
+
+            for (BuilderInstruction instruction : branchDistanceCalls) {
+                mutableMethodImplementation.addInstruction(++afterLastInstruction, instruction);
+            }
+
+            // insert goto to jump back to switch
+            BuilderInstruction jumpBackward = new BuilderInstruction30t(Opcode.GOTO_32, branchLabel);
+            mutableMethodImplementation.addInstruction(++afterLastInstruction, jumpBackward);
+        } else {
+
+            // We insert the instructions actually after the switch statement and then swap the instructions to avoid
+            // a potential label issue. Otherwise, the instructions would appear before the label attached to the switch.
+            int originalIndex = instructionIndex;
+
+            mutableMethodImplementation.addInstruction(++instructionIndex, traceConst);
+            mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
+            for (BuilderInstruction instruction : branchDistanceCalls) {
+                mutableMethodImplementation.addInstruction(++instructionIndex, instruction);
+            }
+
+            mutableMethodImplementation.swapInstructions(originalIndex, originalIndex + 1);
+            mutableMethodImplementation.swapInstructions(originalIndex + 1, originalIndex + 2);
+
+            int nextIndex = originalIndex + 2;
+
+            for (BuilderInstruction instruction : branchDistanceCalls) {
+                mutableMethodImplementation.swapInstructions(nextIndex, nextIndex + 1);
+                nextIndex++;
+            }
+        }
+
+        // update implementation
+        methodInformation.setMethodImplementation(mutableMethodImplementation);
     }
 
     /**
