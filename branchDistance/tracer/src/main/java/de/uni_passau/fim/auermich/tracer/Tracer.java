@@ -346,9 +346,6 @@ public class Tracer extends BroadcastReceiver {
                 throw new UnsupportedOperationException("Comparison operator " + operation + " not yet supported!");
         }
 
-        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
-        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
-
         final String traceThenBranch = identifier + ":" + distanceThenBranch;
         final String traceElseBranch = identifier + ":" + distanceElseBranch;
         trace(traceThenBranch);
@@ -434,9 +431,6 @@ public class Tracer extends BroadcastReceiver {
             default:
                 throw new UnsupportedOperationException("Comparison operator not yet supported!");
         }
-
-        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
-        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
 
         final String traceThenBranch = identifier + ":" + distanceThenBranch;
         final String traceElseBranch = identifier + ":" + distanceElseBranch;
