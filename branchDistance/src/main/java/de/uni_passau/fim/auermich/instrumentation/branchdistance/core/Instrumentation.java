@@ -407,7 +407,7 @@ public final class Instrumentation {
                     coveredInstructionPoints.add(instrumentationPoint.getPosition());
 
                     /*
-                     * We need to distinguish between a branch and an switch stmt trace. This is required
+                     * We need to distinguish between a branch and a switch stmt trace. This is required
                      * to use a uniformed tracer in combination with MATE. Otherwise, the branch
                      * coverage evaluation procedure would count the trace as an additional branch.
                      */
@@ -442,7 +442,9 @@ public final class Instrumentation {
         Set<Range> tryBlocks = methodInformation.getTryBlocks();
 
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
-        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+        final String trace = methodInformation.getMethodID() + "->switch->" + instrumentationPoint.getPosition();
+
+        LOGGER.debug("Switch statement: " + trace);
 
         // we require one parameter for the trace
         int firstFreeRegister = methodInformation.getFreeRegisters().get(0);
@@ -450,7 +452,7 @@ public final class Instrumentation {
         // we need another free register for the switch value
         int secondFreeRegister = methodInformation.getFreeRegisters().get(1);
 
-        // we need another free register for the case value
+        // we need another free register for the case values and their positions encoded in a string
         int thirdFreeRegister = methodInformation.getFreeRegisters().get(2);
 
         // const/4 vA, #+B - stores the trace
@@ -467,37 +469,31 @@ public final class Instrumentation {
         // this enables us to use it with the invoke-static range instruction
         BuilderInstruction32x moveA = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
 
-        final List<BuilderInstruction> branchDistanceCalls = new ArrayList<>();
+        // concatenate the case values and their positions
+        final StringBuilder builder = new StringBuilder();
 
-        // We need to call for each case statement the branch distance invocation
         for (BuilderSwitchElement switchElement : switchPayloadInstruction.getSwitchElements()) {
 
-            /*
-            * TODO: Handle the default case of a switch statement. It seems like this depends on the chosen switch
-            *  statement. For a packed-switch instruction, the default case is encoded as a case statement, at least
-            *  when the default label is shared with another case statement. For a sparse-switched statement the default
-            *  case is not encoded as a case statement typically.
-             */
+            // the position of the case statement
+            int casePosition = switchElement.getTarget().getLocation().getIndex();
 
             // the key defines the case value
             int caseValue = switchElement.getKey();
 
-            // we need to move the content of the case statement to the third free register
-            // this enables us to use it with the invoke-static range instruction
-            BuilderInstruction31i caseValueConst = new BuilderInstruction31i(Opcode.CONST, thirdFreeRegister, caseValue);
+            LOGGER.debug("Case Position: " + casePosition);
+            LOGGER.debug("Case Value: " + caseValue);
 
-            // invoke-static-range
-            BuilderInstruction3rc branchDistanceCall = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
-                    firstFreeRegister, 3,
-                    new ImmutableMethodReference(TRACER,
-                            "computeBranchDistanceSwitch",
-                            Lists.newArrayList("Ljava/lang/String;", "I", "I"), "V"));
-
-            branchDistanceCalls.add(caseValueConst);
-            branchDistanceCalls.add(branchDistanceCall);
+            builder.append(casePosition).append(":").append(caseValue).append(",");
         }
 
-        // check whether if stmt is located within a try block
+        // remove last comma
+        builder.setLength(builder.length() - 1);
+
+        // construct the string constant encoding the case positions and their value
+        BuilderInstruction21c casesConst = new BuilderInstruction21c(Opcode.CONST_STRING, thirdFreeRegister,
+                new ImmutableStringReference(builder.toString()));
+
+        // check whether switch stmt is located within a try block
         if (tryBlocks.stream().anyMatch(range -> range.contains(instrumentationPoint.getPosition()))) {
             /*
              * The bytecode verifier doesn't allow us to insert our functionality directly within
@@ -537,11 +533,25 @@ public final class Instrumentation {
             Label branchLabel = mutableMethodImplementation.newLabelForIndex(instructionIndex + 1);
 
             // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
-            mutableMethodImplementation.addInstruction(++afterLastInstruction, traceConst);
             mutableMethodImplementation.addInstruction(++afterLastInstruction, moveA);
+            mutableMethodImplementation.addInstruction(++afterLastInstruction, traceConst);
+            mutableMethodImplementation.addInstruction(++afterLastInstruction, casesConst);
 
-            for (BuilderInstruction instruction : branchDistanceCalls) {
-                mutableMethodImplementation.addInstruction(++afterLastInstruction, instruction);
+            // we encode the information about the default branch in the method name to save an additional register
+            if (instrumentationPoint.containsDefaultBranch()) {
+                BuilderInstruction3rc branchDistanceCall = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                        firstFreeRegister, 3,
+                        new ImmutableMethodReference(TRACER,
+                                "computeBranchDistanceSwitch",
+                                Lists.newArrayList("Ljava/lang/String;", "I", "Ljava/lang/String;"), "V"));
+                mutableMethodImplementation.addInstruction(++afterLastInstruction, branchDistanceCall);
+            } else {
+                BuilderInstruction3rc branchDistanceCall = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                        firstFreeRegister, 3,
+                        new ImmutableMethodReference(TRACER,
+                                "computeBranchDistanceSwitchNoDefaultBranch",
+                                Lists.newArrayList("Ljava/lang/String;", "I", "Ljava/lang/String;"), "V"));
+                mutableMethodImplementation.addInstruction(++afterLastInstruction, branchDistanceCall);
             }
 
             // insert goto to jump back to switch
@@ -553,21 +563,31 @@ public final class Instrumentation {
             // a potential label issue. Otherwise, the instructions would appear before the label attached to the switch.
             int originalIndex = instructionIndex;
 
-            mutableMethodImplementation.addInstruction(++instructionIndex, traceConst);
             mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
-            for (BuilderInstruction instruction : branchDistanceCalls) {
-                mutableMethodImplementation.addInstruction(++instructionIndex, instruction);
+            mutableMethodImplementation.addInstruction(++instructionIndex, traceConst);
+            mutableMethodImplementation.addInstruction(++instructionIndex, casesConst);
+
+            // we encode the information about the default branch in the method name to save an additional register
+            if (instrumentationPoint.containsDefaultBranch()) {
+                BuilderInstruction3rc branchDistanceCall = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                        firstFreeRegister, 3,
+                        new ImmutableMethodReference(TRACER,
+                                "computeBranchDistanceSwitch",
+                                Lists.newArrayList("Ljava/lang/String;", "I", "Ljava/lang/String;"), "V"));
+                mutableMethodImplementation.addInstruction(++instructionIndex, branchDistanceCall);
+            } else {
+                BuilderInstruction3rc branchDistanceCall = new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                        firstFreeRegister, 3,
+                        new ImmutableMethodReference(TRACER,
+                                "computeBranchDistanceSwitchNoDefaultBranch",
+                                Lists.newArrayList("Ljava/lang/String;", "I", "Ljava/lang/String;"), "V"));
+                mutableMethodImplementation.addInstruction(++instructionIndex, branchDistanceCall);
             }
 
             mutableMethodImplementation.swapInstructions(originalIndex, originalIndex + 1);
             mutableMethodImplementation.swapInstructions(originalIndex + 1, originalIndex + 2);
-
-            int nextIndex = originalIndex + 2;
-
-            for (BuilderInstruction instruction : branchDistanceCalls) {
-                mutableMethodImplementation.swapInstructions(nextIndex, nextIndex + 1);
-                nextIndex++;
-            }
+            mutableMethodImplementation.swapInstructions(originalIndex + 2, originalIndex + 3);
+            mutableMethodImplementation.swapInstructions(originalIndex + 3, originalIndex + 4);
         }
 
         // update implementation
@@ -624,7 +644,7 @@ public final class Instrumentation {
             LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
             LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
-            Set<Byte> referenceTypes = new HashSet<Byte>() {{
+            Set<Byte> referenceTypes = new HashSet<>() {{
                 add(RegisterType.REFERENCE);
                 add(RegisterType.UNINIT_REF);
             }};

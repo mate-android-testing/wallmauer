@@ -101,6 +101,11 @@ public final class Analyzer {
                             = new InstrumentationPoint(instructions.get(switchCasePosition),
                             InstrumentationPoint.Type.ELSE_BRANCH);
                     instrumentationPoints.add(switchCase);
+
+                    // track whether the case statements contain the default branch
+                    if (switchCasePosition == instruction.getLocation().getIndex() + 1) {
+                        switchInstruction.setContainsDefaultBranch();
+                    }
                 }
 
                 // the direct successor of the switch instruction represents the fall-through case (default case)

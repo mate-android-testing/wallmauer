@@ -19,6 +19,13 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
      */
     private BuilderInstruction payloadInstruction;
 
+    /**
+     * Whether the switch case payload contains a default branch; only set for switch instructions. By default, the
+     * payload instruction doesn't list the default branch, unless a packed-switch instruction contains pseudo cases.
+     * In particular, the default branch is always the direct successor of the switch instruction.
+     */
+    private boolean containsDefaultBranch = false;
+
     // original position of instruction
     private final int position;
 
@@ -54,6 +61,26 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
      */
     public BuilderInstruction getPayloadInstruction() {
         return payloadInstruction;
+    }
+
+
+    /**
+     * Whether the switch payload instruction explicitly lists the default branch. Only set if the instrumentation point
+     * refers to a switch statement.
+     *
+     * @return Returns {@code true} if the switch payload instruction contains a default branch, otherwise {@code false}.
+     */
+    public boolean containsDefaultBranch() {
+        assert this.type == Type.SWITCH_STMT;
+        return containsDefaultBranch;
+    }
+
+    /**
+     * Acknowledges that the switch payload instruction contains an explicit default branch.
+     */
+    public void setContainsDefaultBranch() {
+        assert this.type == Type.SWITCH_STMT;
+        this.containsDefaultBranch = true;
     }
 
     /**

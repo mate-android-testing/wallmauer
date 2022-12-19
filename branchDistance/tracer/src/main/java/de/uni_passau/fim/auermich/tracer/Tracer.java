@@ -439,17 +439,88 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
-     * Computes the branch distance for a case statement of a switch instruction.
+     * Computes the branch distance for a switch instruction.
      *
      * @param trace The trace describing the switch instruction.
      * @param switchValue The value of the switch instruction to be compared with each case statement.
-     * @param caseValue The value of the case statement.
+     * @param cases The case statements (positions and values).
      */
-    public static void computeBranchDistanceSwitch(String trace, int switchValue, int caseValue) {
-        // a switch case instruction is nothing else than a if-eq instruction
-        final int distance = Math.abs(switchValue - caseValue);
-        LOGGER.info("Branch distance of case value " + caseValue + " for " + trace + ": " + distance);
-        final String distanceTrace = trace + ":" + distance;
-        trace(distanceTrace);
+    public static void computeBranchDistanceSwitch(String trace, int switchValue, String cases) {
+
+        // a switch case instruction is nothing else than a nested if-eq instruction
+        LOGGER.info("Switch statement: " + trace);
+        LOGGER.info("Switch value: " + switchValue);
+        LOGGER.info("Cases: " + cases);
+
+        final String[] casePosValuePairs = cases.split(",");
+
+        for (String casePosValuePair : casePosValuePairs) {
+
+            final int casePosition = Integer.parseInt(casePosValuePair.split(":")[0]);
+            final int caseValue = Integer.parseInt(casePosValuePair.split(":")[1]);
+
+            // TODO: Use same metric as for if-eq.
+            int branchDistance = 1;
+
+            if (switchValue == caseValue) {
+                // the taken case/branch has a distance of 0
+                branchDistance = 0;
+            }
+
+            final String tracePrefix = trace.split("->switch->")[0];
+            final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
+            LOGGER.info("Case " + casePosition + ":" + caseValue + " distance: " + branchDistance);
+            trace(traceCase);
+        }
+    }
+
+    /**
+     * Computes the branch distance for a switch instruction without an explicit default branch.
+     *
+     * @param trace The trace describing the switch instruction.
+     * @param switchValue The value of the switch instruction to be compared with each case statement.
+     * @param cases The case statements (positions and values).
+     */
+    public static void computeBranchDistanceSwitchNoDefaultBranch(String trace, int switchValue, String cases) {
+
+        // a switch case instruction is nothing else than a nested if-eq instruction
+        LOGGER.info("Switch statement: " + trace);
+        LOGGER.info("Switch value: " + switchValue);
+        LOGGER.info("Cases: " + cases);
+
+        // remember whether the default branch was taken or not
+        boolean tookDefaultBranch = true;
+
+        final String[] casePosValuePairs = cases.split(",");
+
+        for (String casePosValuePair : casePosValuePairs) {
+
+            final int casePosition = Integer.parseInt(casePosValuePair.split(":")[0]);
+            final int caseValue = Integer.parseInt(casePosValuePair.split(":")[1]);
+
+            // TODO: Use same metric as for if-eq once a reasonable distance can be assigned to the default branch.
+            int branchDistance = 1;
+
+            if (switchValue == caseValue) {
+                // the taken case/branch has a distance of 0
+                branchDistance = 0;
+                tookDefaultBranch = false;
+            }
+
+            final String tracePrefix = trace.split("->switch->")[0];
+            final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
+            LOGGER.info("Case " + casePosition + ":" + caseValue + " distance: " + branchDistance);
+            trace(traceCase);
+        }
+
+        // we require an explicit trace for the default branch
+        final String tracePrefix = trace.split("->switch->")[0];
+
+        // the default branch is always the direct successor of the switch statement
+        final int defaultBranchPosition = Integer.parseInt(trace.split("->switch->")[1]) + 1;
+        final int defaultBranchDistance = tookDefaultBranch ? 0 : 1;
+        final String traceDefaultBranch = tracePrefix + "->switch->" + defaultBranchPosition + ":" + defaultBranchDistance;
+        LOGGER.info("DefaultBranch " + defaultBranchPosition + ":" + " distance: " + traceDefaultBranch);
+        trace(traceDefaultBranch);
     }
 }
