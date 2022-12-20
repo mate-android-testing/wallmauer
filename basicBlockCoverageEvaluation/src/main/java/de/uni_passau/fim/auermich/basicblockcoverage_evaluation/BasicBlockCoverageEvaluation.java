@@ -49,6 +49,16 @@ public class BasicBlockCoverageEvaluation {
                             + coveredBranches / totalBranches * 100 + "%");
                 }
             }
+
+            final int totalInstructions = totalInstructionsPerClass.values().stream().mapToInt(Integer::intValue).sum();
+            final int coveredInstructions = coveredInstructionsPerClass.values().stream().mapToInt(Integer::intValue).sum();
+            final double totalLineCoverage = (double) coveredInstructions / (double) totalInstructions * 100d;
+            LOGGER.info("Total line coverage: " + totalLineCoverage + "%");
+
+            final int totalBranches = totalBranchesPerClass.values().stream().mapToInt(Integer::intValue).sum();
+            final int coveredBranches = coveredBranchesPerClass.values().stream().mapToInt(Integer::intValue).sum();
+            final double totalBranchCoverage = (double) coveredBranches / (double) totalBranches * 100d;
+            LOGGER.info("Total branch coverage: " + totalBranchCoverage + "%");
         }
     }
 
