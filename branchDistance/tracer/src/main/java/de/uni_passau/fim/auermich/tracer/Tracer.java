@@ -439,18 +439,14 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
-     * Computes the branch distance for a switch instruction.
+     * Computes the branch distance for a switch instruction. Note that we use a binary metric right now, i.e. the
+     * covered case statement gets assigned a branch distance of 0 and all other case statements a distance of 1.
      *
      * @param trace The trace describing the switch instruction.
      * @param switchValue The value of the switch instruction to be compared with each case statement.
      * @param cases The case statements (positions and values).
      */
     public static void computeBranchDistanceSwitch(String trace, int switchValue, String cases) {
-
-        // a switch case instruction is nothing else than a nested if-eq instruction
-        LOGGER.info("Switch statement: " + trace);
-        LOGGER.info("Switch value: " + switchValue);
-        LOGGER.info("Cases: " + cases);
 
         final String[] casePosValuePairs = cases.split(",");
 
@@ -469,24 +465,20 @@ public class Tracer extends BroadcastReceiver {
 
             final String tracePrefix = trace.split("->switch->")[0];
             final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
-            LOGGER.info("Case " + casePosition + ":" + caseValue + " distance: " + branchDistance);
             trace(traceCase);
         }
     }
 
     /**
-     * Computes the branch distance for a switch instruction without an explicit default branch.
+     * Computes the branch distance for a switch instruction without an explicit default branch. Note that we use a
+     * binary metric right now, i.e. the covered case statement gets assigned a branch distance of 0 and all other case
+     * statements a distance of 1.
      *
      * @param trace The trace describing the switch instruction.
      * @param switchValue The value of the switch instruction to be compared with each case statement.
      * @param cases The case statements (positions and values).
      */
     public static void computeBranchDistanceSwitchNoDefaultBranch(String trace, int switchValue, String cases) {
-
-        // a switch case instruction is nothing else than a nested if-eq instruction
-        LOGGER.info("Switch statement: " + trace);
-        LOGGER.info("Switch value: " + switchValue);
-        LOGGER.info("Cases: " + cases);
 
         // remember whether the default branch was taken or not
         boolean tookDefaultBranch = true;
@@ -509,7 +501,6 @@ public class Tracer extends BroadcastReceiver {
 
             final String tracePrefix = trace.split("->switch->")[0];
             final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
-            LOGGER.info("Case " + casePosition + ":" + caseValue + " distance: " + branchDistance);
             trace(traceCase);
         }
 
@@ -520,7 +511,6 @@ public class Tracer extends BroadcastReceiver {
         final int defaultBranchPosition = Integer.parseInt(trace.split("->switch->")[1]) + 1;
         final int defaultBranchDistance = tookDefaultBranch ? 0 : 1;
         final String traceDefaultBranch = tracePrefix + "->switch->" + defaultBranchPosition + ":" + defaultBranchDistance;
-        LOGGER.info("DefaultBranch " + defaultBranchPosition + ":" + " distance: " + traceDefaultBranch);
         trace(traceDefaultBranch);
     }
 }

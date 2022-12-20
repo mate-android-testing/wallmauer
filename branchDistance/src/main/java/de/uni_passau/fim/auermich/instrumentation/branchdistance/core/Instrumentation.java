@@ -442,6 +442,9 @@ public final class Instrumentation {
         Set<Range> tryBlocks = methodInformation.getTryBlocks();
 
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
+
+        // TODO: Unify the branch distance trace between if and switch statements such that we can pick any in case of
+        //  a shared branch/case! That would allow us to pick the minimum of both.
         final String trace = methodInformation.getMethodID() + "->switch->" + instrumentationPoint.getPosition();
 
         LOGGER.debug("Switch statement: " + trace);
@@ -671,6 +674,8 @@ public final class Instrumentation {
     private static void handlePrimitiveUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                        int operation, int registerA) {
 
+        // TODO: Create a branch distance trace for each branch individually as in the case of switch statements!
+
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
@@ -777,6 +782,8 @@ public final class Instrumentation {
      */
     private static void handlePrimitiveBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                         int operation, int registerA, int registerB) {
+
+        // TODO: Create a branch distance trace for each branch individually as in the case of switch statements!
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
@@ -893,6 +900,8 @@ public final class Instrumentation {
     private static void handleObjectUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                     int operation, int registerA) {
 
+        // TODO: Create a branch distance trace for each branch individually as in the case of switch statements!
+
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
@@ -999,6 +1008,8 @@ public final class Instrumentation {
      */
     private static void handleObjectBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                      int operation, int registerA, int registerB) {
+
+        // TODO: Create a branch distance trace for each branch individually as in the case of switch statements!
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
