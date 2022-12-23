@@ -182,6 +182,7 @@ public class Tracer extends BroadcastReceiver {
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
 
+        // signal that the tracer is currently dumping traces
         createRunFile();
 
         File sdCard = Environment.getExternalStorageDirectory();
@@ -243,6 +244,7 @@ public class Tracer extends BroadcastReceiver {
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
 
+        // signal that the tracer is currently dumping traces
         createRunFile();
 
         // sd card
@@ -312,18 +314,25 @@ public class Tracer extends BroadcastReceiver {
         deleteRunFile();
     }
 
+    /**
+     * Creates a file on the external storage to indicate that the tracer is currently dumping traces.
+     */
     private static synchronized void createRunFile() {
+
         File sdCard = Environment.getExternalStorageDirectory();
         File file = new File(sdCard, RUNNING_FILE);
 
         try {
             boolean ignored = file.createNewFile();
         } catch (IOException e) {
-            LOGGER.warning("Got IOException when creating file " + RUNNING_FILE);
+            LOGGER.warning("Failed to create file " + RUNNING_FILE);
             LOGGER.warning(e.getMessage());
         }
     }
 
+    /**
+     * Removes the generated file by {@link #createRunFile()} to indicate that the tracer finished dumping the traces.
+     */
     private static synchronized void deleteRunFile() {
         File sdCard = Environment.getExternalStorageDirectory();
         boolean ignored = new File(sdCard, RUNNING_FILE).delete();
