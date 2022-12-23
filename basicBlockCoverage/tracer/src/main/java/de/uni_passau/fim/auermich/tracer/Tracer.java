@@ -24,7 +24,6 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
  * Provides the functionality to trace basic blocks for a given application. The collected traces/basic blocks
  * are written to the external storage in an incremental manner. By sending a special intent to the
  * broadcast receiver, the remaining traces are written to the traces file.
- *
  */
 public class Tracer extends BroadcastReceiver {
 
@@ -155,7 +154,7 @@ public class Tracer extends BroadcastReceiver {
      * @param context The application context object.
      * @param permission The permission to check.
      * @return Returns {@code true} if the permission is granted,
-     *          otherwise {@code false} is returned.
+     *         otherwise {@code false} is returned.
      */
     private static boolean isPermissionGranted(Context context, final String permission) {
 
@@ -194,28 +193,22 @@ public class Tracer extends BroadcastReceiver {
             }
         }
 
-        try {
-
-            FileWriter writer = new FileWriter(traceFile, true);
-            BufferedWriter br = new BufferedWriter(writer);
+        try (FileWriter writer = new FileWriter(traceFile, true);
+             BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 
             for (String trace : traces) {
-                br.write(trace);
-                br.newLine();
+                bufferedWriter.write(trace);
+                bufferedWriter.newLine();
             }
 
             // keep track of collected traces per test case / trace file
             numberOfTraces = numberOfTraces + CACHE_SIZE;
             LOGGER.info("Accumulated traces size: " + numberOfTraces);
 
-            br.flush();
-            br.close();
-            writer.close();
-
         } catch (IndexOutOfBoundsException e) {
             LOGGER.info("Synchronization issue!");
             Map<Thread, StackTraceElement[]> threadStackTraces = Thread.getAllStackTraces();
-            for (Thread thread: threadStackTraces.keySet()) {
+            for (Thread thread : threadStackTraces.keySet()) {
                 StackTraceElement[] stackTrace = threadStackTraces.get(thread);
                 LOGGER.info("Thread[" + thread.getId() + "]: " + thread);
                 for (StackTraceElement stackTraceElement : stackTrace) {
@@ -254,10 +247,8 @@ public class Tracer extends BroadcastReceiver {
         LOGGER.info("Remaining traces size: " + traces.size());
 
         // write out remaining traces
-        try {
-
-            FileWriter writer = new FileWriter(traceFile, true);
-            BufferedWriter br = new BufferedWriter(writer);
+        try (FileWriter writer = new FileWriter(traceFile, true);
+             BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 
             Iterator<String> iterator = traces.iterator();
             String element = null;
@@ -271,17 +262,13 @@ public class Tracer extends BroadcastReceiver {
                     element = iterator.next();
                 }
 
-                br.write(element);
-                br.newLine();
+                bufferedWriter.write(element);
+                bufferedWriter.newLine();
             }
 
             if (!traces.isEmpty()) {
                 LOGGER.info("Last entry: " + element);
             }
-
-            br.flush();
-            br.close();
-            writer.close();
 
         } catch (Exception e) {
             LOGGER.info("Writing traces.txt to external storage failed.");
@@ -291,23 +278,19 @@ public class Tracer extends BroadcastReceiver {
         // signal that we finished writing out traces
         final File infoFile = new File(sdCard, INFO_FILE);
 
-        try {
-            FileWriter writer = new FileWriter(infoFile);
+        try (FileWriter writer = new FileWriter(infoFile)) {
 
             numberOfTraces = numberOfTraces + traces.size();
             writer.append(String.valueOf(numberOfTraces));
             LOGGER.info("Total number of traces in file: " + numberOfTraces);
 
-            // reset traces counter
-            numberOfTraces = 0;
-
-            writer.flush();
-            writer.close();
-
         } catch (Exception e) {
             LOGGER.info("Writing info.txt to external storage failed.");
             e.printStackTrace();
         }
+
+        // reset traces counter
+        numberOfTraces = 0;
 
         // reset traces
         traces.clear();

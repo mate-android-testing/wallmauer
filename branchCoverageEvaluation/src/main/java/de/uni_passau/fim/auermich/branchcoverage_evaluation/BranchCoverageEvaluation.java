@@ -27,7 +27,7 @@ public class BranchCoverageEvaluation {
         } else {
 
             // first argument refers to branches.txt
-            InputStream branchesInputStream = new FileInputStream(new File(args[0]));
+            InputStream branchesInputStream = new FileInputStream(args[0]);
             BufferedReader branchesReader = new BufferedReader(new InputStreamReader(branchesInputStream));
 
             // tracks the number of total branches per class and method
@@ -65,6 +65,12 @@ public class BranchCoverageEvaluation {
 
                 // each trace consists of className->methodName->branchID
                 String[] triple = trace.split("->");
+
+                if (triple.length != 3 || trace.contains(":")
+                        || trace.endsWith("->exit") || trace.endsWith("->entry")) {
+                    // ignore traces related to if statements or branch distance or virtual entry/exit vertices
+                    continue;
+                }
 
                 String clazz = triple[0];
                 String method = triple[1];
