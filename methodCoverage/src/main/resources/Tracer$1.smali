@@ -31,7 +31,7 @@
     .end annotation
 
     .prologue
-    .line 60
+    .line 61
     iput-object p1, p0, Lde/uni_passau/fim/auermich/tracer/Tracer$1;->val$defaultUncaughtExceptionHandler:Ljava/lang/Thread$UncaughtExceptionHandler;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -47,7 +47,7 @@
     .param p2, "e"    # Ljava/lang/Throwable;
 
     .prologue
-    .line 64
+    .line 65
     invoke-static {}, Lde/uni_passau/fim/auermich/tracer/Tracer;->access$000()Ljava/util/logging/Logger;
 
     move-result-object v0
@@ -56,14 +56,14 @@
 
     invoke-virtual {v0, v1}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
-    .line 65
+    .line 66
     invoke-static {}, Lde/uni_passau/fim/auermich/tracer/Tracer;->access$100()V
 
-    .line 66
+    .line 67
     iget-object v0, p0, Lde/uni_passau/fim/auermich/tracer/Tracer$1;->val$defaultUncaughtExceptionHandler:Ljava/lang/Thread$UncaughtExceptionHandler;
 
     invoke-interface {v0, p1, p2}, Ljava/lang/Thread$UncaughtExceptionHandler;->uncaughtException(Ljava/lang/Thread;Ljava/lang/Throwable;)V
 
-    .line 67
+    .line 68
     return-void
 .end method

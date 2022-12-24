@@ -10,6 +10,7 @@ import android.os.Environment;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -78,6 +79,9 @@ public class Tracer extends BroadcastReceiver {
 
     // the file containing the number of generated traces
     private static final String INFO_FILE = "info.txt";
+
+    // the file signaling that the tracer is currently dumping traces
+    private static final String RUNNING_FILE = "running.txt";
 
     // keeps track of the total number of generated traces per test case / trace file
     private static int numberOfTraces = 0;
@@ -177,6 +181,9 @@ public class Tracer extends BroadcastReceiver {
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
 
+        // signal that the tracer is currently dumping traces
+        createRunFile();
+
         File sdCard = Environment.getExternalStorageDirectory();
         File traceFile = new File(sdCard, TRACES_FILE);
 
@@ -215,6 +222,7 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
     }
 
     /**
@@ -228,6 +236,9 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Default exception handler has been overridden!");
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
+
+        // signal that the tracer is currently dumping traces
+        createRunFile();
 
         // sd card
         File sdCard = Environment.getExternalStorageDirectory();
@@ -283,5 +294,30 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
+    }
+
+    /**
+     * Creates a file on the external storage to indicate that the tracer is currently dumping traces.
+     */
+    private static synchronized void createRunFile() {
+
+        File sdCard = Environment.getExternalStorageDirectory();
+        File file = new File(sdCard, RUNNING_FILE);
+
+        try {
+            boolean ignored = file.createNewFile();
+        } catch (IOException e) {
+            LOGGER.warning("Failed to create file " + RUNNING_FILE);
+            LOGGER.warning(e.getMessage());
+        }
+    }
+
+    /**
+     * Removes the generated file by {@link #createRunFile()} to indicate that the tracer finished dumping the traces.
+     */
+    private static synchronized void deleteRunFile() {
+        File sdCard = Environment.getExternalStorageDirectory();
+        boolean ignored = new File(sdCard, RUNNING_FILE).delete();
     }
 }
