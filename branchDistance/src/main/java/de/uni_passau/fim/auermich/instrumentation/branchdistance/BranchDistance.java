@@ -328,8 +328,8 @@ public class BranchDistance {
                 Instrumentation.shiftParamRegisters(methodInformation);
             }
 
-            // write out the branches per method
-            Utility.writeBranches(methodInformation);
+            // write out the branches and instrumentation points per method
+            Utility.writeBranchesAndInstrumentationPoints(methodInformation);
 
             return new ImmutableMethod(
                     method.getDefiningClass(),
