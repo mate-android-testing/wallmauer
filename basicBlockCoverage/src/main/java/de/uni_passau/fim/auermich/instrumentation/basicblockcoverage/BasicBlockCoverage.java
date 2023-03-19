@@ -290,8 +290,9 @@ public class BasicBlockCoverage {
                 Instrumentation.shiftParamRegisters(methodInformation);
             }
 
-            // write out basic blocks per method
+            // write out basic blocks and branches per method
             Utility.writeBasicBlocks(methodInformation);
+            Utility.writeBranches(methodInformation);
 
             return new ImmutableMethod(
                     method.getDefiningClass(),
