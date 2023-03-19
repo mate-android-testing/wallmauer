@@ -12,9 +12,12 @@ import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
+import org.jf.dexlib2.builder.BuilderSwitchPayload;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction21t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction22t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction31t;
+import org.jf.dexlib2.builder.instruction.BuilderSwitchElement;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
@@ -107,15 +110,33 @@ public final class Analyzer {
 
                 LOGGER.debug("Found switch instruction at index: " + index);
 
-                final Set<Integer> successors = instruction.getSuccessors().stream()
-                        .map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
+                /*
+                 * The packed-switch instruction defines a switch-case construct. To access the individual cases of
+                 * the switch statement, one needs to follow the packed-switch-payload instruction that contains this
+                 * information. However, the default case or fall-through case is not listed in this payload instruction
+                 * and needs to be addressed explicitly. This is simply the next instruction following the switch instruction.
+                 */
+                final BuilderInstruction31t switchInstruction = (BuilderInstruction31t) builderInstructions.get(index);
+                int switchPayloadPosition = switchInstruction.getTarget().getLocation().getIndex();
 
-                LOGGER.debug("Number of case statements: " + successors.size());
+                BuilderSwitchPayload switchPayloadInstruction
+                        = (BuilderSwitchPayload) builderInstructions.get(switchPayloadPosition);
 
-                for (final int successor : successors) {
-                    final BuilderInstruction targetInstruction = builderInstructions.get(successor);
-                    branches.add(new InstrumentationPoint(targetInstruction, InstrumentationPoint.Type.IS_BRANCH));
+                LOGGER.debug("Number of case statements: " + switchPayloadInstruction.getSwitchElements().size() + 1);
+
+                for (BuilderSwitchElement switchElement : switchPayloadInstruction.getSwitchElements()) {
+                    int switchCasePosition = switchElement.getTarget().getLocation().getIndex();
+                    InstrumentationPoint switchCase
+                            = new InstrumentationPoint(builderInstructions.get(switchCasePosition),
+                            InstrumentationPoint.Type.IS_BRANCH);
+                    branches.add(switchCase);
                 }
+
+                // the direct successor of the switch instruction represents the fall-through case (default case)
+                int defaultCasePosition = switchInstruction.getLocation().getIndex() + 1;
+                InstrumentationPoint defaultCase = new InstrumentationPoint(builderInstructions.get(defaultCasePosition),
+                        InstrumentationPoint.Type.IS_BRANCH);
+                branches.add(defaultCase);
             }
 
             // the first instruction in a catch block defines a new basic block
