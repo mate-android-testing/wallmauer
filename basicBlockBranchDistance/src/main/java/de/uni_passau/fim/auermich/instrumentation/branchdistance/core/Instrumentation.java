@@ -1095,7 +1095,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
+                    new ImmutableStringReference(classDef + "->" + method + "->virtual")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -1107,16 +1107,6 @@ public final class Instrumentation {
             implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
                     paramIndex++, paramIndex++, paramIndex++, paramIndex++, paramIndex++,
                     new ImmutableMethodReference(superClass, methodName, params, returnType)));
-
-            // exit string trace
-            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->exit")));
-
-            // invoke-static-range
-            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
-                    0, 1,
-                    new ImmutableMethodReference(TRACER, "trace",
-                            Lists.newArrayList("Ljava/lang/String;"), "V")));
 
             // we have to add return-statement as well, though void!
             implementation.addInstruction(new BuilderInstruction10x(Opcode.RETURN_VOID));
@@ -1131,7 +1121,7 @@ public final class Instrumentation {
 
             // entry string trace
             implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->entry")));
+                    new ImmutableStringReference(classDef + "->" + method + "->virtual")));
 
             // invoke-static-range
             implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
@@ -1146,16 +1136,6 @@ public final class Instrumentation {
 
             // move-result v1
             implementation.addInstruction(new BuilderInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1));
-
-            // exit string trace
-            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->exit")));
-
-            // invoke-static-range
-            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
-                    0, 1,
-                    new ImmutableMethodReference(TRACER, "trace",
-                            Lists.newArrayList("Ljava/lang/String;"), "V")));
 
             // only onCreateView(..) returns Landroid/view/View; which is stored in v1
             implementation.addInstruction(new BuilderInstruction11x(Opcode.RETURN_OBJECT, 1));
