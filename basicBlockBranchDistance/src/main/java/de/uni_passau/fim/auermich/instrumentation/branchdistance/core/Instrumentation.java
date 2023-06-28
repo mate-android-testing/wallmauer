@@ -1093,16 +1093,6 @@ public final class Instrumentation {
             // we require one additional parameter for the invisible 'this'-reference p0 + one for trace
             implementation = new MutableMethodImplementation(2 + paramCount);
 
-            // entry string trace
-            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->virtual")));
-
-            // invoke-static-range
-            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
-                    0, 1,
-                    new ImmutableMethodReference(TRACER, "trace",
-                            Lists.newArrayList("Ljava/lang/String;"), "V")));
-
             // call super method (we have one register for this reference + one register for each parameter)
             implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
                     paramIndex++, paramIndex++, paramIndex++, paramIndex++, paramIndex++,
@@ -1119,16 +1109,6 @@ public final class Instrumentation {
             // for the return value
             implementation = new MutableMethodImplementation(3 + paramCount);
 
-            // entry string trace
-            implementation.addInstruction(new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                    new ImmutableStringReference(classDef + "->" + method + "->virtual")));
-
-            // invoke-static-range
-            implementation.addInstruction(new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
-                    0, 1,
-                    new ImmutableMethodReference(TRACER, "trace",
-                            Lists.newArrayList("Ljava/lang/String;"), "V")));
-
             // call super method (we have one register for this reference + one register for each parameter)
             implementation.addInstruction(new BuilderInstruction35c(Opcode.INVOKE_SUPER, 1 + paramCount,
                     paramIndex++, paramIndex++, paramIndex++, paramIndex++, paramIndex++,
@@ -1140,6 +1120,18 @@ public final class Instrumentation {
             // only onCreateView(..) returns Landroid/view/View; which is stored in v1
             implementation.addInstruction(new BuilderInstruction11x(Opcode.RETURN_OBJECT, 1));
         }
+
+        // Add basic block tracer instrumentation.
+        int instructionCount = implementation.getInstructions().size();
+        implementation.addInstruction(0,new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+                new ImmutableStringReference(classDef + "->" + method + "->0->" + instructionCount + "->noBranch")));
+
+        // invoke-static-range
+        implementation.addInstruction(1,new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+                0, 1,
+                new ImmutableMethodReference(TRACER, "trace",
+                        Lists.newArrayList("Ljava/lang/String;"), "V")));
+
 
         List<MethodParameter> methodParams = params.stream().map(p ->
                 new ImmutableMethodParameter(p, null,
