@@ -265,7 +265,7 @@ public final class Instrumentation {
             InstrumentationPoint instrumentationPoint = iterator.next();
             if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT) {
                 instrumentIfStatement(instrumentationPoint, methodInformation);
-            } else if (instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT){
+            } else if (instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT) {
                 instrumentSwitchStatement(instrumentationPoint, methodInformation);
             } else {
                 instrumentBasicBlock(instrumentationPoint, methodInformation);

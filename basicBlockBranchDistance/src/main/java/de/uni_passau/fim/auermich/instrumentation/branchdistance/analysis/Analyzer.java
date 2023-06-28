@@ -32,17 +32,17 @@ public final class Analyzer {
     private static final Logger LOGGER = LogManager.getLogger(Analyzer.class);
 
     /**
-     * Tracks the if instrumentation points, i.e. instructions that represent if statements.
+     * Tracks the if and switch instrumentation points, i.e. instructions that represent if or switch statements.
      *
      * @param methodInformation Encapsulates a method.
-     * @return Returns the set of if instrumentation points.
+     * @return Returns the set of if and switch instrumentation points.
      */
     public static Set<InstrumentationPoint> trackIfInstrumentationPoints(final MethodInformation methodInformation) {
 
         final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
         final List<BuilderInstruction> builderInstructions
                 = new MutableMethodImplementation(methodInformation.getMethodImplementation()).getInstructions();
-        final Set<InstrumentationPoint> ifInstrumentationPoints = new TreeSet<>();
+        final Set<InstrumentationPoint> ifAndSwitchInstrumentationPoints = new TreeSet<>();
 
         LOGGER.debug("Method if statements: " + methodInformation.getMethodID());
         LOGGER.debug("Instructions: " + instructions.size());
@@ -54,26 +54,28 @@ public final class Analyzer {
                 LOGGER.debug("If statement at index: " + index);
                 final BuilderInstruction ifInstruction = builderInstructions.get(index);
                 final InstrumentationPoint ifIP = new InstrumentationPoint(ifInstruction, InstrumentationPoint.Type.IF_STMT);
-                ifInstrumentationPoints.add(ifIP);
-            } else if (isSwitchInstruction(instruction)){
-                final BuilderInstruction builderInstruction = builderInstructions.get(index);
-                int switchPayloadPosition = ((BuilderInstruction31t) builderInstruction).getTarget().getLocation().getIndex();
+                ifAndSwitchInstrumentationPoints.add(ifIP);
+            } else if (isSwitchInstruction(instruction)) {
+                final BuilderInstruction switchInstruction = builderInstructions.get(index);
+                int switchPayloadPosition = ((BuilderInstruction31t) switchInstruction).getTarget().getLocation().getIndex();
                 BuilderSwitchPayload switchPayloadInstruction
                         = (BuilderSwitchPayload) builderInstructions.get(switchPayloadPosition);
                 // We need to compute a branch distance similar to a regular if instruction.
-                InstrumentationPoint switchIP = new InstrumentationPoint(builderInstruction, switchPayloadInstruction, InstrumentationPoint.Type.SWITCH_STMT);
-                ifInstrumentationPoints.add(switchIP);
+                InstrumentationPoint switchIP = new InstrumentationPoint(switchInstruction, switchPayloadInstruction,
+                        InstrumentationPoint.Type.SWITCH_STMT);
+                ifAndSwitchInstrumentationPoints.add(switchIP);
 
-                // Check if switch has a default branch.
+                // Check if switch statement has an explicit default branch.
                 if (switchPayloadInstruction.getSwitchElements()
                         .stream()
-                        .anyMatch(element -> element.getTarget().getLocation().getIndex() == builderInstruction.getLocation().getIndex() + 1)){
+                        .anyMatch(element -> element.getTarget().getLocation().getIndex()
+                                == switchInstruction.getLocation().getIndex() + 1)) {
                     switchIP.setContainsDefaultBranch();
                 }
             }
         }
 
-        return ifInstrumentationPoints;
+        return ifAndSwitchInstrumentationPoints;
     }
 
     /**

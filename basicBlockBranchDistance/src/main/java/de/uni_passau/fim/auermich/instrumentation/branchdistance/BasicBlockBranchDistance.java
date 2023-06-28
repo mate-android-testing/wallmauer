@@ -307,7 +307,7 @@ public class BasicBlockBranchDistance {
                 Analyzer.analyzeParamRegisterTypes(methodInformation, dexFile);
             }
 
-            // instrument basic blocks + if statements
+            // instrument basic blocks + if and switch statements
             Instrumentation.modifyMethod(methodInformation);
 
             /*
