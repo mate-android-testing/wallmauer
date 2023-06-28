@@ -759,6 +759,371 @@
     .end packed-switch
 .end method
 
+.method public static computeBranchDistanceSwitch(Ljava/lang/String;ILjava/lang/String;)V
+    .registers 15
+    .param p0, "trace"    # Ljava/lang/String;
+    .param p1, "switchValue"    # I
+    .param p2, "cases"    # Ljava/lang/String;
+
+    .prologue
+    const/4 v8, 0x0
+
+    .line 458
+    const-string v7, ","
+
+    invoke-virtual {p2, v7}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v2
+
+    .line 460
+    .local v2, "casePosValuePairs":[Ljava/lang/String;
+    array-length v9, v2
+
+    move v7, v8
+
+    :goto_9
+    if-ge v7, v9, :cond_59
+
+    aget-object v1, v2, v7
+
+    .line 462
+    .local v1, "casePosValuePair":Ljava/lang/String;
+    const-string v10, ":"
+
+    invoke-virtual {v1, v10}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v10
+
+    aget-object v10, v10, v8
+
+    invoke-static {v10}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v3
+
+    .line 463
+    .local v3, "casePosition":I
+    const-string v10, ":"
+
+    invoke-virtual {v1, v10}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v10
+
+    const/4 v11, 0x1
+
+    aget-object v10, v10, v11
+
+    invoke-static {v10}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v4
+
+    .line 466
+    .local v4, "caseValue":I
+    const/4 v0, 0x1
+
+    .line 468
+    .local v0, "branchDistance":I
+    if-ne p1, v4, :cond_2a
+
+    .line 470
+    const/4 v0, 0x0
+
+    .line 473
+    :cond_2a
+    const-string v10, "->switch->"
+
+    invoke-virtual {p0, v10}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v10
+
+    aget-object v6, v10, v8
+
+    .line 474
+    .local v6, "tracePrefix":Ljava/lang/String;
+    new-instance v10, Ljava/lang/StringBuilder;
+
+    invoke-direct {v10}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v10, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v10
+
+    const-string v11, "->switch->"
+
+    invoke-virtual {v10, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v10
+
+    invoke-virtual {v10, v3}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v10
+
+    const-string v11, ":"
+
+    invoke-virtual {v10, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v10
+
+    invoke-virtual {v10, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v10
+
+    invoke-virtual {v10}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v5
+
+    .line 475
+    .local v5, "traceCase":Ljava/lang/String;
+    invoke-static {v5}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
+
+    .line 460
+    add-int/lit8 v7, v7, 0x1
+
+    goto :goto_9
+
+    .line 477
+    .end local v0    # "branchDistance":I
+    .end local v1    # "casePosValuePair":Ljava/lang/String;
+    .end local v3    # "casePosition":I
+    .end local v4    # "caseValue":I
+    .end local v5    # "traceCase":Ljava/lang/String;
+    .end local v6    # "tracePrefix":Ljava/lang/String;
+    :cond_59
+    return-void
+.end method
+
+.method public static computeBranchDistanceSwitchNoDefaultBranch(Ljava/lang/String;ILjava/lang/String;)V
+    .registers 19
+    .param p0, "trace"    # Ljava/lang/String;
+    .param p1, "switchValue"    # I
+    .param p2, "cases"    # Ljava/lang/String;
+
+    .prologue
+    .line 491
+    const/4 v8, 0x1
+
+    .line 493
+    .local v8, "tookDefaultBranch":Z
+    const-string v12, ","
+
+    move-object/from16 v0, p2
+
+    invoke-virtual {v0, v12}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v3
+
+    .line 495
+    .local v3, "casePosValuePairs":[Ljava/lang/String;
+    array-length v13, v3
+
+    const/4 v12, 0x0
+
+    :goto_b
+    if-ge v12, v13, :cond_62
+
+    aget-object v2, v3, v12
+
+    .line 497
+    .local v2, "casePosValuePair":Ljava/lang/String;
+    const-string v14, ":"
+
+    invoke-virtual {v2, v14}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v14
+
+    const/4 v15, 0x0
+
+    aget-object v14, v14, v15
+
+    invoke-static {v14}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v4
+
+    .line 498
+    .local v4, "casePosition":I
+    const-string v14, ":"
+
+    invoke-virtual {v2, v14}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v14
+
+    const/4 v15, 0x1
+
+    aget-object v14, v14, v15
+
+    invoke-static {v14}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v5
+
+    .line 501
+    .local v5, "caseValue":I
+    const/4 v1, 0x1
+
+    .line 503
+    .local v1, "branchDistance":I
+    move/from16 v0, p1
+
+    if-ne v0, v5, :cond_30
+
+    .line 505
+    const/4 v1, 0x0
+
+    .line 506
+    const/4 v8, 0x0
+
+    .line 509
+    :cond_30
+    const-string v14, "->switch->"
+
+    move-object/from16 v0, p0
+
+    invoke-virtual {v0, v14}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v14
+
+    const/4 v15, 0x0
+
+    aget-object v11, v14, v15
+
+    .line 510
+    .local v11, "tracePrefix":Ljava/lang/String;
+    new-instance v14, Ljava/lang/StringBuilder;
+
+    invoke-direct {v14}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v14, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v14
+
+    const-string v15, "->switch->"
+
+    invoke-virtual {v14, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v14
+
+    invoke-virtual {v14, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v14
+
+    const-string v15, ":"
+
+    invoke-virtual {v14, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v14
+
+    invoke-virtual {v14, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v14
+
+    invoke-virtual {v14}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v9
+
+    .line 511
+    .local v9, "traceCase":Ljava/lang/String;
+    invoke-static {v9}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
+
+    .line 495
+    add-int/lit8 v12, v12, 0x1
+
+    goto :goto_b
+
+    .line 515
+    .end local v1    # "branchDistance":I
+    .end local v2    # "casePosValuePair":Ljava/lang/String;
+    .end local v4    # "casePosition":I
+    .end local v5    # "caseValue":I
+    .end local v9    # "traceCase":Ljava/lang/String;
+    .end local v11    # "tracePrefix":Ljava/lang/String;
+    :cond_62
+    const-string v12, "->switch->"
+
+    move-object/from16 v0, p0
+
+    invoke-virtual {v0, v12}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v12
+
+    const/4 v13, 0x0
+
+    aget-object v11, v12, v13
+
+    .line 518
+    .restart local v11    # "tracePrefix":Ljava/lang/String;
+    const-string v12, "->switch->"
+
+    move-object/from16 v0, p0
+
+    invoke-virtual {v0, v12}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v12
+
+    const/4 v13, 0x1
+
+    aget-object v12, v12, v13
+
+    invoke-static {v12}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v12
+
+    add-int/lit8 v7, v12, 0x1
+
+    .line 519
+    .local v7, "defaultBranchPosition":I
+    if-eqz v8, :cond_a6
+
+    const/4 v6, 0x0
+
+    .line 520
+    .local v6, "defaultBranchDistance":I
+    :goto_81
+    new-instance v12, Ljava/lang/StringBuilder;
+
+    invoke-direct {v12}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v12, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v12
+
+    const-string v13, "->switch->"
+
+    invoke-virtual {v12, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v12
+
+    invoke-virtual {v12, v7}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v12
+
+    const-string v13, ":"
+
+    invoke-virtual {v12, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v12
+
+    invoke-virtual {v12, v6}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v12
+
+    invoke-virtual {v12}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v10
+
+    .line 521
+    .local v10, "traceDefaultBranch":Ljava/lang/String;
+    invoke-static {v10}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
+
+    .line 522
+    return-void
+
+    .line 519
+    .end local v6    # "defaultBranchDistance":I
+    .end local v10    # "traceDefaultBranch":Ljava/lang/String;
+    :cond_a6
+    const/4 v6, 0x1
+
+    goto :goto_81
+.end method
+
 .method private static getApplicationUsingReflection()Landroid/app/Application;
     .registers 5
 
