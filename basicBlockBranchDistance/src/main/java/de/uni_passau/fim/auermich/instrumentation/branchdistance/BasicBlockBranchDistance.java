@@ -186,7 +186,7 @@ public class BasicBlockBranchDistance {
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
 
-        List<ClassDef> instrumentedClasses = dexFile.getClasses().stream()
+        List<ClassDef> instrumentedClasses = dexFile.getClasses().parallelStream()
                 .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
                 .collect(Collectors.toList());
 
@@ -225,7 +225,7 @@ public class BasicBlockBranchDistance {
             return classDef;
         }
 
-        List<Method> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).stream()
+        List<Method> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).parallelStream()
                 .map(method -> instrumentMethod(dexFile, classDef, method))
                 .collect(Collectors.toList());
 
