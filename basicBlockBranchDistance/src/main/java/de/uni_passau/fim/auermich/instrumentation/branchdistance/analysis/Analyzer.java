@@ -8,12 +8,15 @@ import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Format;
+import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
+import org.jf.dexlib2.builder.BuilderSwitchPayload;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction21t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction22t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction31t;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
@@ -47,12 +50,26 @@ public final class Analyzer {
         for (final AnalyzedInstruction instruction : instructions) {
             final int index = instruction.getInstructionIndex();
 
-            // branches define a new basic block
-            if (isBranchingInstruction(instruction)) {
+            if (isIfInstruction(instruction)) {
                 LOGGER.debug("If statement at index: " + index);
                 final BuilderInstruction ifInstruction = builderInstructions.get(index);
                 final InstrumentationPoint ifIP = new InstrumentationPoint(ifInstruction, InstrumentationPoint.Type.IF_STMT);
                 ifInstrumentationPoints.add(ifIP);
+            } else if (isSwitchInstruction(instruction)){
+                final BuilderInstruction builderInstruction = builderInstructions.get(index);
+                int switchPayloadPosition = ((BuilderInstruction31t) builderInstruction).getTarget().getLocation().getIndex();
+                BuilderSwitchPayload switchPayloadInstruction
+                        = (BuilderSwitchPayload) builderInstructions.get(switchPayloadPosition);
+                // We need to compute a branch distance similar to a regular if instruction.
+                InstrumentationPoint switchIP = new InstrumentationPoint(builderInstruction, switchPayloadInstruction, InstrumentationPoint.Type.SWITCH_STMT);
+                ifInstrumentationPoints.add(switchIP);
+
+                // Check if switch has a default branch.
+                if (switchPayloadInstruction.getSwitchElements()
+                        .stream()
+                        .anyMatch(element -> element.getTarget().getLocation().getIndex() == builderInstruction.getLocation().getIndex() + 1)){
+                    switchIP.setContainsDefaultBranch();
+                }
             }
         }
 
@@ -88,7 +105,7 @@ public final class Analyzer {
             final int index = instruction.getInstructionIndex();
 
             // branches define a new basic block
-            if (isBranchingInstruction(instruction)) {
+            if (isIfInstruction(instruction)) {
 
                 LOGGER.debug("If branch at index: " + index);
 
@@ -208,10 +225,22 @@ public final class Analyzer {
      * @param analyzedInstruction The instruction to be analyzed.
      * @return Returns {@code true} if the instruction is a branching instruction, otherwise {@code false} is returned.
      */
-    public static boolean isBranchingInstruction(final AnalyzedInstruction analyzedInstruction) {
+    public static boolean isIfInstruction(final AnalyzedInstruction analyzedInstruction) {
         final Instruction instruction = analyzedInstruction.getInstruction();
         final EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
         return branchingInstructions.contains(instruction.getOpcode().format);
+    }
+
+    /**
+     * Checks whether the given instruction refers to a switch instruction.
+     *
+     * @param analyzedInstruction The instruction to be analyzed.
+     * @return Returns {@code true} if the instruction is a switch instruction, otherwise {@code false} is returned.
+     */
+    public static boolean isSwitchInstruction(final AnalyzedInstruction analyzedInstruction) {
+        final Instruction instruction = analyzedInstruction.getInstruction();
+        return instruction.getOpcode().format == Format.Format31t
+                && instruction.getOpcode() != Opcode.FILL_ARRAY_DATA;       // sparse-/packed-switch instruction
     }
 
     /**
