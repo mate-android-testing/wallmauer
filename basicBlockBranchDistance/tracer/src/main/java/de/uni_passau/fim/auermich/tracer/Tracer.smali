@@ -109,6 +109,656 @@
     return-void
 .end method
 
+.method public static computeBranchDistance(Ljava/lang/String;I)V
+    .registers 3
+    .param p0, "operation"    # Ljava/lang/String;
+    .param p1, "argument"    # I
+
+    .prologue
+    .line 361
+    const/4 v0, 0x0
+
+    invoke-static {p0, p1, v0}, Lde/uni_passau/fim/auermich/tracer/Tracer;->computeBranchDistance(Ljava/lang/String;II)V
+
+    .line 362
+    return-void
+.end method
+
+.method public static computeBranchDistance(Ljava/lang/String;II)V
+    .registers 13
+    .param p0, "operation"    # Ljava/lang/String;
+    .param p1, "argument1"    # I
+    .param p2, "argument2"    # I
+
+    .prologue
+    .line 367
+    const/4 v1, 0x0
+
+    .line 368
+    .local v1, "distanceThenBranch":I
+    const/4 v0, 0x0
+
+    .line 370
+    .local v0, "distanceElseBranch":I
+    const-string v7, ":"
+
+    invoke-virtual {p0, v7}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v4
+
+    .line 371
+    .local v4, "tokens":[Ljava/lang/String;
+    const/4 v7, 0x0
+
+    aget-object v7, v4, v7
+
+    invoke-static {v7}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v3
+
+    .line 372
+    .local v3, "opcode":I
+    const/4 v7, 0x1
+
+    aget-object v2, v4, v7
+
+    .line 380
+    .local v2, "identifier":Ljava/lang/String;
+    packed-switch v3, :pswitch_data_10a
+
+    .line 436
+    new-instance v7, Ljava/lang/UnsupportedOperationException;
+
+    const-string v8, "Comparison operator not yet supported!"
+
+    invoke-direct {v7, v8}, Ljava/lang/UnsupportedOperationException;-><init>(Ljava/lang/String;)V
+
+    throw v7
+
+    .line 382
+    :pswitch_1d
+    if-eq p1, p2, :cond_9f
+
+    .line 383
+    sub-int v7, p1, p2
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v1
+
+    .line 384
+    const/4 v0, 0x0
+
+    .line 439
+    :goto_26
+    sget-object v7, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
+
+    new-instance v8, Ljava/lang/StringBuilder;
+
+    invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v9, "Branch distance of then branch for "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    const-string v9, ": "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v8
+
+    invoke-virtual {v7, v8}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
+
+    .line 440
+    sget-object v7, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
+
+    new-instance v8, Ljava/lang/StringBuilder;
+
+    invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v9, "Branch distance of else branch for "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    const-string v9, ": "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v8
+
+    invoke-virtual {v7, v8}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
+
+    .line 442
+    new-instance v7, Ljava/lang/StringBuilder;
+
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v7, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    const-string v8, ":"
+
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v6
+
+    .line 443
+    .local v6, "traceThenBranch":Ljava/lang/String;
+    new-instance v7, Ljava/lang/StringBuilder;
+
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v7, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    const-string v8, ":"
+
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v5
+
+    .line 444
+    .local v5, "traceElseBranch":Ljava/lang/String;
+    invoke-static {v6}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
+
+    .line 445
+    invoke-static {v5}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
+
+    .line 446
+    return-void
+
+    .line 386
+    .end local v5    # "traceElseBranch":Ljava/lang/String;
+    .end local v6    # "traceThenBranch":Ljava/lang/String;
+    :cond_9f
+    const/4 v1, 0x0
+
+    .line 387
+    const/4 v0, 0x1
+
+    .line 389
+    goto :goto_26
+
+    .line 391
+    :pswitch_a2
+    if-eq p1, p2, :cond_ad
+
+    .line 392
+    const/4 v1, 0x0
+
+    .line 393
+    sub-int v7, p1, p2
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v0
+
+    goto/16 :goto_26
+
+    .line 395
+    :cond_ad
+    const/4 v1, 0x1
+
+    .line 396
+    const/4 v0, 0x0
+
+    .line 398
+    goto/16 :goto_26
+
+    .line 400
+    :pswitch_b1
+    if-gt p1, p2, :cond_be
+
+    .line 401
+    const/4 v1, 0x0
+
+    .line 402
+    sub-int v7, p2, p1
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v7
+
+    add-int/lit8 v0, v7, 0x1
+
+    goto/16 :goto_26
+
+    .line 404
+    :cond_be
+    sub-int v7, p1, p2
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v1
+
+    .line 405
+    const/4 v0, 0x0
+
+    .line 407
+    goto/16 :goto_26
+
+    .line 409
+    :pswitch_c7
+    if-ge p1, p2, :cond_d2
+
+    .line 410
+    const/4 v1, 0x0
+
+    .line 411
+    sub-int v7, p2, p1
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v0
+
+    goto/16 :goto_26
+
+    .line 413
+    :cond_d2
+    sub-int v7, p1, p2
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v7
+
+    add-int/lit8 v1, v7, 0x1
+
+    .line 414
+    const/4 v0, 0x0
+
+    .line 416
+    goto/16 :goto_26
+
+    .line 418
+    :pswitch_dd
+    if-lt p1, p2, :cond_ea
+
+    .line 419
+    const/4 v1, 0x0
+
+    .line 420
+    sub-int v7, p1, p2
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v7
+
+    add-int/lit8 v0, v7, 0x1
+
+    goto/16 :goto_26
+
+    .line 422
+    :cond_ea
+    sub-int v7, p2, p1
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v1
+
+    .line 423
+    const/4 v0, 0x0
+
+    .line 425
+    goto/16 :goto_26
+
+    .line 427
+    :pswitch_f3
+    if-le p1, p2, :cond_fe
+
+    .line 428
+    const/4 v1, 0x0
+
+    .line 429
+    sub-int v7, p1, p2
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v0
+
+    goto/16 :goto_26
+
+    .line 431
+    :cond_fe
+    sub-int v7, p2, p1
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v7
+
+    add-int/lit8 v1, v7, 0x1
+
+    .line 432
+    const/4 v0, 0x0
+
+    .line 434
+    goto/16 :goto_26
+
+    .line 380
+    nop
+
+    :pswitch_data_10a
+    .packed-switch 0x0
+        :pswitch_1d
+        :pswitch_a2
+        :pswitch_b1
+        :pswitch_c7
+        :pswitch_dd
+        :pswitch_f3
+    .end packed-switch
+.end method
+
+.method public static computeBranchDistance(Ljava/lang/String;Ljava/lang/Object;)V
+    .registers 3
+    .param p0, "operation"    # Ljava/lang/String;
+    .param p1, "argument"    # Ljava/lang/Object;
+
+    .prologue
+    .line 307
+    const/4 v0, 0x0
+
+    invoke-static {p0, p1, v0}, Lde/uni_passau/fim/auermich/tracer/Tracer;->computeBranchDistance(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V
+
+    .line 308
+    return-void
+.end method
+
+.method public static computeBranchDistance(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V
+    .registers 13
+    .param p0, "operation"    # Ljava/lang/String;
+    .param p1, "argument1"    # Ljava/lang/Object;
+    .param p2, "argument2"    # Ljava/lang/Object;
+
+    .prologue
+    .line 313
+    const/4 v1, 0x0
+
+    .line 314
+    .local v1, "distanceThenBranch":I
+    const/4 v0, 0x0
+
+    .line 316
+    .local v0, "distanceElseBranch":I
+    const-string v7, ":"
+
+    invoke-virtual {p0, v7}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object v4
+
+    .line 317
+    .local v4, "tokens":[Ljava/lang/String;
+    const/4 v7, 0x0
+
+    aget-object v7, v4, v7
+
+    invoke-static {v7}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v3
+
+    .line 318
+    .local v3, "opcode":I
+    const/4 v7, 0x1
+
+    aget-object v2, v4, v7
+
+    .line 326
+    .local v2, "identifier":Ljava/lang/String;
+    packed-switch v3, :pswitch_data_be
+
+    .line 347
+    new-instance v7, Ljava/lang/UnsupportedOperationException;
+
+    new-instance v8, Ljava/lang/StringBuilder;
+
+    invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v9, "Comparison operator "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, p0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    const-string v9, " not yet supported!"
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v8
+
+    invoke-direct {v7, v8}, Ljava/lang/UnsupportedOperationException;-><init>(Ljava/lang/String;)V
+
+    throw v7
+
+    .line 328
+    :pswitch_34
+    if-ne p1, p2, :cond_b1
+
+    .line 329
+    const/4 v1, 0x0
+
+    .line 330
+    const/4 v0, 0x1
+
+    .line 350
+    :goto_38
+    sget-object v7, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
+
+    new-instance v8, Ljava/lang/StringBuilder;
+
+    invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v9, "Branch distance of then branch for "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    const-string v9, ": "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v8
+
+    invoke-virtual {v7, v8}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
+
+    .line 351
+    sget-object v7, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
+
+    new-instance v8, Ljava/lang/StringBuilder;
+
+    invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v9, "Branch distance of else branch for "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    const-string v9, ": "
+
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v8
+
+    invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v8
+
+    invoke-virtual {v7, v8}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
+
+    .line 353
+    new-instance v7, Ljava/lang/StringBuilder;
+
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v7, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    const-string v8, ":"
+
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v6
+
+    .line 354
+    .local v6, "traceThenBranch":Ljava/lang/String;
+    new-instance v7, Ljava/lang/StringBuilder;
+
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v7, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    const-string v8, ":"
+
+    invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v7
+
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v5
+
+    .line 355
+    .local v5, "traceElseBranch":Ljava/lang/String;
+    invoke-static {v6}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
+
+    .line 356
+    invoke-static {v5}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
+
+    .line 357
+    return-void
+
+    .line 332
+    .end local v5    # "traceElseBranch":Ljava/lang/String;
+    .end local v6    # "traceThenBranch":Ljava/lang/String;
+    :cond_b1
+    const/4 v1, 0x1
+
+    .line 333
+    const/4 v0, 0x0
+
+    .line 335
+    goto :goto_38
+
+    .line 337
+    :pswitch_b4
+    if-eq p1, p2, :cond_b9
+
+    .line 338
+    const/4 v1, 0x0
+
+    .line 339
+    const/4 v0, 0x1
+
+    goto :goto_38
+
+    .line 341
+    :cond_b9
+    const/4 v1, 0x1
+
+    .line 342
+    const/4 v0, 0x0
+
+    .line 344
+    goto/16 :goto_38
+
+    .line 326
+    nop
+
+    :pswitch_data_be
+    .packed-switch 0x0
+        :pswitch_34
+        :pswitch_b4
+    .end packed-switch
+.end method
+
 .method private static getApplicationUsingReflection()Landroid/app/Application;
     .registers 5
 

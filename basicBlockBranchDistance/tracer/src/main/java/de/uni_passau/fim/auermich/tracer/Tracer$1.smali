@@ -24,11 +24,6 @@
 # direct methods
 .method constructor <init>(Ljava/lang/Thread$UncaughtExceptionHandler;)V
     .registers 2
-    .annotation system Ldalvik/annotation/Signature;
-        value = {
-            "()V"
-        }
-    .end annotation
 
     .prologue
     .line 60

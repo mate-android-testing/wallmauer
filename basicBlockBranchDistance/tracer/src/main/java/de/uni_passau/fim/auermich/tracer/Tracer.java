@@ -301,4 +301,147 @@ public class Tracer extends BroadcastReceiver {
         // reset traces
         traces.clear();
     }
+
+    // unary operation - object types
+    public static void computeBranchDistance(String operation, Object argument) {
+        computeBranchDistance(operation, argument, null);
+    }
+
+    // binary operation - object types
+    public static void computeBranchDistance(String operation, Object argument1, Object argument2) {
+
+        int distanceThenBranch = 0;
+        int distanceElseBranch = 0;
+
+        String[] tokens = operation.split(":");
+        int opcode = Integer.parseInt(tokens[0]);
+        final String identifier = tokens[1];
+
+        /*
+         * The branch distance computation is based on the following two resources:
+         *
+         * https://github.com/EvoSuite/evosuite/blob/master/client/src/main/java/org/evosuite/testcase/execution/ExecutionTracer.java#L540
+         * https://ieeexplore.ieee.org/document/5477082
+         */
+        switch (opcode) {
+            case 0: // if-eqz, if-eq
+                if (argument1 == argument2) {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = 1;
+                } else {
+                    distanceThenBranch = 1;
+                    distanceElseBranch = 0;
+                }
+                break;
+            case 1: // if-nez, if-ne
+                if (argument1 != argument2) {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = 1;
+                } else {
+                    distanceThenBranch = 1;
+                    distanceElseBranch = 0;
+                }
+                break;
+            default:
+                // Further comparisons on object types seem to be not reasonable.
+                throw new UnsupportedOperationException("Comparison operator " + operation + " not yet supported!");
+        }
+
+        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
+        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
+
+        final String traceThenBranch = identifier + ":" + distanceThenBranch;
+        final String traceElseBranch = identifier + ":" + distanceElseBranch;
+        trace(traceThenBranch);
+        trace(traceElseBranch);
+    }
+
+    // unary operation - primitive types
+    public static void computeBranchDistance(String operation, int argument) {
+        computeBranchDistance(operation, argument, 0);
+    }
+
+    // binary operation - primitive types
+    public static void computeBranchDistance(String operation, int argument1, int argument2) {
+
+        int distanceThenBranch = 0;
+        int distanceElseBranch = 0;
+
+        String[] tokens = operation.split(":");
+        int opcode = Integer.parseInt(tokens[0]);
+        final String identifier = tokens[1];
+
+        /*
+         * The branch distance computation is based on the following two resources:
+         *
+         * https://github.com/EvoSuite/evosuite/blob/master/client/src/main/java/org/evosuite/testcase/execution/ExecutionTracer.java#L540
+         * https://ieeexplore.ieee.org/document/5477082
+         */
+        switch (opcode) {
+            case 0: // if-eqz, if-eq
+                if (argument1 != argument2) {
+                    distanceThenBranch = Math.abs(argument1 - argument2);
+                    distanceElseBranch = 0;
+                } else {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = 1;
+                }
+                break;
+            case 1: // if-nez, if-ne
+                if (argument1 != argument2) {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = Math.abs(argument1 - argument2);
+                } else {
+                    distanceThenBranch = 1;
+                    distanceElseBranch = 0;
+                }
+                break;
+            case 2: // if-lez, if-le
+                if (argument1 <= argument2) {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = Math.abs(argument2 - argument1) + 1; // +1 necessary in case arg1 == arg2
+                } else {
+                    distanceThenBranch = Math.abs(argument1 - argument2);
+                    distanceElseBranch = 0;
+                }
+                break;
+            case 3: // if-ltz, if-lt
+                if (argument1 < argument2) {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = Math.abs(argument2 - argument1);
+                } else {
+                    distanceThenBranch = Math.abs(argument1 - argument2) + 1; // +1 necessary in case arg1 == arg2
+                    distanceElseBranch = 0;
+                }
+                break;
+            case 4: // if-gez, if-ge
+                if (argument1 >= argument2) {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = Math.abs(argument1 - argument2) + 1; // +1 necessary in case arg1 == arg2
+                } else {
+                    distanceThenBranch = Math.abs(argument2 - argument1);
+                    distanceElseBranch = 0;
+                }
+                break;
+            case 5: // if-gtz, if-gt
+                if (argument1 > argument2) {
+                    distanceThenBranch = 0;
+                    distanceElseBranch = Math.abs(argument1 - argument2);
+                } else {
+                    distanceThenBranch = Math.abs(argument2 - argument1) + 1; // +1 necessary in case arg1 == arg2
+                    distanceElseBranch = 0;
+                }
+                break;
+            default:
+                throw new UnsupportedOperationException("Comparison operator not yet supported!");
+        }
+
+        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
+        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
+
+        final String traceThenBranch = identifier + ":" + distanceThenBranch;
+        final String traceElseBranch = identifier + ":" + distanceElseBranch;
+        trace(traceThenBranch);
+        trace(traceElseBranch);
+    }
 }
