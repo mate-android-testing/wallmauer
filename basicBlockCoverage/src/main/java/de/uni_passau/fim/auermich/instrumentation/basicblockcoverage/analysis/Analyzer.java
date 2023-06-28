@@ -2,18 +2,22 @@ package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.analysis;
 
 
 import com.google.common.collect.Lists;
-import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core.InstrumentationPoint;
+import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jf.dexlib2.Format;
+import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.analysis.*;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
+import org.jf.dexlib2.builder.BuilderSwitchPayload;
 import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction21t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction22t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction31t;
+import org.jf.dexlib2.builder.instruction.BuilderSwitchElement;
 import org.jf.dexlib2.iface.DexFile;
 import org.jf.dexlib2.iface.ExceptionHandler;
 import org.jf.dexlib2.iface.MethodImplementation;
@@ -53,6 +57,16 @@ public final class Analyzer {
 
         int consumedCodeUnits = 0;
 
+        /*
+         * We only compare instrumentation points by their position, this means it can happen that another instrumentation
+         * point for the same position was added previously. However, we need to ensure that a 'branch' instrumentation
+         * point has a higher priority, thus we keep track of branch instrumentation points in a second set. This is
+         * necessary to construct the correct traces for the branch coverage computation.
+         * If we can tell which kind of label (goto, branch, try/catch) is attached to the instruction,
+         * we could avoid this. Track the progress of: https://github.com/JesusFreke/smali/issues/808.
+         */
+        final Set<InstrumentationPoint> branches = new HashSet<>();
+
         for (final AnalyzedInstruction instruction : instructions) {
             final int index = instruction.getInstructionIndex();
 
@@ -68,16 +82,7 @@ public final class Analyzer {
                 final InstrumentationPoint ifIP
                         = new InstrumentationPoint(ifTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
 
-                /*
-                * We only compare instrumentation points by their position, this means it can happen that
-                * another instrumentation point for the same position was added previously. However, we need
-                * to ensure that a 'branch' instrumentation point has a higher priority, thus we remove and
-                * add the instrumentation point. This is necessary to construct the trace correctly.
-                * If we can tell which kind of label (goto, branch, try/catch) is attached to the instruction,
-                * we could avoid this. Track the progress of: https://github.com/JesusFreke/smali/issues/808.
-                 */
-                instrumentationPoints.remove(ifIP);
-                instrumentationPoints.add(ifIP);
+                branches.add(ifIP);
 
                 final int elseTarget = ((BuilderOffsetInstruction) builderInstructions.get(index)).getTarget()
                         .getLocation().getIndex();
@@ -87,16 +92,7 @@ public final class Analyzer {
                 final InstrumentationPoint elseIP
                         = new InstrumentationPoint(elseTargetInstruction, InstrumentationPoint.Type.IS_BRANCH);
 
-                /*
-                 * We only compare instrumentation points by their position, this means it can happen that
-                 * another instrumentation point for the same position was added previously. However, we need
-                 * to ensure that a 'branch' instrumentation point has a higher priority, thus we remove and
-                 * add the instrumentation point. This is necessary to construct the trace correctly.
-                 * If we can tell which kind of label (goto, branch, try/catch) is attached to the instruction,
-                 * we could avoid this. Track the progress of: https://github.com/JesusFreke/smali/issues/808.
-                 */
-                instrumentationPoints.remove(elseIP);
-                instrumentationPoints.add(elseIP);
+                branches.add(elseIP);
 
             } else if (isGotoInstruction(instruction)) {
                 // the target of a goto instruction defines a new basic block
@@ -109,6 +105,38 @@ public final class Analyzer {
                 final InstrumentationPoint ip
                         = new InstrumentationPoint(targetInstruction, InstrumentationPoint.Type.NO_BRANCH);
                 instrumentationPoints.add(ip);
+            } else if (isSwitchInstruction(instruction)) {
+                // each case of the switch defines a new basic block
+
+                LOGGER.debug("Found switch instruction at index: " + index);
+
+                /*
+                 * The packed-switch instruction defines a switch-case construct. To access the individual cases of
+                 * the switch statement, one needs to follow the packed-switch-payload instruction that contains this
+                 * information. However, the default case or fall-through case is not listed in this payload instruction
+                 * and needs to be addressed explicitly. This is simply the next instruction following the switch instruction.
+                 */
+                final BuilderInstruction31t switchInstruction = (BuilderInstruction31t) builderInstructions.get(index);
+                int switchPayloadPosition = switchInstruction.getTarget().getLocation().getIndex();
+
+                BuilderSwitchPayload switchPayloadInstruction
+                        = (BuilderSwitchPayload) builderInstructions.get(switchPayloadPosition);
+
+                LOGGER.debug("Number of case statements: " + switchPayloadInstruction.getSwitchElements().size() + 1);
+
+                for (BuilderSwitchElement switchElement : switchPayloadInstruction.getSwitchElements()) {
+                    int switchCasePosition = switchElement.getTarget().getLocation().getIndex();
+                    InstrumentationPoint switchCase
+                            = new InstrumentationPoint(builderInstructions.get(switchCasePosition),
+                            InstrumentationPoint.Type.IS_BRANCH);
+                    branches.add(switchCase);
+                }
+
+                // the direct successor of the switch instruction represents the fall-through case (default case)
+                int defaultCasePosition = switchInstruction.getLocation().getIndex() + 1;
+                InstrumentationPoint defaultCase = new InstrumentationPoint(builderInstructions.get(defaultCasePosition),
+                        InstrumentationPoint.Type.IS_BRANCH);
+                branches.add(defaultCase);
             }
 
             // the first instruction in a catch block defines a new basic block
@@ -122,17 +150,19 @@ public final class Analyzer {
             }
 
             /*
-            * Every other instruction that has more than one successor also defines a new basic block.
-            * Those instructions are within try blocks and have a link to the attached catch block. In particular,
-            * any instruction within a try block where the direct successor can potentially throw an exception is affected.
+            * Every other instruction that has more than one successor also defines a new basic block. Those instructions
+            * are within try blocks and have a link to the attached catch block. In particular, any instruction within
+            * a try block where the direct successor can potentially throw an exception is affected.
             * That is like control flow would not execute an instruction if it has thrown an exception, i.e. the
             * predecessor defines the link to the catch block and not the instruction itself.
+            * Note that we consider every instruction again, although we could probably exclude if, goto and switch
+            * instructions, but to be on the safe side we perform this kind of redundant check.
              */
             final Set<Integer> successors = instruction.getSuccessors().stream()
                     .map(AnalyzedInstruction::getInstructionIndex).collect(Collectors.toSet());
             if (successors.size() >= 2) {
-                LOGGER.debug("Exceptional flow!");
-                LOGGER.debug("From: " + index);
+                LOGGER.debug("Instruction with two or more successors!");
+                LOGGER.debug("Control Flow From: " + index);
                 for (final int successor : successors) {
                     LOGGER.debug("    To: " + successor);
                     final BuilderInstruction targetInstruction = builderInstructions.get(successor);
@@ -142,6 +172,15 @@ public final class Analyzer {
         }
 
         assert !instrumentationPoints.isEmpty() : "Should always have at least one instrumentation point.";
+
+        /*
+        * We only need to instrument each basic block once, but instrumentation points referring to branches have a
+        * higher priority. This is necessary to ensure that branch coverage is computed correctly. Thus, since IPs
+        * are only compared based on their positions, we remove and add the branch IPs. This will effectively remove
+        * all other IPs that were co-located with branch IPs.
+         */
+        instrumentationPoints.removeAll(branches);
+        instrumentationPoints.addAll(branches);
 
         // assign the size (number of covered instructions) to each basic block
         final Iterator<InstrumentationPoint> ascendingIterator = instrumentationPoints.iterator();
@@ -181,6 +220,19 @@ public final class Analyzer {
         final Instruction instruction = analyzedInstruction.getInstruction();
         final EnumSet<Format> branchingInstructions = EnumSet.of(Format.Format21t, Format.Format22t);
         return branchingInstructions.contains(instruction.getOpcode().format);
+    }
+
+    /**
+     * Checks whether the given instruction refers to a switch instruction. This can be both a sparse-switch or
+     * packed-switch instruction. For a difference, have a look at:
+     * https://stackoverflow.com/questions/19855800/difference-between-packed-switch-and-sparse-switch-dalvik-opcode
+     *
+     * @param analyzedInstruction The instruction to be analyzed.
+     * @return Returns {@code true} if the instruction is a switch instruction, otherwise {@code false} is returned.
+     */
+    public static boolean isSwitchInstruction(final AnalyzedInstruction analyzedInstruction) {
+        final Instruction instruction = analyzedInstruction.getInstruction();
+        return instruction.getOpcode().format == Format.Format31t && instruction.getOpcode() != Opcode.FILL_ARRAY_DATA;
     }
 
     /**

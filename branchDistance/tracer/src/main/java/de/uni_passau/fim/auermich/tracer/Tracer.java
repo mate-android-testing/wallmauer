@@ -10,6 +10,7 @@ import android.os.Environment;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -79,6 +80,9 @@ public class Tracer extends BroadcastReceiver {
     // the file containing the number of generated traces
     private static final String INFO_FILE = "info.txt";
 
+    // the file signaling that the tracer is currently dumping traces
+    private static final String RUNNING_FILE = "running.txt";
+
     // keeps track of the total number of generated traces per test case / trace file
     private static int numberOfTraces = 0;
 
@@ -133,7 +137,7 @@ public class Tracer extends BroadcastReceiver {
      * @param context The application context object.
      * @param permission The permission to check.
      * @return Returns {@code true} if the permission is granted,
-     *          otherwise {@code false} is returned.
+     *         otherwise {@code false} is returned.
      */
     private static boolean isPermissionGranted(Context context, final String permission) {
 
@@ -176,6 +180,9 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Default exception handler has been overridden!");
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
+
+        // signal that the tracer is currently dumping traces
+        createRunFile();
 
         File sdCard = Environment.getExternalStorageDirectory();
         File traceFile = new File(sdCard, TRACES_FILE);
@@ -221,6 +228,7 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
     }
 
     /**
@@ -234,6 +242,9 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Default exception handler has been overridden!");
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
+
+        // signal that the tracer is currently dumping traces
+        createRunFile();
 
         // sd card
         File sdCard = Environment.getExternalStorageDirectory();
@@ -299,6 +310,7 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
     }
 
     // unary operation - object types
@@ -317,10 +329,10 @@ public class Tracer extends BroadcastReceiver {
         final String identifier = tokens[1];
 
         /*
-        * The branch distance computation is based on the following two resources:
-        *
-        * https://github.com/EvoSuite/evosuite/blob/master/client/src/main/java/org/evosuite/testcase/execution/ExecutionTracer.java#L540
-        * https://ieeexplore.ieee.org/document/5477082
+         * The branch distance computation is based on the following two resources:
+         *
+         * https://github.com/EvoSuite/evosuite/blob/master/client/src/main/java/org/evosuite/testcase/execution/ExecutionTracer.java#L540
+         * https://ieeexplore.ieee.org/document/5477082
          */
         switch (opcode) {
             case 0: // if-eqz, if-eq
@@ -345,9 +357,6 @@ public class Tracer extends BroadcastReceiver {
                 // Further comparisons on object types seem to be not reasonable.
                 throw new UnsupportedOperationException("Comparison operator " + operation + " not yet supported!");
         }
-
-        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
-        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
 
         final String traceThenBranch = identifier + ":" + distanceThenBranch;
         final String traceElseBranch = identifier + ":" + distanceElseBranch;
@@ -403,7 +412,7 @@ public class Tracer extends BroadcastReceiver {
                     distanceThenBranch = Math.abs(argument1 - argument2);
                     distanceElseBranch = 0;
                 }
-                    break;
+                break;
             case 3: // if-ltz, if-lt
                 if (argument1 < argument2) {
                     distanceThenBranch = 0;
@@ -435,12 +444,109 @@ public class Tracer extends BroadcastReceiver {
                 throw new UnsupportedOperationException("Comparison operator not yet supported!");
         }
 
-        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
-        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
-
         final String traceThenBranch = identifier + ":" + distanceThenBranch;
         final String traceElseBranch = identifier + ":" + distanceElseBranch;
         trace(traceThenBranch);
         trace(traceElseBranch);
+    }
+
+    /**
+     * Computes the branch distance for a switch instruction. Note that we use a binary metric right now, i.e. the
+     * covered case statement gets assigned a branch distance of 0 and all other case statements a distance of 1.
+     *
+     * @param trace The trace describing the switch instruction.
+     * @param switchValue The value of the switch instruction to be compared with each case statement.
+     * @param cases The case statements (positions and values).
+     */
+    public static void computeBranchDistanceSwitch(String trace, int switchValue, String cases) {
+
+        final String[] casePosValuePairs = cases.split(",");
+
+        for (String casePosValuePair : casePosValuePairs) {
+
+            final int casePosition = Integer.parseInt(casePosValuePair.split(":")[0]);
+            final int caseValue = Integer.parseInt(casePosValuePair.split(":")[1]);
+
+            // TODO: Use same metric as for if-eq.
+            int branchDistance = 1;
+
+            if (switchValue == caseValue) {
+                // the taken case/branch has a distance of 0
+                branchDistance = 0;
+            }
+
+            final String tracePrefix = trace.split("->switch->")[0];
+            final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
+            trace(traceCase);
+        }
+    }
+
+    /**
+     * Computes the branch distance for a switch instruction without an explicit default branch. Note that we use a
+     * binary metric right now, i.e. the covered case statement gets assigned a branch distance of 0 and all other case
+     * statements a distance of 1.
+     *
+     * @param trace The trace describing the switch instruction.
+     * @param switchValue The value of the switch instruction to be compared with each case statement.
+     * @param cases The case statements (positions and values).
+     */
+    public static void computeBranchDistanceSwitchNoDefaultBranch(String trace, int switchValue, String cases) {
+
+        // remember whether the default branch was taken or not
+        boolean tookDefaultBranch = true;
+
+        final String[] casePosValuePairs = cases.split(",");
+
+        for (String casePosValuePair : casePosValuePairs) {
+
+            final int casePosition = Integer.parseInt(casePosValuePair.split(":")[0]);
+            final int caseValue = Integer.parseInt(casePosValuePair.split(":")[1]);
+
+            // TODO: Use same metric as for if-eq once a reasonable distance can be assigned to the default branch.
+            int branchDistance = 1;
+
+            if (switchValue == caseValue) {
+                // the taken case/branch has a distance of 0
+                branchDistance = 0;
+                tookDefaultBranch = false;
+            }
+
+            final String tracePrefix = trace.split("->switch->")[0];
+            final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
+            trace(traceCase);
+        }
+
+        // we require an explicit trace for the default branch
+        final String tracePrefix = trace.split("->switch->")[0];
+
+        // the default branch is always the direct successor of the switch statement
+        final int defaultBranchPosition = Integer.parseInt(trace.split("->switch->")[1]) + 1;
+        final int defaultBranchDistance = tookDefaultBranch ? 0 : 1;
+        final String traceDefaultBranch = tracePrefix + "->switch->" + defaultBranchPosition + ":" + defaultBranchDistance;
+        trace(traceDefaultBranch);
+    }
+
+    /**
+     * Creates a file on the external storage to indicate that the tracer is currently dumping traces.
+     */
+    private static synchronized void createRunFile() {
+
+        File sdCard = Environment.getExternalStorageDirectory();
+        File file = new File(sdCard, RUNNING_FILE);
+
+        try {
+            boolean ignored = file.createNewFile();
+        } catch (IOException e) {
+            LOGGER.warning("Failed to create file " + RUNNING_FILE);
+            LOGGER.warning(e.getMessage());
+        }
+    }
+
+    /**
+     * Removes the generated file by {@link #createRunFile()} to indicate that the tracer finished dumping the traces.
+     */
+    private static synchronized void deleteRunFile() {
+        File sdCard = Environment.getExternalStorageDirectory();
+        boolean ignored = new File(sdCard, RUNNING_FILE).delete();
     }
 }

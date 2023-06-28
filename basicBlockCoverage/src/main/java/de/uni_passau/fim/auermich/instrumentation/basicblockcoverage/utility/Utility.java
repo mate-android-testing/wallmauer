@@ -38,6 +38,7 @@ public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BLOCKS_FILE = "blocks.txt";
+    public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
     public static final String SEPARATOR = "->";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
@@ -46,7 +47,7 @@ public final class Utility {
      * It seems that certain resource classes are API dependent, e.g.
      * "R$interpolator" is only available in API 21.
      */
-    private static final Set<String> resourceClasses = new HashSet<String>() {{
+    private static final Set<String> resourceClasses = new HashSet<>() {{
         add("R$anim");
         add("R$attr");
         add("R$bool");
@@ -267,6 +268,39 @@ public final class Utility {
         } catch (IOException e) {
             LOGGER.error("Couldn't write basic blocks to blocks.txt");
             throw new IllegalStateException("Couldn't write basic blocks to blocks.txt");
+        }
+    }
+
+    /**
+     * Writes out the branches of method. Methods without any branches are omitted.
+     *
+     * @param methodInformation Encapsulates a method.
+     */
+    public static synchronized void writeBranches(MethodInformation methodInformation) {
+
+        File file = new File(OUTPUT_BRANCHES_FILE);
+
+        try (OutputStream outputStream = new FileOutputStream(file, true);
+             PrintStream printStream = new PrintStream(outputStream)) {
+
+            Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
+
+            if (instrumentationPoints.size() > 0) {
+
+                final String method = methodInformation.getMethodID();
+
+                for (InstrumentationPoint instrumentationPoint : instrumentationPoints) {
+
+                    if (instrumentationPoint.hasBranchType()) {
+                        printStream.println(method + SEPARATOR + instrumentationPoint.getPosition());
+                    }
+                }
+            }
+
+            printStream.flush();
+        } catch (IOException e) {
+            LOGGER.error("Couldn't write branches to branches.txt");
+            throw new IllegalStateException("Couldn't write branches to branches.txt");
         }
     }
 

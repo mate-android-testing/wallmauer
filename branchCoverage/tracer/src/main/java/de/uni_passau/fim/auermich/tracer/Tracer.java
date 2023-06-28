@@ -10,6 +10,7 @@ import android.os.Environment;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -20,37 +21,38 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 /**
- * Provides the functionality to trace branches for a given application. The collected traces/branches are written to
- * the external storage in an incremental manner. By sending a special intent to the broadcast receiver, the remaining
- * traces are written to the traces file.
+ * Provides the functionality to trace basic blocks for a given application. The collected traces/basic blocks
+ * are written to the external storage in an incremental manner. By sending a special intent to the
+ * broadcast receiver, the remaining traces are written to the traces file.
+ *
  */
 public class Tracer extends BroadcastReceiver {
 
     /*
-    * FIXME: There seems to be some sort of race condition, since every 2-3 write of the
-    *  remaining traces, the actual number of traces in the trace file is higher by a multiple
-    *  of the specified cache size than the logged number of traces (numberOfTraces), although
-    *  the writing and logging happens in the same synchronized block. The only possible explanation
-    *  to me right now is that the method trace() is called a couple of times after the broadcast,
-    *  but Android suppresses the logs, which is nothing new. This would at least explain why there
-    *  are more traces than expected. However, the reason why those logs are suppressed is unclear,
-    *  might be related to the fact that the AUT is reset by MATE shortly after the broadcast is sent.
+     * FIXME: There seems to be some sort of race condition, since every 2-3 write of the
+     *  remaining traces, the actual number of traces in the trace file is higher by a multiple
+     *  of the specified cache size than the logged number of traces (numberOfTraces), although
+     *  the writing and logging happens in the same synchronized block. The only possible explanation
+     *  to me right now is that the method trace() is called a couple of times after the broadcast,
+     *  but Android suppresses the logs, which is nothing new. This would at least explain why there
+     *  are more traces than expected. However, the reason why those logs are suppressed is unclear,
+     *  might be related to the fact that the AUT is reset by MATE shortly after the broadcast is sent.
      */
 
     // we can't use here log4j2 since we would require that dependency bundled with the app otherwise
     private static final Logger LOGGER = Logger.getLogger(Tracer.class.getName());
 
     /*
-    * We provide a custom uncaught exception handler that calls through Tracer.writeRemainingTraces() before the
-    * exception is passed to the default uncaught exception handler. This ensures that we don't loose any traces
-    * caused through a crash.
+     * We provide a custom uncaught exception handler that calls through Tracer.writeRemainingTraces() before the
+     * exception is passed to the default uncaught exception handler. This ensures that we don't loose any traces
+     * caused through a crash.
      */
     private static Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
     /*
-    * We initialize our custom uncaught exception handler once the class is loaded. In order to ensure that no other
-    * class overrides this exception handler, we save our exception handler and perform a check whenever we write out
-    * the collected traces. If the exception handler has been overridden, we simply override it again.
+     * We initialize our custom uncaught exception handler once the class is loaded. In order to ensure that no other
+     * class overrides this exception handler, we save our exception handler and perform a check whenever we write out
+     * the collected traces. If the exception handler has been overridden, we simply override it again.
      */
     static {
 
@@ -73,11 +75,14 @@ public class Tracer extends BroadcastReceiver {
     // contains the collected traces per 'CACHE_SIZE'
     private static final Set<String> traces = new LinkedHashSet<>();
 
-    // the file containing the generated traces
+    // the output file containing the covered basic blocks
     private static final String TRACES_FILE = "traces.txt";
 
     // the file containing the number of generated traces
     private static final String INFO_FILE = "info.txt";
+
+    // the file signaling that the tracer is currently dumping traces
+    private static final String RUNNING_FILE = "running.txt";
 
     // keeps track of the total number of generated traces per test case / trace file
     private static int numberOfTraces = 0;
@@ -86,7 +91,8 @@ public class Tracer extends BroadcastReceiver {
     private static final int CACHE_SIZE = 5000;
 
     /**
-     * Called when a broadcast is received. Writes the remaining traces to the traces.txt file.
+     * Called when a broadcast is received. Writes the remaining traces to
+     * the traces file.
      *
      * @param context The application context object.
      * @param intent The intent that represents the broadcast message.
@@ -95,7 +101,6 @@ public class Tracer extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
 
         if (intent.getAction() != null && intent.getAction().equals("STORE_TRACES")) {
-
             LOGGER.info("Received Broadcast");
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -105,8 +110,9 @@ public class Tracer extends BroadcastReceiver {
             }
 
             /*
-             * We use here 'Tracer.class' as monitor object instead of 'this', because the same monitor object needs to
-             * be used for a flawless synchronization, and 'Tracer.class' can only be used in the static trace() method.
+             * We use here 'Tracer.class' as monitor object instead of 'this', because
+             * the same monitor object needs to be used for a flawless synchronization,
+             * and 'Tracer.class' can only be used in the static trace() method.
              */
             synchronized (Tracer.class) {
                 writeRemainingTraces();
@@ -115,10 +121,11 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
-     * Adds a new trace to the set of covered traces. This method is called directly through the app code of the AUT.
-     * In particular, each branch of the AUT contains such invocation.
+     * Adds a new trace to the set of covered traces. This method is called
+     * directly through the app code of the AUT. In particular, each basic block
+     * of the AUT contains such invocation.
      *
-     * @param identifier Uniquely identifies the given branch.
+     * @param identifier Uniquely identifies the given basic block.
      */
     public static void trace(String identifier) {
         synchronized (Tracer.class) {
@@ -147,7 +154,8 @@ public class Tracer extends BroadcastReceiver {
      *
      * @param context The application context object.
      * @param permission The permission to check.
-     * @return Returns {@code true} if the permission is granted, otherwise {@code false} is returned.
+     * @return Returns {@code true} if the permission is granted,
+     *          otherwise {@code false} is returned.
      */
     private static boolean isPermissionGranted(Context context, final String permission) {
 
@@ -173,6 +181,9 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Default exception handler has been overridden!");
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
+
+        // signal that the tracer is currently dumping traces
+        createRunFile();
 
         File sdCard = Environment.getExternalStorageDirectory();
         File traceFile = new File(sdCard, TRACES_FILE);
@@ -218,6 +229,7 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
     }
 
     /**
@@ -231,6 +243,9 @@ public class Tracer extends BroadcastReceiver {
             LOGGER.info("Default exception handler has been overridden!");
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
+
+        // signal that the tracer is currently dumping traces
+        createRunFile();
 
         // sd card
         File sdCard = Environment.getExternalStorageDirectory();
@@ -296,5 +311,30 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
+    }
+
+    /**
+     * Creates a file on the external storage to indicate that the tracer is currently dumping traces.
+     */
+    private static synchronized void createRunFile() {
+
+        File sdCard = Environment.getExternalStorageDirectory();
+        File file = new File(sdCard, RUNNING_FILE);
+
+        try {
+            boolean ignored = file.createNewFile();
+        } catch (IOException e) {
+            LOGGER.warning("Failed to create file " + RUNNING_FILE);
+            LOGGER.warning(e.getMessage());
+        }
+    }
+
+    /**
+     * Removes the generated file by {@link #createRunFile()} to indicate that the tracer finished dumping the traces.
+     */
+    private static synchronized void deleteRunFile() {
+        File sdCard = Environment.getExternalStorageDirectory();
+        boolean ignored = new File(sdCard, RUNNING_FILE).delete();
     }
 }

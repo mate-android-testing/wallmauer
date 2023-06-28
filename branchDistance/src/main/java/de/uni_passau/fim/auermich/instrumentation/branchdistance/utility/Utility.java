@@ -39,6 +39,7 @@ public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
+    public static final String OUTPUT_INSTRUMENTATION_POINTS_FILE = "instrumentation-points.txt";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
 
@@ -235,10 +236,39 @@ public final class Utility {
     }
 
     /**
+     * Writes out the branches and instrumentation points of the given method that could be instrumented.
+     *
+     * @param methodInformation Encapsulates a method.
+     */
+    public static synchronized void writeBranchesAndInstrumentationPoints(MethodInformation methodInformation) {
+
+        File branchesFile = new File(OUTPUT_BRANCHES_FILE);
+        File instrumentationPoints = new File(OUTPUT_INSTRUMENTATION_POINTS_FILE);
+
+        try (PrintStream branches = new PrintStream(new FileOutputStream(branchesFile, true));
+             PrintStream ips = new PrintStream(new FileOutputStream(instrumentationPoints, true));
+        ) {
+            for (InstrumentationPoint instrumentationPoint : methodInformation.getInstrumentationPoints()) {
+
+                final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
+                ips.println(trace);
+                if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_BRANCH
+                        || instrumentationPoint.getType() == InstrumentationPoint.Type.ELSE_BRANCH) {
+                    branches.println(trace);
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.error("Couldn't write branches or instrumentation points to file!");
+            throw new IllegalStateException("Couldn't write branches or instrumentation points to file!", e);
+        }
+    }
+
+    /**
      * Writes out the branches of the given method that could be instrumented.
      *
      * @param methodInformation Encapsulates a method.
      */
+    @SuppressWarnings("unused")
     public static synchronized void writeBranches(MethodInformation methodInformation) {
 
         File file = new File(OUTPUT_BRANCHES_FILE);
@@ -263,8 +293,7 @@ public final class Utility {
     }
 
     /**
-     * Writes the number of branches for each class to the given file.
-     * Classes without any branches are omitted.
+     * Writes the number of branches for each class to the given file. Classes without any branches are omitted.
      *
      * @param className The name of the class.
      * @param branchCounter The number of branches for a certain class.
