@@ -73,7 +73,7 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
         if (o instanceof InstrumentationPoint) {
 
             InstrumentationPoint other = (InstrumentationPoint) o;
-            return this.position == other.position;
+            return this.position == other.position && this.type == other.type;
         }
 
         return false;
@@ -81,12 +81,27 @@ public final class InstrumentationPoint implements Comparable<InstrumentationPoi
 
     @Override
     public int hashCode() {
-        return Objects.hash(position);
+        return Objects.hash(position, type);
     }
 
     @Override
     public int compareTo(InstrumentationPoint other) {
-        return Integer.compare(this.position, other.position);
+        int comparePosition = Integer.compare(this.position, other.position);
+
+        // Whenever an else branch starts with an if statement, we end up with similar positions between a
+        // basicBlock and a branching instrumentation point. In these scenarios, we put the basicBlock statement
+        // before the if statement.
+        if (comparePosition == 0) {
+            if (this.getType() == Type.IF_STMT) {
+                return +1;
+            } else if (other.getType() == Type.IF_STMT) {
+                return -1;
+            } else {
+                return 0;
+            }
+        } else {
+            return comparePosition;
+        }
     }
 
     @Override

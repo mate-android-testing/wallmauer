@@ -253,7 +253,8 @@ public final class Instrumentation {
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         TreeSet<InstrumentationPoint> instrumentationPoints
-                = (TreeSet<InstrumentationPoint>) methodInformation.getInstrumentationPoints();
+                = new TreeSet<>(methodInformation.getIfInstrumentationPoints());
+        instrumentationPoints.addAll(methodInformation.getInstrumentationPoints());
         Iterator<InstrumentationPoint> iterator = instrumentationPoints.descendingIterator();
 
         /*
@@ -262,68 +263,40 @@ public final class Instrumentation {
          */
         while (iterator.hasNext()) {
             InstrumentationPoint instrumentationPoint = iterator.next();
-            String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
-            String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
-                    + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
-
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
+            if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT) {
+                instrumentIfStatements(instrumentationPoint, methodInformation);
+            } else {
+                instrumentBasicBlock(instrumentationPoint, methodInformation);
+            }
         }
-
-        // instrument the if statements
-        instrumentIfStatements(methodInformation);
     }
 
     /**
-     * Instruments the if statements with the respective branch distance.
+     * Instruments basic blocks.
+     *
+     * @param instrumentationPoint Defines the location at which a basic block instrumentation should be inserted.
+     * @param methodInformation    Encapsulates the method to be instrumented.
+     */
+    private static void instrumentBasicBlock(InstrumentationPoint instrumentationPoint, MethodInformation methodInformation) {
+        String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
+        String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
+                + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
+
+        insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
+    }
+
+    /**
+     * Instruments if statements with the respective branch distance.
      *
      * @param methodInformation Encapsulates the method to be instrumented.
      */
-    private static void instrumentIfStatements(MethodInformation methodInformation) {
+    private static void instrumentIfStatements(InstrumentationPoint instrumentationPoint, MethodInformation methodInformation) {
+        // Instrument tracer call to compute branch distance.
+        computeBranchDistance(methodInformation, instrumentationPoint);
 
-        LOGGER.debug("Instrumenting if statements of method: " + methodInformation.getMethodID());
-
-        /*
-         * The builder instruction wrapped by an instrumentation point is not inherently updated.
-         * This causes that the method location, in particular the instruction index, is out of date.
-         * We need to request the up-to-date instrumentation points again and overwrite the old instructions.
-         * Note that through the backward instrumentation the builder instruction index stays up to date.
-         * See https://github.com/JesusFreke/smali/issues/786 for more details on this issue.
-         */
-        List<InstrumentationPoint> oldInstrumentationPoints = new ArrayList<>(methodInformation.getIfInstrumentationPoints());
-        List<InstrumentationPoint> newInstrumentationPoints = new ArrayList<>(Analyzer.trackIfInstrumentationPoints(methodInformation));
-
-        LOGGER.debug("Old points: " + oldInstrumentationPoints.size());
-        LOGGER.debug("New points: " + newInstrumentationPoints.size());
-
-        for (int i = 0; i < oldInstrumentationPoints.size(); i++) {
-            InstrumentationPoint oldPoint = oldInstrumentationPoints.get(i);
-            InstrumentationPoint newPoint = newInstrumentationPoints.get(i);
-
-            LOGGER.debug("Old Point: " + oldPoint.getInstruction().getOpcode() + " (" + oldPoint.getPosition() + ")");
-            LOGGER.debug("New Point: " + newPoint.getInstruction().getOpcode() + " (" + newPoint.getPosition() + ")");
-
-            // update old point with new instruction
-            oldPoint.setInstruction(newPoint.getInstruction());
-        }
-
-        Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getIfInstrumentationPoints());
-        Iterator<InstrumentationPoint> iterator = ((TreeSet<InstrumentationPoint>) instrumentationPoints).descendingIterator();
-
-        /*
-         * Traverse the if statements backwards, i.e. the last if statement comes first, in order to avoid inherent
-         * index/position updates while instrumenting.
-         */
-        while (iterator.hasNext()) {
-
-            InstrumentationPoint instrumentationPoint = iterator.next();
-
-            // instrument if statement with branch distance computation call
-            computeBranchDistance(methodInformation, instrumentationPoint);
-
-            // instrument if statement
-            final String trace = methodInformation.getMethodID() + "->if->" + instrumentationPoint.getPosition();
-            insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
-        }
+        // Instrument if statement.
+        String trace = methodInformation.getMethodID() + "->if->" + instrumentationPoint.getPosition();
+        insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
     }
 
     /**
