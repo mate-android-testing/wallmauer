@@ -294,10 +294,10 @@ public class BasicBlockBranchDistance {
             // TODO: Check whether method entries and exits are necessary
 
             // determine the location of the basic blocks
-            methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
+            methodInformation.setBasicBlockInstrumentationPoints(Analyzer.trackBasicBlockInstrumentationPoints(methodInformation));
 
-            // determine the location of if statements
-            methodInformation.setIfInstrumentationPoints(Analyzer.trackIfInstrumentationPoints(methodInformation));
+            // determine the location of if and switch statements
+            methodInformation.setIfAndSwitchInstrumentationPoints(Analyzer.trackIfAndSwitchInstrumentationPoints(methodInformation));
 
             // determine the location of try blocks
             methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));

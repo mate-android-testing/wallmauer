@@ -47,13 +47,13 @@ public class MethodInformation {
     private Optional<Map<Integer, RegisterType>> paramRegisterTypeMap = Optional.empty();
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
-    // contains the locations where we need to instrument
-    private Set<InstrumentationPoint> instrumentationPoints;
+    // contains the locations where we need to instrument, i.e. at every basic block
+    private Set<InstrumentationPoint> basicBlockInstrumentationPoints;
     // describes the ranges of try blocks
     private Set<Range> tryBlocks = new TreeSet<>();
 
-    // track the location of the if instructions
-    private Set<InstrumentationPoint> ifInstrumentationPoints;
+    // track the location of the if and switch instructions
+    private Set<InstrumentationPoint> ifAndSwitchInstrumentationPoints;
 
     public MethodInformation(String methodID, ClassDef classDef, Method method, DexFile dexFile) {
         this.methodID = methodID;
@@ -62,8 +62,8 @@ public class MethodInformation {
         this.methodImplementation = method.getImplementation();
         this.dexFile = dexFile;
         this.initialInstructionCount = getInstructions().size();
-        this.instrumentationPoints = new TreeSet<>();
-        this.ifInstrumentationPoints = new TreeSet<>();
+        this.basicBlockInstrumentationPoints = new TreeSet<>();
+        this.ifAndSwitchInstrumentationPoints = new TreeSet<>();
     }
 
     public int getInitialInstructionCount() {
@@ -99,20 +99,20 @@ public class MethodInformation {
         this.tryBlocks = tryBlocks;
     }
 
-    public Set<InstrumentationPoint> getInstrumentationPoints() {
-        return instrumentationPoints;
+    public Set<InstrumentationPoint> getBasicBlockInstrumentationPoints() {
+        return basicBlockInstrumentationPoints;
     }
 
-    public void setInstrumentationPoints(Set<InstrumentationPoint> instrumentationPoints) {
-        this.instrumentationPoints = instrumentationPoints;
+    public void setBasicBlockInstrumentationPoints(Set<InstrumentationPoint> basicBlockInstrumentationPoints) {
+        this.basicBlockInstrumentationPoints = basicBlockInstrumentationPoints;
     }
 
-    public void setIfInstrumentationPoints(Set<InstrumentationPoint> ifInstrumentationPoints) {
-        this.ifInstrumentationPoints = ifInstrumentationPoints;
+    public void setIfAndSwitchInstrumentationPoints(Set<InstrumentationPoint> ifAndSwitchInstrumentationPoints) {
+        this.ifAndSwitchInstrumentationPoints = ifAndSwitchInstrumentationPoints;
     }
 
-    public Set<InstrumentationPoint> getIfInstrumentationPoints() {
-        return ifInstrumentationPoints;
+    public Set<InstrumentationPoint> getIfAndSwitchInstrumentationPoints() {
+        return ifAndSwitchInstrumentationPoints;
     }
 
     public String getMethodID() {
@@ -206,6 +206,6 @@ public class MethodInformation {
     }
 
     public int getNumberOfBranches() {
-        return (int) instrumentationPoints.stream().filter(InstrumentationPoint::hasBranchType).count();
+        return (int) basicBlockInstrumentationPoints.stream().filter(InstrumentationPoint::hasBranchType).count();
     }
 }

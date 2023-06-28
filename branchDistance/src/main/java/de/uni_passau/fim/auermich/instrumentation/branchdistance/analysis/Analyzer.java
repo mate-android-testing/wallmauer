@@ -31,10 +31,10 @@ public final class Analyzer {
     private static final Logger LOGGER = LogManager.getLogger(Analyzer.class);
 
     /**
-     * Tracks the instrumentation points, i.e. instructions starting a branch or being an if stmt.
+     * Tracks the instrumentation points, i.e. instructions that represent if, switch or branch statements.
      *
      * @param methodInformation Encapsulates a method.
-     * @return Returns the set of instrumentation points.
+     * @return Returns the set of if and switch instrumentation points.
      */
     public static Set<InstrumentationPoint> trackInstrumentationPoints(MethodInformation methodInformation) {
 

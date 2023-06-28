@@ -282,7 +282,7 @@ public final class Utility {
         try (OutputStream outputStream = new FileOutputStream(file, true);
              PrintStream printStream = new PrintStream(outputStream)) {
 
-            Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getInstrumentationPoints());
+            Set<InstrumentationPoint> instrumentationPoints = new TreeSet<>(methodInformation.getBasicBlockInstrumentationPoints());
 
             if (instrumentationPoints.size() > 0) {
 
@@ -316,7 +316,7 @@ public final class Utility {
         OutputStream outputStream = new FileOutputStream(file, true);
         PrintStream printStream = new PrintStream(outputStream);
 
-        if (methodInformation.getInstrumentationPoints().size() > 0) {
+        if (methodInformation.getBasicBlockInstrumentationPoints().size() > 0) {
             final String method = methodInformation.getMethod().toString();
             final int instructionCount = methodInformation.getInitialInstructionCount();
             final int numberOfBranches = methodInformation.getNumberOfBranches();

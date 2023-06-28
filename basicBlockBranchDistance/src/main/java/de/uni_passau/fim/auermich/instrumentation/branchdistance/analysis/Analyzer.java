@@ -37,7 +37,7 @@ public final class Analyzer {
      * @param methodInformation Encapsulates a method.
      * @return Returns the set of if and switch instrumentation points.
      */
-    public static Set<InstrumentationPoint> trackIfInstrumentationPoints(final MethodInformation methodInformation) {
+    public static Set<InstrumentationPoint> trackIfAndSwitchInstrumentationPoints(final MethodInformation methodInformation) {
 
         final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
         final List<BuilderInstruction> builderInstructions
@@ -84,7 +84,7 @@ public final class Analyzer {
      * @param methodInformation Encapsulates a method.
      * @return Returns the set of instrumentation points.
      */
-    public static Set<InstrumentationPoint> trackInstrumentationPoints(final MethodInformation methodInformation) {
+    public static Set<InstrumentationPoint> trackBasicBlockInstrumentationPoints(final MethodInformation methodInformation) {
 
         final List<AnalyzedInstruction> instructions = methodInformation.getInstructions();
         final List<BuilderInstruction> builderInstructions

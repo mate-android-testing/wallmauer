@@ -238,7 +238,7 @@ public final class Instrumentation {
     }
 
     /**
-     * Performs the actual instrumentation. Inserts at each instrumentation point, i.e. at each basic block, a trace
+     * Performs the actual instrumentation. Inserts at each instrumentation point, e.g. at each basic block, a trace
      * statement.
      *
      * @param methodInformation Encapsulates a method and its instrumentation points.
@@ -253,13 +253,13 @@ public final class Instrumentation {
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         TreeSet<InstrumentationPoint> instrumentationPoints
-                = new TreeSet<>(methodInformation.getIfInstrumentationPoints());
-        instrumentationPoints.addAll(methodInformation.getInstrumentationPoints());
+                = new TreeSet<>(methodInformation.getIfAndSwitchInstrumentationPoints());
+        instrumentationPoints.addAll(methodInformation.getBasicBlockInstrumentationPoints());
         Iterator<InstrumentationPoint> iterator = instrumentationPoints.descendingIterator();
 
         /*
-         * Traverse the basic blocks backwards, i.e. the last basic block comes first, in order
-         * to avoid inherent index/position updates of other basic blocks while instrumenting.
+         * Traverse the instrumentation points backwards, i.e. the last instrumentation point comes first, in order
+         * to avoid inherent index/position updates of other instrumentation points while instrumenting.
          */
         while (iterator.hasNext()) {
             InstrumentationPoint instrumentationPoint = iterator.next();
