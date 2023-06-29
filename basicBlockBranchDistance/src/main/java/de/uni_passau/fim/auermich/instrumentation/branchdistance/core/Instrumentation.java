@@ -263,58 +263,24 @@ public final class Instrumentation {
          */
         while (iterator.hasNext()) {
             InstrumentationPoint instrumentationPoint = iterator.next();
+
+            // If branch distance instrumentation
             if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT) {
-                instrumentIfStatement(instrumentationPoint, methodInformation);
-            } else if (instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT) {
-                instrumentSwitchStatement(instrumentationPoint, methodInformation);
-            } else {
-                instrumentBasicBlock(instrumentationPoint, methodInformation);
+                computeBranchDistanceIf(methodInformation, instrumentationPoint);
+            }
+            // Switch branch distance instrumentation
+            else if (instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT) {
+                computeBranchDistanceSwitch(methodInformation, instrumentationPoint);
+            }
+            // BasicBlock Instrumentation
+            else {
+                String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
+                String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
+                        + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
+
+                insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
             }
         }
-    }
-
-    /**
-     * Instruments basic blocks.
-     *
-     * @param instrumentationPoint Defines the location at which a basic block instrumentation should be inserted.
-     * @param methodInformation    Encapsulates the method to be instrumented.
-     */
-    private static void instrumentBasicBlock(InstrumentationPoint instrumentationPoint, MethodInformation methodInformation) {
-        String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
-        String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
-                + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
-
-        insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
-    }
-
-    /**
-     * Instruments an if statement with the respective branch distance.
-     *
-     * @param instrumentationPoint Defines the location at which an if instrumentation should be inserted.
-     * @param methodInformation    Encapsulates the method to be instrumented.
-     */
-    private static void instrumentIfStatement(InstrumentationPoint instrumentationPoint, MethodInformation methodInformation) {
-        // Instrument tracer call to compute branch distance.
-        computeBranchDistance(methodInformation, instrumentationPoint);
-
-        // Instrument if statement.
-        String trace = methodInformation.getMethodID() + "->if->" + instrumentationPoint.getPosition();
-        insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
-    }
-
-    /**
-     * Instruments a switch statement with the respective branch distance.
-     *
-     * @param instrumentationPoint Defines the location at which a switch instrumentation should be inserted.
-     * @param methodInformation    Encapsulates the method to be instrumented.
-     */
-    private static void instrumentSwitchStatement(InstrumentationPoint instrumentationPoint, MethodInformation methodInformation) {
-        // Instrument tracer call to compute branch distance
-        computeBranchDistanceSwitch(methodInformation, instrumentationPoint);
-
-        // Instrument switch statement
-        String trace = methodInformation.getMethodID() + "->switch->" + instrumentationPoint.getPosition();
-        insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
     }
 
     /**
@@ -323,7 +289,7 @@ public final class Instrumentation {
      * @param methodInformation    Encapsulates the method.
      * @param instrumentationPoint Encapsulates information about the if stmt.
      */
-    private static void computeBranchDistance(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
+    private static void computeBranchDistanceIf(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
 
         // get the if instruction (new index)
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
