@@ -10,6 +10,7 @@ import android.os.Environment;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -74,11 +75,14 @@ public class Tracer extends BroadcastReceiver {
     // contains the collected traces per 'CACHE_SIZE'
     private static final Set<String> traces = new LinkedHashSet<>();
 
-    // the output file containing the covered basic blocks
+    // the output file containing the covered basic blocks and computed branch distances
     private static final String TRACES_FILE = "traces.txt";
 
     // the file containing the number of generated traces
     private static final String INFO_FILE = "info.txt";
+
+    // the file signaling that the tracer is currently dumping traces
+    private static final String RUNNING_FILE = "running.txt";
 
     // keeps track of the total number of generated traces per test case / trace file
     private static int numberOfTraces = 0;
@@ -116,23 +120,6 @@ public class Tracer extends BroadcastReceiver {
         }
     }
 
-    /**
-     * Adds a new trace to the set of covered traces. This method is called
-     * directly through the app code of the AUT. In particular, each basic block
-     * of the AUT contains such invocation.
-     *
-     * @param identifier Uniquely identifies the given basic block.
-     */
-    public static void trace(String identifier) {
-        synchronized (Tracer.class) {
-            traces.add(identifier);
-
-            if (traces.size() == CACHE_SIZE) {
-                writeTraces();
-            }
-        }
-    }
-
     // https://stackoverflow.com/questions/2002288/static-way-to-get-context-in-android
     private static Application getApplicationUsingReflection() {
         try {
@@ -151,7 +138,7 @@ public class Tracer extends BroadcastReceiver {
      * @param context The application context object.
      * @param permission The permission to check.
      * @return Returns {@code true} if the permission is granted,
-     *          otherwise {@code false} is returned.
+     *         otherwise {@code false} is returned.
      */
     private static boolean isPermissionGranted(Context context, final String permission) {
 
@@ -168,15 +155,35 @@ public class Tracer extends BroadcastReceiver {
     }
 
     /**
+     * Adds a new trace to the set of covered traces. This method is called
+     * directly through the app code of the AUT. In particular, each branch
+     * and if statement of the AUT contains such invocation.
+     *
+     * @param identifier A unique identifier of the trace.
+     */
+    public static void trace(String identifier) {
+        synchronized (Tracer.class) {
+            traces.add(identifier);
+
+            if (traces.size() == CACHE_SIZE) {
+                writeTraces();
+            }
+        }
+    }
+
+    /**
      * Writes the collected traces to the external storage. Only called once the specified cache size is reached.
      */
-    private static synchronized void writeTraces() {
+    private static void writeTraces() {
 
         // re-overwrite uncaught exception handler if necessary
         if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
             LOGGER.info("Default exception handler has been overridden!");
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
+
+        // signal that the tracer is currently dumping traces
+        createRunFile();
 
         File sdCard = Environment.getExternalStorageDirectory();
         File traceFile = new File(sdCard, TRACES_FILE);
@@ -208,7 +215,7 @@ public class Tracer extends BroadcastReceiver {
         } catch (IndexOutOfBoundsException e) {
             LOGGER.info("Synchronization issue!");
             Map<Thread, StackTraceElement[]> threadStackTraces = Thread.getAllStackTraces();
-            for (Thread thread: threadStackTraces.keySet()) {
+            for (Thread thread : threadStackTraces.keySet()) {
                 StackTraceElement[] stackTrace = threadStackTraces.get(thread);
                 LOGGER.info("Thread[" + thread.getId() + "]: " + thread);
                 for (StackTraceElement stackTraceElement : stackTrace) {
@@ -222,19 +229,23 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
     }
 
     /**
      * Writes the remaining traces to the external storage. Also writes a file 'info.txt' to the external storage
      * containing the number collected traces since the last broadcast.
      */
-    private static synchronized void writeRemainingTraces() {
+    private static void writeRemainingTraces() {
 
         // re-overwrite uncaught exception handler if necessary
         if (!uncaughtExceptionHandler.equals(Thread.getDefaultUncaughtExceptionHandler())) {
             LOGGER.info("Default exception handler has been overridden!");
             Thread.setDefaultUncaughtExceptionHandler(uncaughtExceptionHandler);
         }
+
+        // signal that the tracer is currently dumping traces
+        createRunFile();
 
         // sd card
         File sdCard = Environment.getExternalStorageDirectory();
@@ -300,6 +311,7 @@ public class Tracer extends BroadcastReceiver {
 
         // reset traces
         traces.clear();
+        deleteRunFile();
     }
 
     // unary operation - object types
@@ -346,9 +358,6 @@ public class Tracer extends BroadcastReceiver {
                 // Further comparisons on object types seem to be not reasonable.
                 throw new UnsupportedOperationException("Comparison operator " + operation + " not yet supported!");
         }
-
-        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
-        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
 
         final String traceThenBranch = identifier + ":" + distanceThenBranch;
         final String traceElseBranch = identifier + ":" + distanceElseBranch;
@@ -436,9 +445,6 @@ public class Tracer extends BroadcastReceiver {
                 throw new UnsupportedOperationException("Comparison operator not yet supported!");
         }
 
-        LOGGER.info("Branch distance of then branch for " + identifier + ": " + distanceThenBranch);
-        LOGGER.info("Branch distance of else branch for " + identifier + ": " + distanceElseBranch);
-
         final String traceThenBranch = identifier + ":" + distanceThenBranch;
         final String traceElseBranch = identifier + ":" + distanceElseBranch;
         trace(traceThenBranch);
@@ -519,5 +525,29 @@ public class Tracer extends BroadcastReceiver {
         final int defaultBranchDistance = tookDefaultBranch ? 0 : 1;
         final String traceDefaultBranch = tracePrefix + "->switch->" + defaultBranchPosition + ":" + defaultBranchDistance;
         trace(traceDefaultBranch);
+    }
+
+    /**
+     * Creates a file on the external storage to indicate that the tracer is currently dumping traces.
+     */
+    private static synchronized void createRunFile() {
+
+        File sdCard = Environment.getExternalStorageDirectory();
+        File file = new File(sdCard, RUNNING_FILE);
+
+        try {
+            boolean ignored = file.createNewFile();
+        } catch (IOException e) {
+            LOGGER.warning("Failed to create file " + RUNNING_FILE);
+            LOGGER.warning(e.getMessage());
+        }
+    }
+
+    /**
+     * Removes the generated file by {@link #createRunFile()} to indicate that the tracer finished dumping the traces.
+     */
+    private static synchronized void deleteRunFile() {
+        File sdCard = Environment.getExternalStorageDirectory();
+        boolean ignored = new File(sdCard, RUNNING_FILE).delete();
     }
 }
