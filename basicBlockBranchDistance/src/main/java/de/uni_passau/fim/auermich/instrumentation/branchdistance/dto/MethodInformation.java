@@ -31,24 +31,37 @@ public class MethodInformation {
 
     // a reference to the dex file
     private final DexFile dexFile;
+
     // a list of free/usable register IDs
     private List<Integer> freeRegisters;
+
     // a list of the additional register IDs
     private List<Integer> newRegisters;
+
     // the total register count
     private int totalRegisterCount;
+
     // the number of local registers (v0...vN)
     private int localRegisterCount;
+
     // the number of param registers (p0...pN)
     private int paramRegisterCount;
+
     // the register IDs of the param registers (might be empty)
     private List<Integer> paramRegisters = new ArrayList<>();
+
     // map of param register IDs and its register type if present
     private Optional<Map<Integer, RegisterType>> paramRegisterTypeMap = Optional.empty();
+
     // a reference to the (immutable) method implementation
     private MethodImplementation methodImplementation;
+
+    // list of analyzed instructions so far
+    private List<AnalyzedInstruction> analyzedInstructions;
+
     // contains the locations where we need to instrument, i.e. at every basic block
     private Set<InstrumentationPoint> basicBlockInstrumentationPoints;
+
     // describes the ranges of try blocks
     private Set<Range> tryBlocks = new TreeSet<>();
 
@@ -64,6 +77,14 @@ public class MethodInformation {
         this.initialInstructionCount = getInstructions().size();
         this.basicBlockInstrumentationPoints = new TreeSet<>();
         this.ifAndSwitchInstrumentationPoints = new TreeSet<>();
+
+        if (methodImplementation != null) {
+            MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
+                    true, ClassPath.NOT_ART), method,
+                    null, false);
+            this.analyzedInstructions = analyzer.getAnalyzedInstructions();
+        }
+
     }
 
     public int getInitialInstructionCount() {
@@ -71,12 +92,7 @@ public class MethodInformation {
     }
 
     public AnalyzedInstruction getInstructionAtIndex(int index) {
-
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions().get(index);
+        return analyzedInstructions.get(index);
     }
 
     public List<AnalyzedInstruction> getInstructions() {
