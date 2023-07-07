@@ -63,15 +63,6 @@ public class MethodInformation {
         return initialInstructionCount;
     }
 
-    public AnalyzedInstruction getInstructionAtIndex(int index) {
-
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions().get(index);
-    }
-
     public List<AnalyzedInstruction> getInstructions() {
         if(method.getImplementation() != null) {
             MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),

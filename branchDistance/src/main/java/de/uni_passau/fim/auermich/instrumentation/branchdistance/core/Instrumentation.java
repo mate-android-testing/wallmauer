@@ -605,9 +605,6 @@ public final class Instrumentation {
      */
     private static void computeBranchDistance(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
 
-        MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
-
         // get the if instruction
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
         AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
