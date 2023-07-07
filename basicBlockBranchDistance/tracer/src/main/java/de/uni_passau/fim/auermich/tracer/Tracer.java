@@ -476,8 +476,8 @@ public class Tracer extends BroadcastReceiver {
                 branchDistance = 0;
             }
 
-            final String tracePrefix = trace.split("->switch->")[0];
-            final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
+            final String tracePrefix = trace.substring(0, trace.lastIndexOf("->"));
+            final String traceCase = tracePrefix + "->" + casePosition + ":" + branchDistance;
             trace(traceCase);
         }
     }
@@ -512,18 +512,19 @@ public class Tracer extends BroadcastReceiver {
                 tookDefaultBranch = false;
             }
 
-            final String tracePrefix = trace.split("->switch->")[0];
-            final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
+            final String tracePrefix = trace.substring(0, trace.lastIndexOf("->"));
+            final String traceCase = tracePrefix + "->" + casePosition + ":" + branchDistance;
             trace(traceCase);
         }
 
         // we require an explicit trace for the default branch
-        final String tracePrefix = trace.split("->switch->")[0];
+        final String tracePrefix = trace.substring(0, trace.lastIndexOf("->"));
 
         // the default branch is always the direct successor of the switch statement
-        final int defaultBranchPosition = Integer.parseInt(trace.split("->switch->")[1]) + 1;
+        String[] tokens = trace.split("->");
+        final int defaultBranchPosition = Integer.parseInt(tokens[tokens.length - 1]) + 1;
         final int defaultBranchDistance = tookDefaultBranch ? 0 : 1;
-        final String traceDefaultBranch = tracePrefix + "->switch->" + defaultBranchPosition + ":" + defaultBranchDistance;
+        final String traceDefaultBranch = tracePrefix + "->" + defaultBranchPosition + ":" + defaultBranchDistance;
         trace(traceDefaultBranch);
     }
 

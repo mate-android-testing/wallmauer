@@ -373,7 +373,7 @@ public final class Instrumentation {
 
         // TODO: Unify the branch distance trace between if and switch statements such that we can pick any in case of
         //  a shared branch/case! That would allow us to pick the minimum of both.
-        final String trace = methodInformation.getMethodID() + "->switch->" + instrumentationPoint.getPosition();
+        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
 
         LOGGER.debug("Switch statement: " + trace);
 
