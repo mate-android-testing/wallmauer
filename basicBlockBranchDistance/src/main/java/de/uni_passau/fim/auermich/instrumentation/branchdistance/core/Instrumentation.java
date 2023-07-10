@@ -33,9 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Provides the functionality to instrument a given method. This includes
- * the insertion of certain lifecycle methods, e.g. onCreate(), shifting of
- * param registers and the instrumentation of branches.
+ * Provides the functionality to instrument a given method. This includes the insertion of certain lifecycle methods,
+ * e.g. onCreate(), shifting of param registers and the instrumentation of basic blocks plus if and switch statements.
  */
 public final class Instrumentation {
 
@@ -51,8 +50,8 @@ public final class Instrumentation {
      * @param trace                The trace which which should be logged every time the basic block is executed.
      * @return Returns the instrumented method implementation.
      */
-    private static MutableMethodImplementation insertInstrumentationCode(MethodInformation methodInformation,
-                                                                         InstrumentationPoint instrumentationPoint,
+    private static MutableMethodImplementation insertInstrumentationCode(final MethodInformation methodInformation,
+                                                                         final InstrumentationPoint instrumentationPoint,
                                                                          final String trace) {
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
@@ -252,10 +251,10 @@ public final class Instrumentation {
 
         LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
-        TreeSet<InstrumentationPoint> instrumentationPoints
+        final TreeSet<InstrumentationPoint> instrumentationPoints
                 = new TreeSet<>(methodInformation.getIfAndSwitchInstrumentationPoints());
         instrumentationPoints.addAll(methodInformation.getBasicBlockInstrumentationPoints());
-        Iterator<InstrumentationPoint> iterator = instrumentationPoints.descendingIterator();
+        final Iterator<InstrumentationPoint> iterator = instrumentationPoints.descendingIterator();
 
         /*
          * Traverse the instrumentation points backwards, i.e. the last instrumentation point comes first, in order
@@ -264,20 +263,17 @@ public final class Instrumentation {
         while (iterator.hasNext()) {
             InstrumentationPoint instrumentationPoint = iterator.next();
 
-            // If branch distance instrumentation
             if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT) {
+                // if branch distance instrumentation
                 computeBranchDistanceIf(methodInformation, instrumentationPoint);
-            }
-            // Switch branch distance instrumentation
-            else if (instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT) {
+            } else if (instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT) {
+                // switch branch distance instrumentation
                 computeBranchDistanceSwitch(methodInformation, instrumentationPoint);
-            }
-            // BasicBlock Instrumentation
-            else {
+            } else {
+                // basic block instrumentation
                 String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
-                String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
+                final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition() + "->"
                         + instrumentationPoint.getCoveredInstructions() + "->" + isBranch;
-
                 insertInstrumentationCode(methodInformation, instrumentationPoint, trace);
             }
         }
@@ -294,16 +290,6 @@ public final class Instrumentation {
         // get the if instruction (new index)
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
         AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
-
-        LOGGER.debug("Number of instructions: " + methodInformation.getInstructions().size());
-
-        LOGGER.debug("Old index: " + instrumentationPoint.getPosition());
-        LOGGER.debug("New index: " + instructionIndex);
-        LOGGER.debug("Real index: " + instruction.getInstructionIndex());
-
-        LOGGER.debug("Saved Instruction: " + instrumentationPoint.getInstruction().getOpcode());
-        LOGGER.debug("Retrieved Instruction: " + instruction.getInstruction().getOpcode());
-        LOGGER.debug("Retrieved original Instruction: " + instruction.getOriginalInstruction().getOpcode());
 
         // map op code to internal operation code
         int operation = mapOpCodeToOperation(instruction.getOriginalInstruction().getOpcode());
@@ -340,7 +326,7 @@ public final class Instrumentation {
             LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
             LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
-            Set<Byte> referenceTypes = new HashSet<Byte>() {{
+            Set<Byte> referenceTypes = new HashSet<>() {{
                 add(RegisterType.REFERENCE);
                 add(RegisterType.UNINIT_REF);
             }};
@@ -370,9 +356,6 @@ public final class Instrumentation {
         Set<Range> tryBlocks = methodInformation.getTryBlocks();
 
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
-
-        // TODO: Unify the branch distance trace between if and switch statements such that we can pick any in case of
-        //  a shared branch/case! That would allow us to pick the minimum of both.
         final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
 
         LOGGER.debug("Switch statement: " + trace);
@@ -1164,10 +1147,6 @@ public final class Instrumentation {
     /**
      * Adds a basic lifecycle method to the given activity or fragment class. This already includes the instrumentation
      * of the method.
-     * <p>
-     * NOTE: We don't assign the instruction index to the entry and exit traces, since the original APK don't contain
-     * these methods and in the graph those methods would be represented by dummy CFGs not defining any instruction
-     * vertex. Hence, the lookup would fail.
      *
      * @param method   The lifecycle method name.
      * @param classDef The activity or fragment class.
@@ -1175,8 +1154,6 @@ public final class Instrumentation {
      * @return Returns the instrumented lifecycle method or {@code null} if the lifecycle method couldn't be instrumented.
      */
     public static Method addLifeCycleMethod(final String method, final ClassDef classDef, final List<ClassDef> superClasses) {
-
-        // TODO: Fix implementation for basic block branch distance
 
         /*
          * We need to check that overriding the lifecycle method is actually permitted. It can happen that the method
