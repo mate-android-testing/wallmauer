@@ -57,13 +57,35 @@
     invoke-virtual {v0, v1}, Ljava/util/logging/Logger;->info(Ljava/lang/String;)V
 
     .line 65
-    invoke-static {}, Lde/uni_passau/fim/auermich/tracer/Tracer;->access$100()V
+    const-class v1, Lde/uni_passau/fim/auermich/tracer/Tracer;
+
+    monitor-enter v1
 
     .line 66
+    :try_start_c
+    invoke-static {}, Lde/uni_passau/fim/auermich/tracer/Tracer;->access$100()V
+
+    .line 67
+    monitor-exit v1
+    :try_end_10
+    .catchall {:try_start_c .. :try_end_10} :catchall_16
+
+    .line 68
     iget-object v0, p0, Lde/uni_passau/fim/auermich/tracer/Tracer$1;->val$defaultUncaughtExceptionHandler:Ljava/lang/Thread$UncaughtExceptionHandler;
 
     invoke-interface {v0, p1, p2}, Ljava/lang/Thread$UncaughtExceptionHandler;->uncaughtException(Ljava/lang/Thread;Ljava/lang/Throwable;)V
 
-    .line 67
+    .line 69
     return-void
+
+    .line 67
+    :catchall_16
+    move-exception v0
+
+    :try_start_17
+    monitor-exit v1
+    :try_end_18
+    .catchall {:try_start_17 .. :try_end_18} :catchall_16
+
+    throw v0
 .end method

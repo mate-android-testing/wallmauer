@@ -62,7 +62,9 @@ public class Tracer extends BroadcastReceiver {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
                 LOGGER.info("Uncaught exception!");
-                Tracer.writeRemainingTraces();
+                synchronized (Tracer.class) {
+                    writeRemainingTraces();
+                }
                 defaultUncaughtExceptionHandler.uncaughtException(t, e);
             }
         };
