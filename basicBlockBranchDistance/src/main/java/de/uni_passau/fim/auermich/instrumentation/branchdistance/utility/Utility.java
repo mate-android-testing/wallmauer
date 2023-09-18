@@ -306,6 +306,9 @@ public final class Utility {
                     = new TreeSet<>(methodInformation.getBasicBlockInstrumentationPoints());
             instrumentationPoints.addAll(methodInformation.getIfAndSwitchInstrumentationPoints());
 
+            // avoid duplicates
+            final Set<String> coveredIPs = new HashSet<>();
+
             if (instrumentationPoints.size() > 0) {
 
                 final String method = methodInformation.getMethodID();
@@ -314,7 +317,11 @@ public final class Utility {
                     if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT
                             || instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT
                             || instrumentationPoint.getType() == InstrumentationPoint.Type.IS_BRANCH) {
-                        ips.println(method + SEPARATOR + instrumentationPoint.getPosition());
+                        final String trace = method + SEPARATOR + instrumentationPoint.getPosition();
+                        if (!coveredIPs.contains(trace)) {
+                            coveredIPs.add(trace);
+                            ips.println(trace);
+                        }
                     }
                 }
                 ips.flush();
