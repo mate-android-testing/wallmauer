@@ -319,8 +319,9 @@ public class BasicBlockBranchDistance {
                 Instrumentation.shiftParamRegisters(methodInformation);
             }
 
-            // write out basic blocks per method
-            Utility.writeBasicBlocks(methodInformation);
+            // write out basic blocks and branches per method
+            Utility.writeBasicBlocksAndInstrumentationPoints(methodInformation);
+            Utility.writeBranches(methodInformation);
 
             return new ImmutableMethod(
                     method.getDefiningClass(),

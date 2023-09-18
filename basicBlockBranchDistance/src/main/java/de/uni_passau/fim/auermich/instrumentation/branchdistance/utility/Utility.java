@@ -38,6 +38,8 @@ public final class Utility {
 
     public static final String EXCLUSION_PATTERN_FILE = "exclude.txt";
     public static final String OUTPUT_BLOCKS_FILE = "blocks.txt";
+    public static final String OUTPUT_BRANCHES_FILE = "branches.txt";
+    public static final String OUTPUT_INSTRUMENTATION_POINTS_FILE = "instrumentation-points.txt";
     public static final String SEPARATOR = "->";
 
     private static final Logger LOGGER = LogManager.getLogger(Utility.class);
@@ -275,9 +277,63 @@ public final class Utility {
      *
      * @param methodInformation A description of the instrumented method.
      */
-    public static synchronized void writeBasicBlocks(final MethodInformation methodInformation) {
+    public static synchronized void writeBasicBlocksAndInstrumentationPoints(final MethodInformation methodInformation) {
 
-        File file = new File(OUTPUT_BLOCKS_FILE);
+        final File blocksFile = new File(OUTPUT_BLOCKS_FILE);
+        final File instrumentationPointsFile = new File(OUTPUT_INSTRUMENTATION_POINTS_FILE);
+
+        try (PrintStream ips = new PrintStream(new FileOutputStream(instrumentationPointsFile, true));
+             PrintStream blocks = new PrintStream(new FileOutputStream(blocksFile, true))) {
+
+            final Set<InstrumentationPoint> basicBlockInstrumentationPoints
+                    = new TreeSet<>(methodInformation.getBasicBlockInstrumentationPoints());
+
+            if (basicBlockInstrumentationPoints.size() > 0) {
+
+                final String method = methodInformation.getMethodID();
+
+                for (InstrumentationPoint instrumentationPoint : basicBlockInstrumentationPoints) {
+                    int basicBlockID = instrumentationPoint.getPosition();
+                    int basicBlockSize = instrumentationPoint.getCoveredInstructions();
+                    String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
+                    blocks.println(method + SEPARATOR + basicBlockID + SEPARATOR + basicBlockSize + SEPARATOR + isBranch);
+                }
+                blocks.flush();
+            }
+
+            // write out branches, if and switch statements to a separate file
+            final Set<InstrumentationPoint> instrumentationPoints
+                    = new TreeSet<>(methodInformation.getBasicBlockInstrumentationPoints());
+            instrumentationPoints.addAll(methodInformation.getIfAndSwitchInstrumentationPoints());
+
+            if (instrumentationPoints.size() > 0) {
+
+                final String method = methodInformation.getMethodID();
+
+                for (InstrumentationPoint instrumentationPoint : instrumentationPoints) {
+                    if (instrumentationPoint.getType() == InstrumentationPoint.Type.IF_STMT
+                            || instrumentationPoint.getType() == InstrumentationPoint.Type.SWITCH_STMT
+                            || instrumentationPoint.getType() == InstrumentationPoint.Type.IS_BRANCH) {
+                        ips.println(method + SEPARATOR + instrumentationPoint.getPosition());
+                    }
+                }
+                ips.flush();
+            }
+
+        } catch (IOException e) {
+            LOGGER.error("Couldn't write basic blocks or instrumentation points to file!");
+            throw new IllegalStateException("Couldn't write basic blocks or instrumentation points to file!", e);
+        }
+    }
+
+    /**
+     * Writes out the branches of method. Methods without any branches are omitted.
+     *
+     * @param methodInformation Encapsulates a method.
+     */
+    public static synchronized void writeBranches(MethodInformation methodInformation) {
+
+        File file = new File(OUTPUT_BRANCHES_FILE);
 
         try (OutputStream outputStream = new FileOutputStream(file, true);
              PrintStream printStream = new PrintStream(outputStream)) {
@@ -289,16 +345,17 @@ public final class Utility {
                 final String method = methodInformation.getMethodID();
 
                 for (InstrumentationPoint instrumentationPoint : instrumentationPoints) {
-                    int basicBlockID = instrumentationPoint.getPosition();
-                    int basicBlockSize = instrumentationPoint.getCoveredInstructions();
-                    String isBranch = instrumentationPoint.hasBranchType() ? "isBranch" : "noBranch";
-                    printStream.println(method + SEPARATOR + basicBlockID + SEPARATOR + basicBlockSize + SEPARATOR + isBranch);
+
+                    if (instrumentationPoint.hasBranchType()) {
+                        printStream.println(method + SEPARATOR + instrumentationPoint.getPosition());
+                    }
                 }
-                printStream.flush();
             }
+
+            printStream.flush();
         } catch (IOException e) {
-            LOGGER.error("Couldn't write basic blocks to blocks.txt");
-            throw new IllegalStateException("Couldn't write basic blocks to blocks.txt");
+            LOGGER.error("Couldn't write branches to branches.txt");
+            throw new IllegalStateException("Couldn't write branches to branches.txt");
         }
     }
 
