@@ -1230,8 +1230,12 @@ public final class Instrumentation {
 
         // Add basic block tracer instrumentation.
         int instructionCount = implementation.getInstructions().size();
+        final String trace = classDef + "->" + method + "->0->" + instructionCount + "->noBranch";
+
+        Utility.writeBasicBlockForLifecycleMethod(trace);
+
         implementation.addInstruction(0,new BuilderInstruction21c(Opcode.CONST_STRING, 0,
-                new ImmutableStringReference(classDef + "->" + method + "->0->" + instructionCount + "->noBranch")));
+                new ImmutableStringReference(trace)));
 
         // invoke-static-range
         implementation.addInstruction(1,new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,

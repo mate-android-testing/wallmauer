@@ -273,6 +273,24 @@ public final class Utility {
     }
 
     /**
+     * Writes the given trace to the blocks.txt file.
+     *
+     * @param trace The trace denoting a basic block of a lifecycle method.
+     */
+    public static synchronized void writeBasicBlockForLifecycleMethod(final String trace) {
+
+        final File blocksFile = new File(OUTPUT_BLOCKS_FILE);
+
+        try (PrintStream blocks = new PrintStream(new FileOutputStream(blocksFile, true))) {
+            blocks.println(trace);
+            blocks.flush();
+        } catch (IOException e) {
+            LOGGER.error("Couldn't write basic block to file!");
+            throw new IllegalStateException("Couldn't write basic block to file!", e);
+        }
+    }
+
+    /**
      * Writes the number of instructions and number of branches per method. Methods which are not instrumented are omitted.
      *
      * @param methodInformation A description of the instrumented method.
