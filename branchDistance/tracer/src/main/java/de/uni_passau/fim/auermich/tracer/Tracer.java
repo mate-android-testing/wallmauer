@@ -390,7 +390,8 @@ public class Tracer extends BroadcastReceiver {
         switch (opcode) {
             case 0: // if-eqz, if-eq
                 if (argument1 != argument2) {
-                    distanceThenBranch = Math.abs(argument1 - argument2);
+                    // Math.abs(Integer.MIN_VALUE) -> -2147483648
+                    distanceThenBranch = Math.abs(argument1 - argument2) >= 0 ? Math.abs(argument1 - argument2) : Integer.MAX_VALUE;
                     distanceElseBranch = 0;
                 } else {
                     distanceThenBranch = 0;
@@ -400,7 +401,7 @@ public class Tracer extends BroadcastReceiver {
             case 1: // if-nez, if-ne
                 if (argument1 != argument2) {
                     distanceThenBranch = 0;
-                    distanceElseBranch = Math.abs(argument1 - argument2);
+                    distanceElseBranch = Math.abs(argument1 - argument2) >= 0 ? Math.abs(argument1 - argument2) : Integer.MAX_VALUE;
                 } else {
                     distanceThenBranch = 1;
                     distanceElseBranch = 0;
@@ -409,36 +410,40 @@ public class Tracer extends BroadcastReceiver {
             case 2: // if-lez, if-le
                 if (argument1 <= argument2) {
                     distanceThenBranch = 0;
-                    distanceElseBranch = Math.abs(argument2 - argument1) + 1; // +1 necessary in case arg1 == arg2
+                    distanceElseBranch = Math.abs(argument2 - argument1) + 1 >= 0
+                            ? Math.abs(argument2 - argument1) + 1 : Integer.MAX_VALUE;// +1 necessary in case arg1 == arg2
                 } else {
-                    distanceThenBranch = Math.abs(argument1 - argument2);
+                    distanceThenBranch = Math.abs(argument1 - argument2) >= 0 ? Math.abs(argument1 - argument2) : Integer.MAX_VALUE;
                     distanceElseBranch = 0;
                 }
                 break;
             case 3: // if-ltz, if-lt
                 if (argument1 < argument2) {
                     distanceThenBranch = 0;
-                    distanceElseBranch = Math.abs(argument2 - argument1);
+                    distanceElseBranch = Math.abs(argument2 - argument1) >= 0 ? Math.abs(argument2 - argument1) : Integer.MAX_VALUE;
                 } else {
-                    distanceThenBranch = Math.abs(argument1 - argument2) + 1; // +1 necessary in case arg1 == arg2
+                    distanceThenBranch = Math.abs(argument1 - argument2) + 1 >= 0
+                            ? Math.abs(argument1 - argument2) + 1 : Integer.MAX_VALUE; // +1 necessary in case arg1 == arg2
                     distanceElseBranch = 0;
                 }
                 break;
             case 4: // if-gez, if-ge
                 if (argument1 >= argument2) {
                     distanceThenBranch = 0;
-                    distanceElseBranch = Math.abs(argument1 - argument2) + 1; // +1 necessary in case arg1 == arg2
+                    distanceElseBranch = Math.abs(argument1 - argument2) + 1 >= 0
+                            ? Math.abs(argument1 - argument2) + 1 : Integer.MAX_VALUE; // +1 necessary in case arg1 == arg2
                 } else {
-                    distanceThenBranch = Math.abs(argument2 - argument1);
+                    distanceThenBranch = Math.abs(argument2 - argument1) >= 0 ? Math.abs(argument2 - argument1) : Integer.MAX_VALUE;
                     distanceElseBranch = 0;
                 }
                 break;
             case 5: // if-gtz, if-gt
                 if (argument1 > argument2) {
                     distanceThenBranch = 0;
-                    distanceElseBranch = Math.abs(argument1 - argument2);
+                    distanceElseBranch = Math.abs(argument1 - argument2) >= 0 ? Math.abs(argument1 - argument2) : Integer.MAX_VALUE;
                 } else {
-                    distanceThenBranch = Math.abs(argument2 - argument1) + 1; // +1 necessary in case arg1 == arg2
+                    distanceThenBranch = Math.abs(argument2 - argument1) + 1 >= 0
+                            ? Math.abs(argument2 - argument1) + 1 : Integer.MAX_VALUE;// +1 necessary in case arg1 == arg2
                     distanceElseBranch = 0;
                 }
                 break;

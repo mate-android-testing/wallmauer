@@ -133,6 +133,8 @@
     .param p2, "argument2"    # I
 
     .prologue
+    const v7, 0x7fffffff
+
     .line 377
     const/4 v1, 0x0
 
@@ -142,33 +144,33 @@
 
     .line 380
     .local v0, "distanceElseBranch":I
-    const-string v7, ":"
+    const-string v8, ":"
 
-    invoke-virtual {p0, v7}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+    invoke-virtual {p0, v8}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
 
     move-result-object v4
 
     .line 381
     .local v4, "tokens":[Ljava/lang/String;
-    const/4 v7, 0x0
+    const/4 v8, 0x0
 
-    aget-object v7, v4, v7
+    aget-object v8, v4, v8
 
-    invoke-static {v7}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+    invoke-static {v8}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
 
     move-result v3
 
     .line 382
     .local v3, "opcode":I
-    const/4 v7, 0x1
+    const/4 v8, 0x1
 
-    aget-object v2, v4, v7
+    aget-object v2, v4, v8
 
     .line 390
     .local v2, "identifier":Ljava/lang/String;
-    packed-switch v3, :pswitch_data_be
+    packed-switch v3, :pswitch_data_130
 
-    .line 446
+    .line 451
     new-instance v7, Ljava/lang/UnsupportedOperationException;
 
     const-string v8, "Comparison operator not yet supported!"
@@ -178,21 +180,30 @@
     throw v7
 
     .line 392
-    :pswitch_1d
-    if-eq p1, p2, :cond_5b
+    :pswitch_20
+    if-eq p1, p2, :cond_68
 
-    .line 393
+    .line 394
+    sub-int v8, p1, p2
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    if-ltz v8, :cond_66
+
     sub-int v7, p1, p2
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
 
     move-result v1
 
-    .line 394
+    .line 395
+    :goto_30
     const/4 v0, 0x0
 
-    .line 449
-    :goto_26
+    .line 454
+    :goto_31
     new-instance v7, Ljava/lang/StringBuilder;
 
     invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
@@ -215,7 +226,7 @@
 
     move-result-object v6
 
-    .line 450
+    .line 455
     .local v6, "traceThenBranch":Ljava/lang/String;
     new-instance v7, Ljava/lang/StringBuilder;
 
@@ -239,104 +250,181 @@
 
     move-result-object v5
 
-    .line 451
+    .line 456
     .local v5, "traceElseBranch":Ljava/lang/String;
     invoke-static {v6}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
 
-    .line 452
+    .line 457
     invoke-static {v5}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
 
-    .line 453
+    .line 458
     return-void
 
-    .line 396
     .end local v5    # "traceElseBranch":Ljava/lang/String;
     .end local v6    # "traceThenBranch":Ljava/lang/String;
-    :cond_5b
-    const/4 v1, 0x0
+    :cond_66
+    move v1, v7
+
+    .line 394
+    goto :goto_30
 
     .line 397
+    :cond_68
+    const/4 v1, 0x0
+
+    .line 398
     const/4 v0, 0x1
 
-    .line 399
-    goto :goto_26
-
-    .line 401
-    :pswitch_5e
-    if-eq p1, p2, :cond_68
+    .line 400
+    goto :goto_31
 
     .line 402
-    const/4 v1, 0x0
+    :pswitch_6b
+    if-eq p1, p2, :cond_7f
 
     .line 403
+    const/4 v1, 0x0
+
+    .line 404
+    sub-int v8, p1, p2
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    if-ltz v8, :cond_7d
+
     sub-int v7, p1, p2
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
 
     move-result v0
 
-    goto :goto_26
+    :goto_7c
+    goto :goto_31
 
-    .line 405
-    :cond_68
-    const/4 v1, 0x1
+    :cond_7d
+    move v0, v7
+
+    goto :goto_7c
 
     .line 406
+    :cond_7f
+    const/4 v1, 0x1
+
+    .line 407
     const/4 v0, 0x0
 
-    .line 408
-    goto :goto_26
-
-    .line 410
-    :pswitch_6b
-    if-gt p1, p2, :cond_77
+    .line 409
+    goto :goto_31
 
     .line 411
-    const/4 v1, 0x0
+    :pswitch_82
+    if-gt p1, p2, :cond_9a
 
     .line 412
-    sub-int v7, p2, p1
+    const/4 v1, 0x0
 
-    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+    .line 413
+    sub-int v8, p2, p1
 
-    move-result v7
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
 
-    add-int/lit8 v0, v7, 0x1
+    move-result v8
 
-    goto :goto_26
+    add-int/lit8 v8, v8, 0x1
+
+    if-ltz v8, :cond_98
 
     .line 414
-    :cond_77
+    sub-int v7, p2, p1
+
+    invoke-static {v7}, Ljava/lang/Math;->abs(I)I
+
+    move-result v7
+
+    add-int/lit8 v0, v7, 0x1
+
+    :goto_97
+    goto :goto_31
+
+    :cond_98
+    move v0, v7
+
+    goto :goto_97
+
+    .line 416
+    :cond_9a
+    sub-int v8, p1, p2
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    if-ltz v8, :cond_aa
+
     sub-int v7, p1, p2
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
 
     move-result v1
 
-    .line 415
+    .line 417
+    :goto_a8
     const/4 v0, 0x0
 
-    .line 417
-    goto :goto_26
-
     .line 419
-    :pswitch_7f
-    if-ge p1, p2, :cond_89
+    goto :goto_31
 
-    .line 420
-    const/4 v1, 0x0
+    :cond_aa
+    move v1, v7
+
+    .line 416
+    goto :goto_a8
 
     .line 421
+    :pswitch_ac
+    if-ge p1, p2, :cond_c1
+
+    .line 422
+    const/4 v1, 0x0
+
+    .line 423
+    sub-int v8, p2, p1
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    if-ltz v8, :cond_bf
+
     sub-int v7, p2, p1
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
 
     move-result v0
 
-    goto :goto_26
+    :goto_bd
+    goto/16 :goto_31
 
-    .line 423
-    :cond_89
+    :cond_bf
+    move v0, v7
+
+    goto :goto_bd
+
+    .line 425
+    :cond_c1
+    sub-int v8, p1, p2
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    add-int/lit8 v8, v8, 0x1
+
+    if-ltz v8, :cond_d6
+
+    .line 426
     sub-int v7, p1, p2
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
@@ -345,20 +433,38 @@
 
     add-int/lit8 v1, v7, 0x1
 
-    .line 424
+    .line 427
+    :goto_d3
     const/4 v0, 0x0
 
-    .line 426
-    goto :goto_26
-
-    .line 428
-    :pswitch_93
-    if-lt p1, p2, :cond_9f
-
     .line 429
+    goto/16 :goto_31
+
+    :cond_d6
+    move v1, v7
+
+    .line 426
+    goto :goto_d3
+
+    .line 431
+    :pswitch_d8
+    if-lt p1, p2, :cond_f1
+
+    .line 432
     const/4 v1, 0x0
 
-    .line 430
+    .line 433
+    sub-int v8, p1, p2
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    add-int/lit8 v8, v8, 0x1
+
+    if-ltz v8, :cond_ef
+
+    .line 434
     sub-int v7, p1, p2
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
@@ -367,40 +473,86 @@
 
     add-int/lit8 v0, v7, 0x1
 
-    goto :goto_26
+    :goto_ed
+    goto/16 :goto_31
 
-    .line 432
-    :cond_9f
+    :cond_ef
+    move v0, v7
+
+    goto :goto_ed
+
+    .line 436
+    :cond_f1
+    sub-int v8, p2, p1
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    if-ltz v8, :cond_102
+
     sub-int v7, p2, p1
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
 
     move-result v1
 
-    .line 433
+    .line 437
+    :goto_ff
     const/4 v0, 0x0
 
-    .line 435
-    goto :goto_26
+    .line 439
+    goto/16 :goto_31
 
-    .line 437
-    :pswitch_a7
-    if-le p1, p2, :cond_b2
+    :cond_102
+    move v1, v7
 
-    .line 438
+    .line 436
+    goto :goto_ff
+
+    .line 441
+    :pswitch_104
+    if-le p1, p2, :cond_119
+
+    .line 442
     const/4 v1, 0x0
 
-    .line 439
+    .line 443
+    sub-int v8, p1, p2
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    if-ltz v8, :cond_117
+
     sub-int v7, p1, p2
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
 
     move-result v0
 
-    goto/16 :goto_26
+    :goto_115
+    goto/16 :goto_31
 
-    .line 441
-    :cond_b2
+    :cond_117
+    move v0, v7
+
+    goto :goto_115
+
+    .line 445
+    :cond_119
+    sub-int v8, p2, p1
+
+    invoke-static {v8}, Ljava/lang/Math;->abs(I)I
+
+    move-result v8
+
+    add-int/lit8 v8, v8, 0x1
+
+    if-ltz v8, :cond_12e
+
+    .line 446
     sub-int v7, p2, p1
 
     invoke-static {v7}, Ljava/lang/Math;->abs(I)I
@@ -409,23 +561,28 @@
 
     add-int/lit8 v1, v7, 0x1
 
-    .line 442
+    .line 447
+    :goto_12b
     const/4 v0, 0x0
 
-    .line 444
-    goto/16 :goto_26
+    .line 449
+    goto/16 :goto_31
+
+    :cond_12e
+    move v1, v7
+
+    .line 446
+    goto :goto_12b
 
     .line 390
-    nop
-
-    :pswitch_data_be
+    :pswitch_data_130
     .packed-switch 0x0
-        :pswitch_1d
-        :pswitch_5e
+        :pswitch_20
         :pswitch_6b
-        :pswitch_7f
-        :pswitch_93
-        :pswitch_a7
+        :pswitch_82
+        :pswitch_ac
+        :pswitch_d8
+        :pswitch_104
     .end packed-switch
 .end method
 
@@ -636,14 +793,14 @@
     .prologue
     const/4 v8, 0x0
 
-    .line 465
+    .line 470
     const-string v7, ","
 
     invoke-virtual {p2, v7}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
 
     move-result-object v2
 
-    .line 467
+    .line 472
     .local v2, "casePosValuePairs":[Ljava/lang/String;
     array-length v9, v2
 
@@ -654,7 +811,7 @@
 
     aget-object v1, v2, v7
 
-    .line 469
+    .line 474
     .local v1, "casePosValuePair":Ljava/lang/String;
     const-string v10, ":"
 
@@ -668,7 +825,7 @@
 
     move-result v3
 
-    .line 470
+    .line 475
     .local v3, "casePosition":I
     const-string v10, ":"
 
@@ -684,18 +841,18 @@
 
     move-result v4
 
-    .line 473
+    .line 478
     .local v4, "caseValue":I
     const/4 v0, 0x1
 
-    .line 475
+    .line 480
     .local v0, "branchDistance":I
     if-ne p1, v4, :cond_2a
 
-    .line 477
+    .line 482
     const/4 v0, 0x0
 
-    .line 480
+    .line 485
     :cond_2a
     const-string v10, "->switch->"
 
@@ -705,7 +862,7 @@
 
     aget-object v6, v10, v8
 
-    .line 481
+    .line 486
     .local v6, "tracePrefix":Ljava/lang/String;
     new-instance v10, Ljava/lang/StringBuilder;
 
@@ -739,16 +896,16 @@
 
     move-result-object v5
 
-    .line 482
+    .line 487
     .local v5, "traceCase":Ljava/lang/String;
     invoke-static {v5}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
 
-    .line 467
+    .line 472
     add-int/lit8 v7, v7, 0x1
 
     goto :goto_9
 
-    .line 484
+    .line 489
     .end local v0    # "branchDistance":I
     .end local v1    # "casePosValuePair":Ljava/lang/String;
     .end local v3    # "casePosition":I
@@ -766,10 +923,10 @@
     .param p2, "cases"    # Ljava/lang/String;
 
     .prologue
-    .line 498
+    .line 503
     const/4 v8, 0x1
 
-    .line 500
+    .line 505
     .local v8, "tookDefaultBranch":Z
     const-string v12, ","
 
@@ -779,7 +936,7 @@
 
     move-result-object v3
 
-    .line 502
+    .line 507
     .local v3, "casePosValuePairs":[Ljava/lang/String;
     array-length v13, v3
 
@@ -790,7 +947,7 @@
 
     aget-object v2, v3, v12
 
-    .line 504
+    .line 509
     .local v2, "casePosValuePair":Ljava/lang/String;
     const-string v14, ":"
 
@@ -806,7 +963,7 @@
 
     move-result v4
 
-    .line 505
+    .line 510
     .local v4, "casePosition":I
     const-string v14, ":"
 
@@ -822,23 +979,23 @@
 
     move-result v5
 
-    .line 508
+    .line 513
     .local v5, "caseValue":I
     const/4 v1, 0x1
 
-    .line 510
+    .line 515
     .local v1, "branchDistance":I
     move/from16 v0, p1
 
     if-ne v0, v5, :cond_30
 
-    .line 512
+    .line 517
     const/4 v1, 0x0
 
-    .line 513
+    .line 518
     const/4 v8, 0x0
 
-    .line 516
+    .line 521
     :cond_30
     const-string v14, "->switch->"
 
@@ -852,7 +1009,7 @@
 
     aget-object v11, v14, v15
 
-    .line 517
+    .line 522
     .local v11, "tracePrefix":Ljava/lang/String;
     new-instance v14, Ljava/lang/StringBuilder;
 
@@ -886,16 +1043,16 @@
 
     move-result-object v9
 
-    .line 518
+    .line 523
     .local v9, "traceCase":Ljava/lang/String;
     invoke-static {v9}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
 
-    .line 502
+    .line 507
     add-int/lit8 v12, v12, 0x1
 
     goto :goto_b
 
-    .line 522
+    .line 527
     .end local v1    # "branchDistance":I
     .end local v2    # "casePosValuePair":Ljava/lang/String;
     .end local v4    # "casePosition":I
@@ -915,7 +1072,7 @@
 
     aget-object v11, v12, v13
 
-    .line 525
+    .line 530
     .restart local v11    # "tracePrefix":Ljava/lang/String;
     const-string v12, "->switch->"
 
@@ -935,13 +1092,13 @@
 
     add-int/lit8 v7, v12, 0x1
 
-    .line 526
+    .line 531
     .local v7, "defaultBranchPosition":I
     if-eqz v8, :cond_a6
 
     const/4 v6, 0x0
 
-    .line 527
+    .line 532
     .local v6, "defaultBranchDistance":I
     :goto_81
     new-instance v12, Ljava/lang/StringBuilder;
@@ -976,14 +1133,14 @@
 
     move-result-object v10
 
-    .line 528
+    .line 533
     .local v10, "traceDefaultBranch":Ljava/lang/String;
     invoke-static {v10}, Lde/uni_passau/fim/auermich/tracer/Tracer;->trace(Ljava/lang/String;)V
 
-    .line 529
+    .line 534
     return-void
 
-    .line 526
+    .line 531
     .end local v6    # "defaultBranchDistance":I
     .end local v10    # "traceDefaultBranch":Ljava/lang/String;
     :cond_a6
@@ -996,7 +1153,7 @@
     .registers 6
 
     .prologue
-    .line 536
+    .line 541
     const-class v4, Lde/uni_passau/fim/auermich/tracer/Tracer;
 
     monitor-enter v4
@@ -1006,7 +1163,7 @@
 
     move-result-object v2
 
-    .line 537
+    .line 542
     .local v2, "sdCard":Ljava/io/File;
     new-instance v1, Ljava/io/File;
 
@@ -1016,7 +1173,7 @@
     :try_end_e
     .catchall {:try_start_3 .. :try_end_e} :catchall_25
 
-    .line 540
+    .line 545
     .local v1, "file":Ljava/io/File;
     :try_start_e
     invoke-virtual {v1}, Ljava/io/File;->createNewFile()Z
@@ -1024,17 +1181,17 @@
     .catch Ljava/io/IOException; {:try_start_e .. :try_end_11} :catch_13
     .catchall {:try_start_e .. :try_end_11} :catchall_25
 
-    .line 545
+    .line 550
     :goto_11
     monitor-exit v4
 
     return-void
 
-    .line 541
+    .line 546
     :catch_13
     move-exception v0
 
-    .line 542
+    .line 547
     .local v0, "e":Ljava/io/IOException;
     :try_start_14
     sget-object v3, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
@@ -1043,7 +1200,7 @@
 
     invoke-virtual {v3, v5}, Ljava/util/logging/Logger;->warning(Ljava/lang/String;)V
 
-    .line 543
+    .line 548
     sget-object v3, Lde/uni_passau/fim/auermich/tracer/Tracer;->LOGGER:Ljava/util/logging/Logger;
 
     invoke-virtual {v0}, Ljava/io/IOException;->getMessage()Ljava/lang/String;
@@ -1056,7 +1213,7 @@
 
     goto :goto_11
 
-    .line 536
+    .line 541
     .end local v0    # "e":Ljava/io/IOException;
     .end local v1    # "file":Ljava/io/File;
     :catchall_25
@@ -1071,7 +1228,7 @@
     .registers 5
 
     .prologue
-    .line 551
+    .line 556
     const-class v3, Lde/uni_passau/fim/auermich/tracer/Tracer;
 
     monitor-enter v3
@@ -1081,7 +1238,7 @@
 
     move-result-object v1
 
-    .line 552
+    .line 557
     .local v1, "sdCard":Ljava/io/File;
     new-instance v2, Ljava/io/File;
 
@@ -1095,13 +1252,13 @@
 
     move-result v0
 
-    .line 553
+    .line 558
     .local v0, "ignored":Z
     monitor-exit v3
 
     return-void
 
-    .line 551
+    .line 556
     .end local v0    # "ignored":Z
     :catchall_14
     move-exception v2
