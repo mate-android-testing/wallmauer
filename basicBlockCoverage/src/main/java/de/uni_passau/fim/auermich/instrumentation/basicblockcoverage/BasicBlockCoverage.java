@@ -95,6 +95,8 @@ public class BasicBlockCoverage {
             LOGGER.info("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
         } else {
 
+            long start = System.currentTimeMillis();
+
             // process command line arguments
             handleArguments(args);
 
@@ -166,6 +168,9 @@ public class BasicBlockCoverage {
             } catch (IOException e) {
                 LOGGER.warn("Couldn't delete directory " + decodedAPKPath + " properly!");
             }
+
+            long end = System.currentTimeMillis();
+            LOGGER.info("Instrumenting the app took: " + ((end - start) / 1000) + "s");
         }
     }
 
