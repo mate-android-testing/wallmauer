@@ -43,7 +43,7 @@ public class ManifestParser {
      */
     public boolean parseManifest() {
 
-        LOGGER.info("Parsing AndroidManifest for MainActivity and PackageName!");
+        LOGGER.debug("Parsing AndroidManifest for MainActivity and PackageName!");
 
         try {
             File xmlFile = new File(MANIFEST);
@@ -74,7 +74,7 @@ public class ManifestParser {
                 }
 
                 if (!element.hasAttribute("package")) {
-                    LOGGER.warn("Couldn't derive package name!");
+                    LOGGER.error("Couldn't derive package name!");
                     return false;
                 } else {
                     packageName = element.getAttribute("package");
@@ -125,11 +125,10 @@ public class ManifestParser {
                     }
                 }
             }
-            LOGGER.warn("Couldn't derive name of main-activity!");
+            LOGGER.warn("Couldn't derive name of main activity!");
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml!");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }
@@ -180,6 +179,7 @@ public class ManifestParser {
                 }
             } else {
                 // should never happen
+                LOGGER.error("Couldn't locate application node!");
                 return false;
             }
 
@@ -192,8 +192,7 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }
@@ -206,7 +205,7 @@ public class ManifestParser {
      */
     public boolean addPermissionTag(String permission) {
 
-        LOGGER.info("Adding permission " + permission + " to Manifest!");
+        LOGGER.debug("Adding permission " + permission + " to Manifest!");
 
         try {
 
@@ -250,8 +249,7 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }
@@ -265,7 +263,7 @@ public class ManifestParser {
      */
     public boolean addBroadcastReceiverTag(String broadcastReceiver, String actionName) {
 
-        LOGGER.info("Adding BroadcastReceiver to AndroidManifest!");
+        LOGGER.debug("Adding BroadcastReceiver to AndroidManifest!");
 
         try {
             File xmlFile = new File(MANIFEST);
@@ -307,8 +305,7 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }

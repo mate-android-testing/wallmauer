@@ -209,7 +209,7 @@ public final class Utility {
         File parentDir = apkPath.getParentFile();
         File outputDir = new File(parentDir, "decodedAPK");
 
-        LOGGER.info("Decoding Output Dir: " + outputDir);
+        LOGGER.debug("Decoding Output Dir: " + outputDir);
         decoder.setOutDir(outputDir);
 
         // overwrites existing dir: -f
@@ -353,7 +353,7 @@ public final class Utility {
         InputStream inputStream = classLoader.getResourceAsStream(EXCLUSION_PATTERN_FILE);
 
         if (inputStream == null) {
-            LOGGER.info("Couldn't find exclusion file!");
+            LOGGER.debug("Couldn't find exclusion file!");
             return null;
         }
 

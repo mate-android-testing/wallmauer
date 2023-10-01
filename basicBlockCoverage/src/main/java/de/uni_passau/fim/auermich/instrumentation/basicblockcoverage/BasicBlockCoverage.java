@@ -68,14 +68,14 @@ public class BasicBlockCoverage {
         assert args.length >= 1 && args.length <= 2;
 
         apkPath = Objects.requireNonNull(args[0]);
-        LOGGER.info("The path to the APK file is: " + apkPath);
+        LOGGER.debug("The path to the APK file is: " + apkPath);
 
         if (args.length == 2) {
             if (args[1].equals("--only-aut")) {
-                LOGGER.info("Only instrumenting classes belonging to the app package!");
+                LOGGER.debug("Only instrumenting classes belonging to the app package!");
                 onlyInstrumentAUTClasses = true;
             } else {
-                LOGGER.info("Argument " + args[1] + " not recognized!");
+                LOGGER.warn("Argument " + args[1] + " not recognized!");
             }
         }
     }
@@ -91,8 +91,8 @@ public class BasicBlockCoverage {
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
         if (args.length < 1 || args.length > 2) {
-            LOGGER.info("Wrong number of arguments!");
-            LOGGER.info("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
+            LOGGER.warn("Wrong number of arguments!");
+            LOGGER.warn("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
         } else {
 
             long start = System.currentTimeMillis();
@@ -110,7 +110,6 @@ public class BasicBlockCoverage {
 
             // retrieve package name and main activity
             if (!manifest.parseManifest()) {
-                LOGGER.warn("Couldn't retrieve MainActivity and/or PackageName!");
                 return;
             }
 
@@ -132,19 +131,19 @@ public class BasicBlockCoverage {
             if (!manifest.addBroadcastReceiverTag(
                     "de.uni_passau.fim.auermich.tracer.Tracer",
                     "STORE_TRACES")) {
-                LOGGER.warn("Couldn't insert broadcast receiver tag!");
+                LOGGER.error("Couldn't insert broadcast receiver tag!");
                 return;
             }
 
             // mark app debuggable
             if (!manifest.addApplicationAttribute("debuggable", true)) {
-                LOGGER.warn("Couldn't mark app debuggable!");
+                LOGGER.error("Couldn't mark app debuggable!");
                 return;
             }
 
             // only for API 29
             if (!manifest.addApplicationAttribute("requestLegacyExternalStorage", true)) {
-                LOGGER.warn("Couldn't add requestLegacyExternalStorage attribute!");
+                LOGGER.error("Couldn't add requestLegacyExternalStorage attribute!");
                 return;
             }
 
@@ -152,7 +151,7 @@ public class BasicBlockCoverage {
             if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")
                     || !manifest.addPermissionTag("android.permission.READ_EXTERNAL_STORAGE")
                     || !manifest.addPermissionTag("android.permission.MANAGE_EXTERNAL_STORAGE")) {
-                LOGGER.warn("Couldn't add read/write/manage permission for external storage!");
+                LOGGER.error("Couldn't add read/write/manage permission for external storage!");
                 return;
             }
 
@@ -183,9 +182,9 @@ public class BasicBlockCoverage {
      */
     private static void instrument(final DexFile dexFile, final String packageName) throws IOException {
 
-        LOGGER.info("Starting Instrumentation of App!");
-        LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
-        LOGGER.info("Package Name: " + packageName);
+        LOGGER.debug("Starting Instrumentation of App!");
+        LOGGER.debug("Dex version: " + dexFile.getOpcodes().api);
+        LOGGER.debug("Package Name: " + packageName);
 
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
@@ -310,7 +309,9 @@ public class BasicBlockCoverage {
                     methodInformation.getMethodImplementation());
         } else {
             // not possible to instrument method -> leave unchanged
-            LOGGER.info("Couldn't instrument method: " + method);
+            if (methImpl != null && methImpl.getRegisterCount() >= MAX_TOTAL_REGISTERS) {
+                LOGGER.warn("Couldn't instrument method: " + method);
+            }
             return method;
         }
     }

@@ -194,7 +194,7 @@ public final class Analyzer {
         // set the size of the last basic block
         current.setCoveredInstructions(instructions.size() - current.getPosition());
 
-        LOGGER.info(instrumentationPoints.toString());
+        LOGGER.debug(instrumentationPoints.toString());
         return instrumentationPoints;
     }
 
@@ -243,7 +243,7 @@ public final class Analyzer {
      */
     public static Set<Range> getTryBlocks(MethodInformation methodInformation) {
 
-        LOGGER.info("Retrieving try blocks of method...");
+        LOGGER.debug("Retrieving try blocks of method...");
 
         MethodImplementation methodImplementation = methodInformation.getMethodImplementation();
 
@@ -252,14 +252,14 @@ public final class Analyzer {
 
         Set<Range> tryBlocks = new TreeSet<>();
 
-        LOGGER.info("Number of try blocks: " + methodImplementation.getTryBlocks().size());
+        LOGGER.debug("Number of try blocks: " + methodImplementation.getTryBlocks().size());
 
         // TODO: this can be done in one pass over the instructions
         for (TryBlock<? extends ExceptionHandler> tryBlock : methodImplementation.getTryBlocks()) {
 
-            LOGGER.info("Try block size: " + tryBlock.getCodeUnitCount() + " code units");
-            LOGGER.info("Try block start address: " + tryBlock.getStartCodeAddress());
-            LOGGER.info("Associated catch blocks: " + tryBlock.getExceptionHandlers().size());
+            LOGGER.debug("Try block size: " + tryBlock.getCodeUnitCount() + " code units");
+            LOGGER.debug("Try block start address: " + tryBlock.getStartCodeAddress());
+            LOGGER.debug("Associated catch blocks: " + tryBlock.getExceptionHandlers().size());
 
             int consumedCodeUnits = 0;
             BuilderInstruction startInstructionTryBlock = null;
@@ -303,9 +303,9 @@ public final class Analyzer {
             int startOfTryBlock = startInstructionTryBlock.getLocation().getIndex();
             int endOfTryBlock = endInstructionTryBlock.getLocation().getIndex();
 
-            LOGGER.info("First instruction within try block: "
+            LOGGER.debug("First instruction within try block: "
                     + startInstructionTryBlock.getOpcode() + "(" + startOfTryBlock + ")");
-            LOGGER.info("Last instruction within try block: "
+            LOGGER.debug("Last instruction within try block: "
                     + endInstructionTryBlock.getOpcode() + "(" + endOfTryBlock + ")");
 
             Range tryBlockRange = new Range(startOfTryBlock, endOfTryBlock);
