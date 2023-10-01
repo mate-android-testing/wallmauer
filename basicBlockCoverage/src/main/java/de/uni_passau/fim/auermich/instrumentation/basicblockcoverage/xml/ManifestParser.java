@@ -25,6 +25,12 @@ public class ManifestParser {
     private String packageName;
     private String mainActivity;
 
+    /**
+     * Specifies the name space prefix. According to the docs, see https://developer.android.com/guide/topics/manifest/manifest-element,
+     * it should be always 'android', but certain apps deviate from this rule and use an arbitrary name space prefix.
+     */
+    private String nameSpacePrefix = null;
+
     public ManifestParser(String manifest) {
         MANIFEST = manifest;
     }
@@ -53,6 +59,20 @@ public class ManifestParser {
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 Element element = (Element) node;
 
+                // extract a possible custom name space prefix - default one is 'android', see:
+                // https://developer.android.com/guide/topics/manifest/manifest-element
+                for (int i=0; i < element.getAttributes().getLength(); i++) {
+                    final Node manifestAttribute = element.getAttributes().item(i);
+                    if (manifestAttribute.getNodeName().startsWith("xmlns:")
+                            && manifestAttribute.getNodeValue().equals("http://schemas.android.com/apk/res/android")) {
+                        nameSpacePrefix = manifestAttribute.getNodeName().split("xmlns:")[1];
+                        if (!nameSpacePrefix.equals("android")) {
+                            LOGGER.debug("Custom name space prefix: " + nameSpacePrefix);
+                        }
+                        break;
+                    }
+                }
+
                 if (!element.hasAttribute("package")) {
                     LOGGER.warn("Couldn't derive package name!");
                     return false;
@@ -62,8 +82,8 @@ public class ManifestParser {
             }
 
             NodeList intentFilters = doc.getElementsByTagName("intent-filter");
-            final String NAME_ATTRIBUTE = "android:name";
-            final String ALIAS_NAME_ATTRIBUTE = "android:targetActivity";
+            final String NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:name" : nameSpacePrefix + ":name";
+            final String ALIAS_NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:targetActivity" : nameSpacePrefix + ":targetActivity";
 
             // find intent-filter that describes the main activity
             for (int i = 0; i < intentFilters.getLength(); i++) {
@@ -116,13 +136,13 @@ public class ManifestParser {
     /**
      * Adds the given application attribute to the manifest.
      *
-     * @param attribute The attribute that should be inserted.
+     * @param attributeName The attribute that should be inserted.
      * @param value The value of the attribute.
      * @return Returns {@code true} if inserting the attribute succeeded, otherwise {@code false} is returned.
      */
-    public boolean addApplicationAttribute(String attribute, boolean value) {
+    public boolean addApplicationAttribute(final String attributeName, boolean value) {
 
-        LOGGER.info("Adding application attribute " + attribute + " to Manifest!");
+        LOGGER.debug("Adding application attribute " + attributeName + " to Manifest!");
 
         try {
 
@@ -132,6 +152,8 @@ public class ManifestParser {
             Document doc = dBuilder.parse(xmlFile);
 
             NodeList nodeList = doc.getElementsByTagName("application");
+            final String NAME_SPACE_PREFIX = nameSpacePrefix == null ? "android" : nameSpacePrefix;
+            final String attribute = NAME_SPACE_PREFIX + ":" + attributeName;
 
             // there is just a single application tag
             assert nodeList.getLength() == 1;
@@ -193,12 +215,13 @@ public class ManifestParser {
             Document doc = dBuilder.parse(xmlFile);
 
             NodeList nodeList = doc.getElementsByTagName("uses-permission");
+            final String NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:name" : nameSpacePrefix + ":name";
 
             if (nodeList.getLength() == 0) {
                 // there are no permissions specified
 
                 Element permissionTag = doc.createElement("uses-permission");
-                permissionTag.setAttribute("android:name", permission);
+                permissionTag.setAttribute(NAME_ATTRIBUTE, permission);
                 // add as child of root tag <xml>
                 doc.getDocumentElement().appendChild(permissionTag);
             } else {
@@ -206,13 +229,13 @@ public class ManifestParser {
                 // check whether the given permission is already specified
                 for (int i=0; i < nodeList.getLength(); i++) {
                     Element permissionTag = (Element) nodeList.item(i);
-                    if (permissionTag.getAttribute("android:name").equals(permission)) {
+                    if (permissionTag.getAttribute(NAME_ATTRIBUTE).equals(permission)) {
                         return true;
                     }
                 }
 
                 Element permissionTag = doc.createElement("uses-permission");
-                permissionTag.setAttribute("android:name", permission);
+                permissionTag.setAttribute(NAME_ATTRIBUTE, permission);
                 // add as child of root tag <xml>
                 doc.getDocumentElement().appendChild(permissionTag);
             }
@@ -250,21 +273,23 @@ public class ManifestParser {
             Document doc = dBuilder.parse(xmlFile);
 
             NodeList nodeList = doc.getElementsByTagName("application");
+            final String NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:name" : nameSpacePrefix + ":name";
+            final String EXPORTED_ATTRIBUTE = nameSpacePrefix == null ? "android:exported" : nameSpacePrefix + ":exported";
 
             // there is just a single application tag
             assert nodeList.getLength() == 1;
             Node applicationTag = nodeList.item(0);
 
             Element receiver = doc.createElement("receiver");
-            receiver.setAttribute("android:name", broadcastReceiver);
-            receiver.setAttribute("android:exported", "true");
+            receiver.setAttribute(NAME_ATTRIBUTE, broadcastReceiver);
+            receiver.setAttribute(EXPORTED_ATTRIBUTE, "true");
 
             // add intent filter
             Element intentFilter = doc.createElement("intent-filter");
 
             // add action tag
             Element action = doc.createElement("action");
-            action.setAttribute("android:name", actionName);
+            action.setAttribute(NAME_ATTRIBUTE, actionName);
 
             intentFilter.appendChild(action);
             receiver.appendChild(intentFilter);

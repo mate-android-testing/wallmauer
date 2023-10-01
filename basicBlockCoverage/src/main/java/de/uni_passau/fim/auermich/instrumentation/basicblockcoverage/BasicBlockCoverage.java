@@ -135,13 +135,13 @@ public class BasicBlockCoverage {
             }
 
             // mark app debuggable
-            if (!manifest.addApplicationAttribute("android:debuggable", true)) {
+            if (!manifest.addApplicationAttribute("debuggable", true)) {
                 LOGGER.warn("Couldn't mark app debuggable!");
                 return;
             }
 
             // only for API 29
-            if (!manifest.addApplicationAttribute("android:requestLegacyExternalStorage", true)) {
+            if (!manifest.addApplicationAttribute("requestLegacyExternalStorage", true)) {
                 LOGGER.warn("Couldn't add requestLegacyExternalStorage attribute!");
                 return;
             }
