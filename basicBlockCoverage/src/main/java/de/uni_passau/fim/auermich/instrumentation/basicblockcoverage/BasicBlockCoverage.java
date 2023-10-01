@@ -88,7 +88,7 @@ public class BasicBlockCoverage {
      */
     public static void main(String[] args) throws IOException {
 
-        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
+        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
         if (args.length < 1 || args.length > 2) {
             LOGGER.info("Wrong number of arguments!");
