@@ -67,6 +67,8 @@ public class BasicBlockCoverage {
     private static void handleArguments(String[] args) {
         assert args.length >= 1 && args.length <= 2;
 
+        // TODO: Add '--debug' command line argument that turns on debug logs.
+
         apkPath = Objects.requireNonNull(args[0]);
         LOGGER.debug("The path to the APK file is: " + apkPath);
 
