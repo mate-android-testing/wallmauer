@@ -126,6 +126,7 @@ public class ManifestParser {
                 }
             }
             LOGGER.warn("Couldn't derive name of main-activity!");
+            return true;
         } catch (Exception e) {
             LOGGER.warn("Couldn't parse AndroidManifest.xml!");
             LOGGER.warn(e.getMessage());
