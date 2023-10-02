@@ -23,7 +23,6 @@ import org.jf.dexlib2.immutable.ImmutableMethod;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -33,10 +32,10 @@ public class BasicBlockCoverage {
     private static final Logger LOGGER = LogManager.getLogger(BasicBlockCoverage.class);
 
     // the path to the APK file
-    public static String apkPath;
+    private static File apkPath;
 
     // the output path of the decoded APK
-    public static File decodedAPKPath;
+    private static File decodedAPKPath;
 
     // whether only classes belonging to the app package should be instrumented
     private static boolean onlyInstrumentAUTClasses = false;
@@ -57,20 +56,30 @@ public class BasicBlockCoverage {
     private static final int MAX_TOTAL_REGISTERS = 255;
 
     /**
-     * Processes the command line arguments. The following arguments are supported:
-     * <p>
-     * 1) the path to the APK file.
+     * Verifies the validity of the command line arguments. The following arguments are supported:
+     *
+     * 1) The path to the APK file.
      * 2) The flag --only-aut to instrument only classes belonging to the app package (optional).
      *
      * @param args The command line arguments.
+     * @return Returns {@code true} if the command line arguments are valid, otherwise {@code false} is returned.
      */
-    private static void handleArguments(String[] args) {
-        assert args.length >= 1 && args.length <= 2;
+    private static boolean handleArguments(String[] args) {
+
+        if (args.length < 1 || args.length > 2) {
+            LOGGER.error("Wrong number of arguments!");
+            return false;
+        }
 
         // TODO: Add '--debug' command line argument that turns on debug logs.
 
-        apkPath = Objects.requireNonNull(args[0]);
+        apkPath = new File(args[0]);
         LOGGER.debug("The path to the APK file is: " + apkPath);
+
+        if (!apkPath.exists() || !apkPath.getName().endsWith(".apk")) {
+            LOGGER.error("The input APK does not exist or the specified path does not refer to an APK file!");
+            return false;
+        }
 
         if (args.length == 2) {
             if (args[1].equals("--only-aut")) {
@@ -80,6 +89,8 @@ public class BasicBlockCoverage {
                 LOGGER.warn("Argument " + args[1] + " not recognized!");
             }
         }
+
+        return true;
     }
 
     /**
@@ -92,21 +103,14 @@ public class BasicBlockCoverage {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
-        if (args.length < 1 || args.length > 2) {
-            LOGGER.warn("Wrong number of arguments!");
-            LOGGER.warn("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
+        if (!handleArguments(args)) {
+            LOGGER.info("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
         } else {
 
             long start = System.currentTimeMillis();
 
-            // process command line arguments
-            handleArguments(args);
-
-            // the APK file
-            File apkFile = new File(apkPath);
-
             // decode the APK file
-            decodedAPKPath = Utility.decodeAPK(apkFile);
+            decodedAPKPath = Utility.decodeAPK(apkPath);
 
             ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
 
@@ -157,10 +161,10 @@ public class BasicBlockCoverage {
                 return;
             }
 
-            // the output name of the APK
-            File outputAPKFile = new File(apkPath.replace(".apk", "-instrumented.apk"));
+            // the name of the instrumented APK
+            File outputAPKFile = new File(apkPath.getParentFile(), manifest.getPackageName() + "-instrumented.apk");
 
-            // build the APK to the
+            // build the instrumented APK together
             Utility.buildAPK(decodedAPKPath, outputAPKFile);
 
             // remove the decoded APK files
