@@ -229,19 +229,19 @@ public class BasicBlockCoverage {
         // the class name is part of the method id
         String className = Utility.dottedClassName(classDef.getType());
 
-//        // if only classes belonging to the app package should be instrumented
-//        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
-//            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
-//            return classDef;
-//        }
-//
-//        // exclude certain packages/classes from instrumentation, e.g. android.widget.*
-//        if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
-//                || Utility.isResourceClass(classDef)
-//                || Utility.isBuildConfigClass(classDef)) {
-//            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
-//            return classDef;
-//        }
+        // if only classes belonging to the app package should be instrumented
+        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
+            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
+            return classDef;
+        }
+
+        // exclude certain packages/classes from instrumentation, e.g. android.widget.*
+        if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
+                || Utility.isResourceClass(classDef)
+                || Utility.isBuildConfigClass(classDef)) {
+            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
+            return classDef;
+        }
 
         List<Method> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).parallelStream()
                 .map(method -> instrumentMethod(dexFile, classDef, method))
