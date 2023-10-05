@@ -112,6 +112,11 @@ public class BasicBlockCoverage {
             // decode the APK file
             decodedAPKPath = Utility.decodeAPK(apkPath);
 
+            if (decodedAPKPath == null) {
+                LOGGER.error("Failed to decode APK file!");
+                return;
+            }
+
             ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
 
             // retrieve package name and main activity
@@ -165,13 +170,18 @@ public class BasicBlockCoverage {
             File outputAPKFile = new File(apkPath.getParentFile(), manifest.getPackageName() + "-instrumented.apk");
 
             // build the instrumented APK together
-            Utility.buildAPK(decodedAPKPath, outputAPKFile);
+            boolean builtAPK = Utility.buildAPK(decodedAPKPath, outputAPKFile);
 
             // remove the decoded APK files
             try {
                 FileUtils.deleteDirectory(decodedAPKPath);
             } catch (IOException e) {
                 LOGGER.warn("Couldn't delete directory " + decodedAPKPath + " properly!");
+            }
+
+            if (!builtAPK) {
+                LOGGER.error("Failed to build APK file!");
+                return;
             }
 
             long end = System.currentTimeMillis();
@@ -192,10 +202,10 @@ public class BasicBlockCoverage {
         LOGGER.debug("Dex version: " + dexFile.getOpcodes().api);
 
         // describes class names we want to exclude from instrumentation
-        final Pattern exclusionPattern = Utility.readExcludePatterns();
+        // final Pattern exclusionPattern = Utility.readExcludePatterns();
 
         List<ClassDef> instrumentedClasses = dexFile.getClasses().parallelStream()
-                .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
+                .map(classDef -> instrumentClass(dexFile, classDef, packageName, null))
                 .collect(Collectors.toList());
 
         // insert tracer
@@ -219,19 +229,19 @@ public class BasicBlockCoverage {
         // the class name is part of the method id
         String className = Utility.dottedClassName(classDef.getType());
 
-        // if only classes belonging to the app package should be instrumented
-        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
-            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
-            return classDef;
-        }
-
-        // exclude certain packages/classes from instrumentation, e.g. android.widget.*
-        if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
-                || Utility.isResourceClass(classDef)
-                || Utility.isBuildConfigClass(classDef)) {
-            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
-            return classDef;
-        }
+//        // if only classes belonging to the app package should be instrumented
+//        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
+//            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
+//            return classDef;
+//        }
+//
+//        // exclude certain packages/classes from instrumentation, e.g. android.widget.*
+//        if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
+//                || Utility.isResourceClass(classDef)
+//                || Utility.isBuildConfigClass(classDef)) {
+//            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
+//            return classDef;
+//        }
 
         List<Method> instrumentedMethods = Lists.newArrayList(classDef.getMethods()).parallelStream()
                 .map(method -> instrumentMethod(dexFile, classDef, method))

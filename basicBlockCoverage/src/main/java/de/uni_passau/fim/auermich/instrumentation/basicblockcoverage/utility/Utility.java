@@ -176,8 +176,9 @@ public final class Utility {
      * @param outputFile The file path of the resulting APK. If {@code null}
      *                   is specified, the default location ('dist' directory)
      *                   and the original APK name is used.
+     * @return Returns {@code true} if building the APK succeeded, otherwise {@code false} is returned.
      */
-    public static void buildAPK(File decodedAPKPath, File outputFile) {
+    public static boolean buildAPK(File decodedAPKPath, File outputFile) {
 
         BuildOptions buildOptions = new BuildOptions();
         buildOptions.useAapt2 = true;
@@ -185,9 +186,10 @@ public final class Utility {
 
         try {
             new Androlib(buildOptions).build(new ExtFile(decodedAPKPath), outputFile);
+            return true;
         } catch (BrutException e) {
-            LOGGER.warn("Failed to build APK file!");
-            LOGGER.warn(e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 
@@ -227,15 +229,16 @@ public final class Utility {
             // TODO: there seems to be some problem with the AndroidManifest if we don't fully decode resources
             // decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
 
+            // TODO: Somehow the call to decoder.decode() swallows possible exceptions.
+
             decoder.decode();
             decoder.close();
 
             // the dir where the decoded content can be found
             return outputDir;
-        } catch (BrutException | IOException e) {
-            LOGGER.warn("Failed to decode APK file!");
-            LOGGER.warn(e.getMessage());
-            throw new IllegalStateException(e);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
