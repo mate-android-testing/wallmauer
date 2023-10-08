@@ -202,10 +202,10 @@ public class BasicBlockCoverage {
         LOGGER.debug("Dex version: " + dexFile.getOpcodes().api);
 
         // describes class names we want to exclude from instrumentation
-        // final Pattern exclusionPattern = Utility.readExcludePatterns();
+        final Pattern exclusionPattern = Utility.readExcludePatterns();
 
         List<ClassDef> instrumentedClasses = dexFile.getClasses().parallelStream()
-                .map(classDef -> instrumentClass(dexFile, classDef, packageName, null))
+                .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
                 .collect(Collectors.toList());
 
         // insert tracer
