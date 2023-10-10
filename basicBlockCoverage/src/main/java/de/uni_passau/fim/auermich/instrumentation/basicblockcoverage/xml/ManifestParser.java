@@ -216,6 +216,7 @@ public class ManifestParser {
 
             NodeList nodeList = doc.getElementsByTagName("uses-permission");
             final String NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:name" : nameSpacePrefix + ":name";
+            final String MAX_SDK_ATTRIBUTE = nameSpacePrefix == null ? "android:maxSdkVersion" : nameSpacePrefix + ":maxSdkVersion";
 
             if (nodeList.getLength() == 0) {
                 // there are no permissions specified
@@ -226,18 +227,36 @@ public class ManifestParser {
                 doc.getDocumentElement().appendChild(permissionTag);
             } else {
 
+                boolean foundPermission = false;
+
                 // check whether the given permission is already specified
                 for (int i=0; i < nodeList.getLength(); i++) {
                     Element permissionTag = (Element) nodeList.item(i);
                     if (permissionTag.getAttribute(NAME_ATTRIBUTE).equals(permission)) {
-                        return true;
+
+                        /*
+                        * It is possible to restrict a permission to a maximal sdk version by specifying the attribute
+                        * android:maxSdkVersion. This is used in particular for the WRITE_EXTERNAL_STORAGE permission
+                        * which is not required on API > 18 as long as you write to the provided storage defined by
+                        * getExternalFilesDir(). We simply drop this restriction, otherwise we might not be able to
+                        * read or write from/to the external storage.
+                         */
+                        if (permissionTag.hasAttribute(MAX_SDK_ATTRIBUTE)) {
+                            permissionTag.removeAttribute(MAX_SDK_ATTRIBUTE);
+                            foundPermission = true;
+                            break;
+                        } else {
+                            return true;
+                        }
                     }
                 }
 
-                Element permissionTag = doc.createElement("uses-permission");
-                permissionTag.setAttribute(NAME_ATTRIBUTE, permission);
-                // add as child of root tag <xml>
-                doc.getDocumentElement().appendChild(permissionTag);
+                if (!foundPermission) {
+                    Element permissionTag = doc.createElement("uses-permission");
+                    permissionTag.setAttribute(NAME_ATTRIBUTE, permission);
+                    // add as child of root tag <xml>
+                    doc.getDocumentElement().appendChild(permissionTag);
+                }
             }
 
             // modify manifest
