@@ -144,6 +144,13 @@ public final class Instrumentation {
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
+            /*
+            * There is actually a limit for the branch offset used in if and goto instruction, see:
+            *   https://github.com/JesusFreke/smali/issues/469
+            * We should not be affected by this limitation as we only insert goto instructions within try blocks and
+            * using goto/32 allows to address an branch offset up to 2^32.
+             */
+
             // insert goto to jump to method end
             Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
