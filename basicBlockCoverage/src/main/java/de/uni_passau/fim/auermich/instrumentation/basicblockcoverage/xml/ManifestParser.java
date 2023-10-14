@@ -39,7 +39,7 @@ public class ManifestParser {
      * Parses the AndroidManifest.xml for the package name and the name of the main activity.
      *
      * @return Returns {@code true} when we were able to derive both information,
-     * otherwise {@code false}.
+     *         otherwise {@code false}.
      */
     public boolean parseManifest() {
 

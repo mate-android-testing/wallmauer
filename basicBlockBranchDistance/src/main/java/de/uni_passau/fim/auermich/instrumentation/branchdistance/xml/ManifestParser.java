@@ -22,6 +22,12 @@ public class ManifestParser {
 
     private final String MANIFEST;
 
+    /**
+     * Specifies the name space prefix. According to the docs, see https://developer.android.com/guide/topics/manifest/manifest-element,
+     * it should be always 'android', but certain apps deviate from this rule and use an arbitrary name space prefix.
+     */
+    private String nameSpacePrefix = null;
+
     private String packageName;
     private String mainActivity;
 
@@ -33,11 +39,11 @@ public class ManifestParser {
      * Parses the AndroidManifest.xml for the package name and the name of the main activity.
      *
      * @return Returns {@code true} when we were able to derive both information,
-     * otherwise {@code false}.
+     *         otherwise {@code false}.
      */
     public boolean parseManifest() {
 
-        LOGGER.info("Parsing AndroidManifest for MainActivity and PackageName!");
+        LOGGER.debug("Parsing AndroidManifest for MainActivity and PackageName!");
 
         try {
             File xmlFile = new File(MANIFEST);
@@ -53,8 +59,22 @@ public class ManifestParser {
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 Element element = (Element) node;
 
+                // extract a possible custom name space prefix - default one is 'android', see:
+                // https://developer.android.com/guide/topics/manifest/manifest-element
+                for (int i=0; i < element.getAttributes().getLength(); i++) {
+                    final Node manifestAttribute = element.getAttributes().item(i);
+                    if (manifestAttribute.getNodeName().startsWith("xmlns:")
+                            && manifestAttribute.getNodeValue().equals("http://schemas.android.com/apk/res/android")) {
+                        nameSpacePrefix = manifestAttribute.getNodeName().split("xmlns:")[1];
+                        if (!nameSpacePrefix.equals("android")) {
+                            LOGGER.debug("Custom name space prefix: " + nameSpacePrefix);
+                        }
+                        break;
+                    }
+                }
+
                 if (!element.hasAttribute("package")) {
-                    LOGGER.warn("Couldn't derive package name!");
+                    LOGGER.error("Couldn't derive package name!");
                     return false;
                 } else {
                     packageName = element.getAttribute("package");
@@ -62,8 +82,8 @@ public class ManifestParser {
             }
 
             NodeList intentFilters = doc.getElementsByTagName("intent-filter");
-            final String NAME_ATTRIBUTE = "android:name";
-            final String ALIAS_NAME_ATTRIBUTE = "android:targetActivity";
+            final String NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:name" : nameSpacePrefix + ":name";
+            final String ALIAS_NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:targetActivity" : nameSpacePrefix + ":targetActivity";
 
             // find intent-filter that describes the main activity
             for (int i = 0; i < intentFilters.getLength(); i++) {
@@ -105,10 +125,10 @@ public class ManifestParser {
                     }
                 }
             }
-            LOGGER.warn("Couldn't derive name of main-activity!");
+            LOGGER.warn("Couldn't derive name of main activity!");
+            return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml!");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }
@@ -116,13 +136,13 @@ public class ManifestParser {
     /**
      * Adds the given application attribute to the manifest.
      *
-     * @param attribute The attribute that should be inserted.
+     * @param attributeName The attribute that should be inserted.
      * @param value The value of the attribute.
      * @return Returns {@code true} if inserting the attribute succeeded, otherwise {@code false} is returned.
      */
-    public boolean addApplicationAttribute(String attribute, boolean value) {
+    public boolean addApplicationAttribute(final String attributeName, boolean value) {
 
-        LOGGER.info("Adding application attribute " + attribute + " to Manifest!");
+        LOGGER.debug("Adding application attribute " + attributeName + " to Manifest!");
 
         try {
 
@@ -132,6 +152,8 @@ public class ManifestParser {
             Document doc = dBuilder.parse(xmlFile);
 
             NodeList nodeList = doc.getElementsByTagName("application");
+            final String NAME_SPACE_PREFIX = nameSpacePrefix == null ? "android" : nameSpacePrefix;
+            final String attribute = NAME_SPACE_PREFIX + ":" + attributeName;
 
             // there is just a single application tag
             assert nodeList.getLength() == 1;
@@ -157,6 +179,7 @@ public class ManifestParser {
                 }
             } else {
                 // should never happen
+                LOGGER.error("Couldn't locate application node!");
                 return false;
             }
 
@@ -169,8 +192,7 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }
@@ -183,7 +205,7 @@ public class ManifestParser {
      */
     public boolean addPermissionTag(String permission) {
 
-        LOGGER.info("Adding permission " + permission + " to Manifest!");
+        LOGGER.debug("Adding permission " + permission + " to Manifest!");
 
         try {
 
@@ -193,28 +215,48 @@ public class ManifestParser {
             Document doc = dBuilder.parse(xmlFile);
 
             NodeList nodeList = doc.getElementsByTagName("uses-permission");
+            final String NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:name" : nameSpacePrefix + ":name";
+            final String MAX_SDK_ATTRIBUTE = nameSpacePrefix == null ? "android:maxSdkVersion" : nameSpacePrefix + ":maxSdkVersion";
 
             if (nodeList.getLength() == 0) {
                 // there are no permissions specified
 
                 Element permissionTag = doc.createElement("uses-permission");
-                permissionTag.setAttribute("android:name", permission);
+                permissionTag.setAttribute(NAME_ATTRIBUTE, permission);
                 // add as child of root tag <xml>
                 doc.getDocumentElement().appendChild(permissionTag);
             } else {
 
+                boolean foundPermission = false;
+
                 // check whether the given permission is already specified
                 for (int i=0; i < nodeList.getLength(); i++) {
                     Element permissionTag = (Element) nodeList.item(i);
-                    if (permissionTag.getAttribute("android:name").equals(permission)) {
-                        return true;
+                    if (permissionTag.getAttribute(NAME_ATTRIBUTE).equals(permission)) {
+
+                        /*
+                         * It is possible to restrict a permission to a maximal sdk version by specifying the attribute
+                         * android:maxSdkVersion. This is used in particular for the WRITE_EXTERNAL_STORAGE permission
+                         * which is not required on API > 18 as long as you write to the provided storage defined by
+                         * getExternalFilesDir(). We simply drop this restriction, otherwise we might not be able to
+                         * read or write from/to the external storage.
+                         */
+                        if (permissionTag.hasAttribute(MAX_SDK_ATTRIBUTE)) {
+                            permissionTag.removeAttribute(MAX_SDK_ATTRIBUTE);
+                            foundPermission = true;
+                            break;
+                        } else {
+                            return true;
+                        }
                     }
                 }
 
-                Element permissionTag = doc.createElement("uses-permission");
-                permissionTag.setAttribute("android:name", permission);
-                // add as child of root tag <xml>
-                doc.getDocumentElement().appendChild(permissionTag);
+                if (!foundPermission) {
+                    Element permissionTag = doc.createElement("uses-permission");
+                    permissionTag.setAttribute(NAME_ATTRIBUTE, permission);
+                    // add as child of root tag <xml>
+                    doc.getDocumentElement().appendChild(permissionTag);
+                }
             }
 
             // modify manifest
@@ -226,8 +268,7 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }
@@ -241,7 +282,7 @@ public class ManifestParser {
      */
     public boolean addBroadcastReceiverTag(String broadcastReceiver, String actionName) {
 
-        LOGGER.info("Adding BroadcastReceiver to AndroidManifest!");
+        LOGGER.debug("Adding BroadcastReceiver to AndroidManifest!");
 
         try {
             File xmlFile = new File(MANIFEST);
@@ -250,21 +291,23 @@ public class ManifestParser {
             Document doc = dBuilder.parse(xmlFile);
 
             NodeList nodeList = doc.getElementsByTagName("application");
+            final String NAME_ATTRIBUTE = nameSpacePrefix == null ? "android:name" : nameSpacePrefix + ":name";
+            final String EXPORTED_ATTRIBUTE = nameSpacePrefix == null ? "android:exported" : nameSpacePrefix + ":exported";
 
             // there is just a single application tag
             assert nodeList.getLength() == 1;
             Node applicationTag = nodeList.item(0);
 
             Element receiver = doc.createElement("receiver");
-            receiver.setAttribute("android:name", broadcastReceiver);
-            receiver.setAttribute("android:exported", "true");
+            receiver.setAttribute(NAME_ATTRIBUTE, broadcastReceiver);
+            receiver.setAttribute(EXPORTED_ATTRIBUTE, "true");
 
             // add intent filter
             Element intentFilter = doc.createElement("intent-filter");
 
             // add action tag
             Element action = doc.createElement("action");
-            action.setAttribute("android:name", actionName);
+            action.setAttribute(NAME_ATTRIBUTE, actionName);
 
             intentFilter.appendChild(action);
             receiver.appendChild(intentFilter);
@@ -281,8 +324,7 @@ public class ManifestParser {
 
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Couldn't parse AndroidManifest.xml");
-            LOGGER.warn(e.getMessage());
+            LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
     }
