@@ -198,9 +198,8 @@ public class BranchCoverage {
      */
     private static void instrument(final DexFile dexFile, final String packageName) throws IOException {
 
-        LOGGER.debug("Starting Instrumentation of App!");
+        LOGGER.debug("Starting instrumentation of app: " + packageName);
         LOGGER.debug("Dex version: " + dexFile.getOpcodes().api);
-        LOGGER.debug("Package Name: " + packageName);
 
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
@@ -324,7 +323,9 @@ public class BranchCoverage {
                     methodInformation.getMethodImplementation());
         } else {
             // not possible to instrument method -> leave unchanged
-            LOGGER.debug("Couldn't instrument method: " + method);
+            if (methImpl != null && methImpl.getRegisterCount() >= MAX_TOTAL_REGISTERS) {
+                LOGGER.warn("Couldn't instrument method: " + method);
+            }
             return method;
         }
     }
