@@ -1,5 +1,14 @@
 package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core;
 
+import com.android.tools.smali.dexlib2.Opcode;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
+import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
+import com.android.tools.smali.dexlib2.builder.Label;
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
+import com.android.tools.smali.dexlib2.builder.instruction.*;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.BasicBlockCoverage;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
@@ -7,15 +16,6 @@ import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Ran
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.RegisterType;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.Label;
-import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
-import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -145,10 +145,10 @@ public final class Instrumentation {
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
             /*
-            * There is actually a limit for the branch offset used in if and goto instruction, see:
+            * There is actually a limit for the branch offset used in if and goto instructions, see:
             *   https://github.com/JesusFreke/smali/issues/469
             * We should not be affected by this limitation as we only insert goto instructions within try blocks and
-            * using goto/32 allows to address an branch offset up to 2^32.
+            * using goto/32 allows to address an branch offset of up to 2^32.
              */
 
             // insert goto to jump to method end

@@ -1,14 +1,14 @@
 package de.uni_passau.fim.auermich.instrumentation.branchdistance.dto;
 
+import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
-import org.jf.dexlib2.analysis.*;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import java.util.*;
 

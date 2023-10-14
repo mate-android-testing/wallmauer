@@ -1,10 +1,23 @@
 package de.uni_passau.fim.auermich.instrumentation.branchdistance.utility;
 
-import brut.androlib.Androlib;
+import brut.androlib.ApkBuilder;
 import brut.androlib.ApkDecoder;
-import brut.androlib.options.BuildOptions;
+import brut.androlib.Config;
+import brut.androlib.exceptions.AndrolibException;
 import brut.common.BrutException;
+import brut.directory.DirectoryException;
 import brut.directory.ExtFile;
+import com.android.tools.smali.dexlib2.DexFileFactory;
+import com.android.tools.smali.dexlib2.Format;
+import com.android.tools.smali.dexlib2.Opcodes;
+import com.android.tools.smali.dexlib2.analysis.AnalyzedInstruction;
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
+import com.android.tools.smali.dexlib2.dexbacked.value.DexBackedTypeEncodedValue;
+import com.android.tools.smali.dexlib2.iface.*;
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction;
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
+import com.android.tools.smali.smali.SmaliTestUtils;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.BranchDistance;
@@ -16,17 +29,6 @@ import lanchon.multidexlib2.MultiDexIO;
 import org.antlr.runtime.RecognitionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.DexFileFactory;
-import org.jf.dexlib2.Format;
-import org.jf.dexlib2.Opcodes;
-import org.jf.dexlib2.analysis.AnalyzedInstruction;
-import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.dexbacked.value.DexBackedTypeEncodedValue;
-import org.jf.dexlib2.iface.*;
-import org.jf.dexlib2.iface.instruction.Instruction;
-import org.jf.dexlib2.immutable.ImmutableClassDef;
-import org.jf.dexlib2.immutable.ImmutableMethod;
-import org.jf.smali.SmaliTestUtils;
 
 import javax.annotation.Nonnull;
 import java.io.*;
@@ -359,6 +361,30 @@ public final class Utility {
     }
 
     /**
+     * Builds a given APK using apktool.
+     *
+     * @param decodedAPKPath The root directory of the decoded APK.
+     * @param outputFile The file path of the resulting APK. If {@code null}
+     *                   is specified, the default location ('dist' directory)
+     *                   and the original APK name is used.
+     * @return Returns {@code true} if building the APK succeeded, otherwise {@code false} is returned.
+     */
+    public static boolean buildAPK(File decodedAPKPath, File outputFile) {
+
+        final Config config = Config.getDefaultConfig();
+        config.useAapt2 = true;
+        config.verbose = true;
+
+        try {
+            new ApkBuilder(config, new ExtFile(decodedAPKPath)).build(outputFile);
+            return true;
+        } catch (BrutException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
      * Decodes a given APK using apktool.
      */
     public static File decodeAPK(File apkPath) {
@@ -370,71 +396,37 @@ public final class Utility {
             h.setLevel(Level.SEVERE);
         }
 
-        ApkDecoder decoder = new ApkDecoder(apkPath);
-
-        // path where we want to decode the APK (the same directory as the APK)
-        File parentDir = apkPath.getParentFile();
-        File outputDir = new File(parentDir, "decodedAPK");
-
-        LOGGER.info("Decoding Output Dir: " + outputDir);
-        decoder.setOutDir(outputDir);
-
-        // overwrites existing dir: -f
-        decoder.setForceDelete(true);
+        final Config config = Config.getDefaultConfig();
+        config.forceDelete = true; // overwrites existing dir: -f
 
         try {
-
-            // whether to decode classes.dex into smali files: -s
-            decoder.setDecodeSources(ApkDecoder.DECODE_SOURCES_NONE);
+            // do not decode dex classes to smali: -s
+            config.setDecodeSources(Config.DECODE_SOURCES_NONE);
 
             /*
-             * Although the decoding of only the AndroidManifest works and even
-             * the building of the APK works, the installing of the APK fails.
-             * See https://github.com/iBotPeaches/Apktool/issues/2374 for more details.
-             * Thus, we need to fully decode the resources right now. Hopefully
-             * this bug can be fixed in the future, decoding/encoding resources is a
-             * time consuming task.
+             * TODO: Right now we need to decode the resources completely although we only need to alter the manifest.
+             *  While decoding only the manifest works and even re-packaging succeeds, the APK cannot be properly signed
+             *  anymore: https://github.com/iBotPeaches/Apktool/issues/3389
              */
 
-            // whether to decode the AndroidManifest.xml
-            // decoder.setForceDecodeManifest(ApkDecoder.FORCE_DECODE_MANIFEST_FULL);
+            // do not decode resources: -r
+            // config.setDecodeResources(Config.DECODE_RESOURCES_NONE);
 
-            // whether to decode resources: -r
-            // TODO: there seems to be some problem with the AndroidManifest if we don't fully decode resources
-            // decoder.setDecodeResources(ApkDecoder.DECODE_RESOURCES_NONE);
+            // decode the manifest: --force-manifest
+            // config.setForceDecodeManifest(Config.FORCE_DECODE_MANIFEST_FULL);
 
-            decoder.decode();
-            decoder.close();
+            // path where we want to decode the APK (the same directory as the APK)
+            File parentDir = apkPath.getParentFile();
+            File outputDir = new File(parentDir, "decodedAPK");
 
-            // the dir where the decoded content can be found
+            LOGGER.debug("Decoding Output Dir: " + outputDir);
+
+            final ApkDecoder decoder = new ApkDecoder(config, apkPath);
+            decoder.decode(outputDir);
             return outputDir;
-        } catch (BrutException | IOException e) {
-            LOGGER.warn("Failed to decode APK file!");
-            LOGGER.warn(e.getMessage());
-            throw new IllegalStateException(e);
-        }
-    }
-
-    /**
-     * Builds a given APK using apktool.
-     *
-     * @param decodedAPKPath The root directory of the decoded APK.
-     * @param outputFile The file path of the resulting APK. If {@code null}
-     *                   is specified, the default location ('dist' directory)
-     *                   and the original APK name is used.
-     */
-    public static void buildAPK(File decodedAPKPath, File outputFile) {
-
-        BuildOptions buildOptions = new BuildOptions();
-        buildOptions.useAapt2 = true;
-        buildOptions.verbose = true;
-        // apkOptions.forceBuildAll = true;
-
-        try {
-            new Androlib(buildOptions).build(new ExtFile(decodedAPKPath), outputFile);
-        } catch (BrutException e) {
-            LOGGER.warn("Failed to build APK file!");
-            LOGGER.warn(e.getMessage());
+        } catch (AndrolibException | IOException | DirectoryException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 

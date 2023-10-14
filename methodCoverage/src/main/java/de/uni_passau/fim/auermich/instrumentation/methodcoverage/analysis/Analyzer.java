@@ -1,14 +1,14 @@
 package de.uni_passau.fim.auermich.instrumentation.methodcoverage.analysis;
 
 
+import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.util.MethodUtil;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto.MethodInformation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.analysis.*;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.util.MethodUtil;
 
 import java.util.*;
 

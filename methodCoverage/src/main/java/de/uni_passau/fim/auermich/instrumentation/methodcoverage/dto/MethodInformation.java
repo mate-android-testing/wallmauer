@@ -1,11 +1,11 @@
 package de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto;
 
-import org.jf.dexlib2.analysis.RegisterType;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.ImmutableMethod;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
 
 import java.util.ArrayList;
 import java.util.List;

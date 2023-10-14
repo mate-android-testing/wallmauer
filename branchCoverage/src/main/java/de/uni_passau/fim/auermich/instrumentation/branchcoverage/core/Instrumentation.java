@@ -1,5 +1,14 @@
 package de.uni_passau.fim.auermich.instrumentation.branchcoverage.core;
 
+import com.android.tools.smali.dexlib2.Opcode;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
+import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
+import com.android.tools.smali.dexlib2.builder.Label;
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
+import com.android.tools.smali.dexlib2.builder.instruction.*;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInformation;
@@ -7,15 +16,6 @@ import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Range;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.RegisterType;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.Label;
-import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
-import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
 import java.util.*;
 import java.util.stream.Collectors;

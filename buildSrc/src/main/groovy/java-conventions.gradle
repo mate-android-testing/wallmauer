@@ -14,15 +14,16 @@ plugins {
 // This could be the organization's private repository
 repositories {
     mavenCentral()
+    google()
 
-    // This seems to be a temporary fix to properly build the JAR. Remove once smali/baksmali/dexlib2 is fetched from
-    // official Google repo, see https://github.com/iBotPeaches/Apktool/pull/2941.
-    maven {
-        url 'https://jitpack.io'
-        content {
-            includeGroup('com.github.iBotPeaches.smali')
-        }
-    }
+//    // This seems to be a temporary fix to properly build the JAR. Remove once smali/baksmali/dexlib2 is fetched from
+//    // official Google repo, see https://github.com/iBotPeaches/Apktool/pull/2941.
+//    maven {
+//        url 'https://jitpack.io'
+//        content {
+//            includeGroup('com.github.iBotPeaches.smali')
+//        }
+//    }
 }
 
 group 'de.uni-passau.fim.auermich.instrumentation'
@@ -62,10 +63,7 @@ dependencies {
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.14.1'
 
     // https://mvnrepository.com/artifact/org.smali/dexlib2
-    implementation group: 'org.smali', name: 'dexlib2', version: '2.5.2'
-
-    // https://mvnrepository.com/artifact/org.apktool/apktool-lib
-    implementation group: 'org.apktool', name: 'apktool-lib', version: '2.7.0'
+    implementation group: 'com.android.tools.smali', name: 'smali-dexlib2', version: '3.0.3'
 
     // https://mvnrepository.com/artifact/com.google.guava/guava
     implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
@@ -74,18 +72,24 @@ dependencies {
     implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
 
     // https://mvnrepository.com/artifact/org.smali/baksmali
-    implementation group: 'org.smali', name: 'baksmali', version: '2.5.2'
+    implementation group: 'com.android.tools.smali', name: 'smali-baksmali', version: '3.0.3'
 
     // https://mvnrepository.com/artifact/org.smali/smali
-    implementation group: 'org.smali', name: 'smali', version: '2.5.2'
+    implementation group: 'com.android.tools.smali', name: 'smali', version: '3.0.3'
+
+    // https://mvnrepository.com/artifact/org.apktool/apktool-lib
+    implementation group: 'org.apktool', name: 'apktool-lib', version: '2.9.0'
 
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
 
-    implementation(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
-        // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2
-        exclude group: 'org.smali', module: 'dexlib2'
-    }
+    // use local multidexlib2 dependency generated with the simple 'jar' task (no external dependency included)
+    implementation name: 'multidexlib2'
+
+//    implementation(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
+//        // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2
+//        exclude group: 'org.smali', module: 'dexlib2'
+//    }
 }
 
 test {

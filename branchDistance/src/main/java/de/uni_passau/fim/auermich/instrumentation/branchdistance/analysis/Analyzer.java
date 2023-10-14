@@ -1,27 +1,27 @@
 package de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis;
 
 
+import com.android.tools.smali.dexlib2.Opcode;
+import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction;
+import com.android.tools.smali.dexlib2.builder.BuilderSwitchPayload;
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21t;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction22t;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction31t;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderSwitchElement;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.ExceptionHandler;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.iface.TryBlock;
+import com.android.tools.smali.dexlib2.util.MethodUtil;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.*;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.BuilderOffsetInstruction;
-import org.jf.dexlib2.builder.BuilderSwitchPayload;
-import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction21t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction22t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction31t;
-import org.jf.dexlib2.builder.instruction.BuilderSwitchElement;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.ExceptionHandler;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.iface.TryBlock;
-import org.jf.dexlib2.util.MethodUtil;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;

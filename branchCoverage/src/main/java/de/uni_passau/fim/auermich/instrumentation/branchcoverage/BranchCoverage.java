@@ -1,5 +1,11 @@
 package de.uni_passau.fim.auermich.instrumentation.branchcoverage;
 
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.analysis.Analyzer;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.core.Instrumentation;
@@ -13,17 +19,10 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.ImmutableClassDef;
-import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -33,7 +32,7 @@ public class BranchCoverage {
     private static final Logger LOGGER = LogManager.getLogger(BranchCoverage.class);
 
     // the path to the APK file
-    public static String apkPath;
+    private static File apkPath;
 
     // the output path of the decoded APK
     public static File decodedAPKPath;
@@ -57,27 +56,41 @@ public class BranchCoverage {
     private static final int MAX_TOTAL_REGISTERS = 255;
 
     /**
-     * Processes the command line arguments. The following arguments are supported:
-     * <p>
-     * 1) the path to the APK file.
+     * Verifies the validity of the command line arguments. The following arguments are supported:
+     *
+     * 1) The path to the APK file.
      * 2) The flag --only-aut to instrument only classes belonging to the app package (optional).
      *
      * @param args The command line arguments.
+     * @return Returns {@code true} if the command line arguments are valid, otherwise {@code false} is returned.
      */
-    private static void handleArguments(String[] args) {
-        assert args.length >= 1 && args.length <= 2;
+    private static boolean handleArguments(String[] args) {
 
-        apkPath = Objects.requireNonNull(args[0]);
-        LOGGER.info("The path to the APK file is: " + apkPath);
+        if (args.length < 1 || args.length > 2) {
+            LOGGER.error("Wrong number of arguments!");
+            return false;
+        }
+
+        // TODO: Add '--debug' command line argument that turns on debug logs.
+
+        apkPath = new File(args[0]);
+        LOGGER.debug("The path to the APK file is: " + apkPath);
+
+        if (!apkPath.exists() || !apkPath.getName().endsWith(".apk")) {
+            LOGGER.error("The input APK does not exist or the specified path does not refer to an APK file!");
+            return false;
+        }
 
         if (args.length == 2) {
             if (args[1].equals("--only-aut")) {
-                LOGGER.info("Only instrumenting classes belonging to the app package!");
+                LOGGER.debug("Only instrumenting classes belonging to the app package!");
                 onlyInstrumentAUTClasses = true;
             } else {
-                LOGGER.info("Argument " + args[1] + " not recognized!");
+                LOGGER.warn("Argument " + args[1] + " not recognized!");
             }
         }
+
+        return true;
     }
 
     /**
@@ -90,25 +103,24 @@ public class BranchCoverage {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
-        if (args.length < 1 || args.length > 2) {
-            LOGGER.info("Wrong number of arguments!");
-            LOGGER.info("Usage: java -jar branchCoverage.jar <path to the APK file> --only-aut (optional)");
+        if (!handleArguments(args)) {
+            LOGGER.info("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
         } else {
 
-            // process command line arguments
-            handleArguments(args);
-
-            // the APK file
-            File apkFile = new File(apkPath);
+            long start = System.currentTimeMillis();
 
             // decode the APK file
-            decodedAPKPath = Utility.decodeAPK(apkFile);
+            decodedAPKPath = Utility.decodeAPK(apkPath);
+
+            if (decodedAPKPath == null) {
+                LOGGER.error("Failed to decode APK file!");
+                return;
+            }
 
             ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
 
             // retrieve package name and main activity
             if (!manifest.parseManifest()) {
-                LOGGER.warn("Couldn't retrieve MainActivity and/or PackageName!");
                 return;
             }
 
@@ -130,19 +142,19 @@ public class BranchCoverage {
             if (!manifest.addBroadcastReceiverTag(
                     "de.uni_passau.fim.auermich.tracer.Tracer",
                     "STORE_TRACES")) {
-                LOGGER.warn("Couldn't insert broadcast receiver tag!");
+                LOGGER.error("Couldn't insert broadcast receiver tag!");
                 return;
             }
 
             // mark app debuggable
-            if (!manifest.addApplicationAttribute("android:debuggable", true)) {
-                LOGGER.warn("Couldn't mark app debuggable!");
+            if (!manifest.addApplicationAttribute("debuggable", true)) {
+                LOGGER.error("Couldn't mark app debuggable!");
                 return;
             }
 
             // only for API 29
-            if (!manifest.addApplicationAttribute("android:requestLegacyExternalStorage", true)) {
-                LOGGER.warn("Couldn't add requestLegacyExternalStorage attribute!");
+            if (!manifest.addApplicationAttribute("requestLegacyExternalStorage", true)) {
+                LOGGER.error("Couldn't add requestLegacyExternalStorage attribute!");
                 return;
             }
 
@@ -150,15 +162,15 @@ public class BranchCoverage {
             if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")
                     || !manifest.addPermissionTag("android.permission.READ_EXTERNAL_STORAGE")
                     || !manifest.addPermissionTag("android.permission.MANAGE_EXTERNAL_STORAGE")) {
-                LOGGER.warn("Couldn't add read/write/manage permission for external storage!");
+                LOGGER.error("Couldn't add read/write/manage permission for external storage!");
                 return;
             }
 
-            // the output name of the APK
-            File outputAPKFile = new File(apkPath.replace(".apk", "-instrumented.apk"));
+            // the name of the instrumented APK
+            File outputAPKFile = new File(apkPath.getParentFile(), manifest.getPackageName() + "-instrumented.apk");
 
-            // build the APK to the
-            Utility.buildAPK(decodedAPKPath, outputAPKFile);
+            // build the instrumented APK together
+            boolean builtAPK = Utility.buildAPK(decodedAPKPath, outputAPKFile);
 
             // remove the decoded APK files
             try {
@@ -166,6 +178,14 @@ public class BranchCoverage {
             } catch (IOException e) {
                 LOGGER.warn("Couldn't delete directory " + decodedAPKPath + " properly!");
             }
+
+            if (!builtAPK) {
+                LOGGER.error("Failed to build APK file!");
+                return;
+            }
+
+            long end = System.currentTimeMillis();
+            LOGGER.info("Instrumenting the app took: " + ((end - start) / 1000) + "s");
         }
     }
 

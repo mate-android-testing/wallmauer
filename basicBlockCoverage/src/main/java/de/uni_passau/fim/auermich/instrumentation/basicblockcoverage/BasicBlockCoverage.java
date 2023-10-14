@@ -1,5 +1,11 @@
 package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage;
 
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.analysis.Analyzer;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core.Instrumentation;
@@ -13,12 +19,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.ImmutableClassDef;
-import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import java.io.File;
 import java.io.IOException;

@@ -1,13 +1,13 @@
 package de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto;
 
+import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Range;
-import org.jf.dexlib2.analysis.*;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
 
 import java.util.*;
 
