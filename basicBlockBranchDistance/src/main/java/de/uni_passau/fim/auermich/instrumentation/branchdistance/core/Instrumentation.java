@@ -236,7 +236,7 @@ public final class Instrumentation {
 
             if (!opcodes.contains(instruction.getOpcode())) {
                 // valid position for new label after instruction (hence + 1)
-                LOGGER.info("Position of new label: " + instruction.getLocation().getIndex() + 1);
+                LOGGER.debug("Position of new label: " + instruction.getLocation().getIndex() + 1);
                 return instruction.getLocation().getIndex() + 1;
             }
         }
@@ -251,12 +251,12 @@ public final class Instrumentation {
      */
     public static void modifyMethod(MethodInformation methodInformation) {
 
-        LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
         Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
 
-        LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         final TreeSet<InstrumentationPoint> instrumentationPoints
                 = new TreeSet<>(methodInformation.getIfAndSwitchInstrumentationPoints());
@@ -308,9 +308,9 @@ public final class Instrumentation {
 
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
 
-            LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
-            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            LOGGER.debug("Method: " + methodInformation.getMethodID());
+            LOGGER.debug("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.debug("RegisterA: " + registerA + "[" + registerTypeA + "]");
 
             // check whether we deal with primitive or object types
             if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
@@ -328,10 +328,10 @@ public final class Instrumentation {
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
             RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
 
-            LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
-            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
-            LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
+            LOGGER.debug("Method: " + methodInformation.getMethodID());
+            LOGGER.debug("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.debug("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            LOGGER.debug("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
             Set<Byte> referenceTypes = new HashSet<>() {{
                 add(RegisterType.REFERENCE);
@@ -1012,7 +1012,7 @@ public final class Instrumentation {
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
         Map<Integer, RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
-        LOGGER.info(paramRegisterMap.toString());
+        LOGGER.debug(paramRegisterMap.toString());
 
         List<Integer> newRegisters = methodInformation.getNewRegisters();
         List<Integer> paramRegisters = methodInformation.getParamRegisters();
@@ -1028,10 +1028,10 @@ public final class Instrumentation {
         List<Integer> sourceRegisters =
                 paramRegisters.stream().map(elem -> elem + BasicBlockBranchDistance.ADDITIONAL_REGISTERS).collect(Collectors.toList());
 
-        LOGGER.info("New Registers: " + newRegisters);
-        LOGGER.info("Parameter Registers: " + paramRegisters);
-        LOGGER.info("Destination Registers: " + destinationRegisters);
-        LOGGER.info("Source Registers: " + sourceRegisters);
+        LOGGER.debug("New Registers: " + newRegisters);
+        LOGGER.debug("Parameter Registers: " + paramRegisters);
+        LOGGER.debug("Destination Registers: " + destinationRegisters);
+        LOGGER.debug("Source Registers: " + sourceRegisters);
 
         // we need a separate counter for the insertion location of the instructions,
         // since we skip indices when facing wide types
@@ -1049,7 +1049,7 @@ public final class Instrumentation {
 
                 Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
 
-                LOGGER.info("Wide type LOW_HALF!");
+                LOGGER.debug("Wide type LOW_HALF!");
 
                 // destination register : {vnew0,vnew1,p0...pn}\{pn-1,pn}
                 int destinationRegisterID = destinationRegisters.get(index);
@@ -1057,8 +1057,8 @@ public final class Instrumentation {
                 // source register : p0...pN
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
@@ -1068,11 +1068,11 @@ public final class Instrumentation {
             } else if (registerType == RegisterType.LONG_HI_TYPE
                     || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
-                LOGGER.info("Wide type HIGH_HALF!");
+                LOGGER.debug("Wide type HIGH_HALF!");
 
                 // we reached the upper half of a wide-type, no additional move instruction necessary
-                LOGGER.info("(Skipping) source reg:" + sourceRegisters.get(index));
-                LOGGER.info("(Skipping) destination reg: " + destinationRegisters.get(index));
+                LOGGER.debug("(Skipping) source reg:" + sourceRegisters.get(index));
+                LOGGER.debug("(Skipping) destination reg: " + destinationRegisters.get(index));
                 continue;
             } else if (registerType.category == RegisterType.REFERENCE
                     || registerType.category == RegisterType.NULL
@@ -1082,13 +1082,13 @@ public final class Instrumentation {
                 // object type
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
 
-                LOGGER.info("Object type!");
+                LOGGER.debug("Object type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);
@@ -1127,7 +1127,7 @@ public final class Instrumentation {
                      *             conflicted which means the register has to be written to (thus overwriting our 0)
                      *             before it can be read from.
                      */
-                    LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
+                    LOGGER.debug("Conflicted type: " + sourceRegisters.get(index));
 
                     if (sourceRegisters.get(index) < 16) {
                         // CONST_4 is sufficient
@@ -1147,13 +1147,13 @@ public final class Instrumentation {
                 // primitive type
                 Opcode movePrimitive = Opcode.MOVE_FROM16;
 
-                LOGGER.info("Primitive type!");
+                LOGGER.debug("Primitive type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);
@@ -1184,7 +1184,7 @@ public final class Instrumentation {
                 if (m.toString().endsWith(method)) {
                     if (Arrays.stream(AccessFlags.getAccessFlagsForMethod(m.getAccessFlags()))
                             .anyMatch(flag -> flag == AccessFlags.FINAL)) {
-                        LOGGER.info("Can't add lifecycle method " + method
+                        LOGGER.debug("Can't add lifecycle method " + method
                                 + " because the method is declared final in the super class " + superClass + "!");
                         return null;
                     }

@@ -284,7 +284,7 @@ public final class Utility {
         InputStream inputStream = classLoader.getResourceAsStream(EXCLUSION_PATTERN_FILE);
 
         if (inputStream == null) {
-            LOGGER.info("Couldn't find exclusion file!");
+            LOGGER.debug("Couldn't find exclusion file!");
             return null;
         }
 

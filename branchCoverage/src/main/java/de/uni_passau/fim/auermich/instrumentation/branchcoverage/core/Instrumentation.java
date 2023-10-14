@@ -75,7 +75,7 @@ public final class Instrumentation {
          */
         boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
         if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
-            LOGGER.info("Instrumentation point coincides with move-exception instruction!");
+            LOGGER.debug("Instrumentation point coincides with move-exception instruction!");
             index++;
             // reset because we want to directly insert our code after the move exception instruction
             swapInstructions = false;
@@ -140,8 +140,8 @@ public final class Instrumentation {
             * Automated Black-box Android Testing', see section 4.3.
              */
 
-            LOGGER.info("Instrumentation point within try block!");
-            LOGGER.info("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
+            LOGGER.debug("Instrumentation point within try block!");
+            LOGGER.debug("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
                     "(" + instrumentationPoint.getPosition() + ")");
 
             /*
@@ -401,7 +401,7 @@ public final class Instrumentation {
                      *             conflicted which means the register has to be written to (thus overwriting our 0)
                      *             before it can be read from.
                      */
-                    LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
+                    LOGGER.debug("Conflicted type: " + sourceRegisters.get(index));
 
                     if (sourceRegisters.get(index) < 16) {
                         // CONST_4 is sufficient

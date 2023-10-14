@@ -196,9 +196,9 @@ public class MethodCoverage {
      */
     private static void instrument(final DexFile dexFile, final String packageName) throws IOException {
 
-        LOGGER.info("Starting Instrumentation of App!");
-        LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
-        LOGGER.info("Package Name: " + packageName);
+        LOGGER.debug("Starting Instrumentation of App!");
+        LOGGER.debug("Dex version: " + dexFile.getOpcodes().api);
+        LOGGER.debug("Package Name: " + packageName);
 
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
@@ -230,7 +230,7 @@ public class MethodCoverage {
 
         // if only classes belonging to the app package should be instrumented
         if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
-            LOGGER.info("Excluding class: " + className + " from instrumentation!");
+            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
             return classDef;
         }
 
@@ -238,7 +238,7 @@ public class MethodCoverage {
         if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
                 || Utility.isResourceClass(classDef)
                 || Utility.isBuildConfigClass(classDef)) {
-            LOGGER.info("Excluding class: " + className + " from instrumentation!");
+            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
             return classDef;
         }
 
@@ -287,7 +287,7 @@ public class MethodCoverage {
          */
         if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
-            LOGGER.info("Instrumenting method " + method + " of class " + classDef);
+            LOGGER.debug("Instrumenting method " + method + " of class " + classDef);
 
             // determine the new local registers and free register IDs
             Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
@@ -310,7 +310,7 @@ public class MethodCoverage {
             }
         } else {
             // not possible to instrument method -> leave unchanged
-            LOGGER.info("Couldn't instrument method: " + method);
+            LOGGER.debug("Couldn't instrument method: " + method);
         }
         return methodInformation;
     }
