@@ -144,6 +144,13 @@ public final class Instrumentation {
             LOGGER.info("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
                     "(" + instrumentationPoint.getPosition() + ")");
 
+            /*
+             * There is actually a limit for the branch offset used in if and goto instruction, see:
+             *   https://github.com/JesusFreke/smali/issues/469
+             * We should not be affected by this limitation as we only insert goto instructions within try blocks and
+             * using goto/32 allows to address an branch offset up to 2^32.
+             */
+
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
