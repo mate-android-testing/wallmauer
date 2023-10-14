@@ -468,7 +468,7 @@ public final class Utility {
             }
         };
 
-        MultiDexIO.writeDexFile(true, filePath, new BasicDexFileNamer(),
+        MultiDexIO.writeDexFile(true, 0, filePath, new BasicDexFileNamer(),
                 dexFile, DexIO.DEFAULT_MAX_DEX_POOL_SIZE, null);
     }
 
