@@ -395,9 +395,19 @@ public final class Instrumentation {
                      *             before it can be read from.
                      */
                     LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
-                    final BuilderInstruction11n constZero
-                            = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
-                    mutableMethodImplementation.addInstruction(pos, constZero);
+
+                    if (sourceRegisters.get(index) < 16) {
+                        // CONST_4 is sufficient
+                        final BuilderInstruction11n setZero
+                                = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    } else {
+                        // CONST_4 can only handle v0-v15, thus use regular CONST instruction with support up to v255
+                        final BuilderInstruction31i setZero
+                                = new BuilderInstruction31i(Opcode.CONST, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    }
+
                     pos++;
                 }
 

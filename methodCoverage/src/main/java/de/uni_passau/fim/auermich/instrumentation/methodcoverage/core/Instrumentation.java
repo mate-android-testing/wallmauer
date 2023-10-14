@@ -3,10 +3,7 @@ package de.uni_passau.fim.auermich.instrumentation.methodcoverage.core;
 import com.android.tools.smali.dexlib2.Opcode;
 import com.android.tools.smali.dexlib2.analysis.RegisterType;
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
-import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction11n;
-import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21c;
-import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction22x;
-import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction3rc;
+import com.android.tools.smali.dexlib2.builder.instruction.*;
 import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
@@ -199,9 +196,19 @@ public final class Instrumentation {
                      *             before it can be read from.
                      */
                     LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
-                    final BuilderInstruction11n constZero
-                            = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
-                    mutableMethodImplementation.addInstruction(pos, constZero);
+
+                    if (sourceRegisters.get(index) < 16) {
+                        // CONST_4 is sufficient
+                        final BuilderInstruction11n setZero
+                                = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    } else {
+                        // CONST_4 can only handle v0-v15, thus use regular CONST instruction with support up to v255
+                        final BuilderInstruction31i setZero
+                                = new BuilderInstruction31i(Opcode.CONST, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    }
+
                     pos++;
                 }
 
