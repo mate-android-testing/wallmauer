@@ -1,4 +1,2 @@
 twitter4j.*
 com.facebook.*
-com.appbrain.*
-
