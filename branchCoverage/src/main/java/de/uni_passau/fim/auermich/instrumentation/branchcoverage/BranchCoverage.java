@@ -136,7 +136,7 @@ public class BranchCoverage {
             DexFile mergedDex = MultiDexIO.readDexFile(true, decodedAPKPath,
                     new BasicDexFileNamer(), null, null);
 
-            instrument(mergedDex, manifest.getPackageName());
+            instrument(mergedDex, manifest.getPackageName(), manifest.getMainActivity());
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
@@ -194,9 +194,10 @@ public class BranchCoverage {
      *
      * @param dexFile The dexFile containing the classes and methods.
      * @param packageName The package name of the app.
+     * @param mainActivity The name of the main activity or {@code null} if no main activity is declared in the manifest.
      * @throws IOException Should never happen.
      */
-    private static void instrument(final DexFile dexFile, final String packageName) throws IOException {
+    private static void instrument(final DexFile dexFile, final String packageName, final String mainActivity) throws IOException {
 
         LOGGER.debug("Starting instrumentation of app: " + packageName);
         LOGGER.debug("Dex version: " + dexFile.getOpcodes().api);
@@ -204,8 +205,11 @@ public class BranchCoverage {
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
 
+        final String mainActivityPackage = mainActivity != null
+                ? mainActivity.substring(0, mainActivity.lastIndexOf('.')) : null;
+
         List<ClassDef> instrumentedClasses = dexFile.getClasses().parallelStream()
-                .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
+                .map(classDef -> instrumentClass(dexFile, classDef, packageName, mainActivityPackage, exclusionPattern))
                 .collect(Collectors.toList());
 
         // insert tracer
@@ -221,16 +225,18 @@ public class BranchCoverage {
      * @param dexFile The dex file containing the class.
      * @param classDef The class to be instrumented.
      * @param packageName The package name of the app.
+     * @param mainActivityPackage The package name of the main activity.
      * @param exclusionPattern A pattern of classes that should be excluded from the instrumentation process.
      * @return Returns the instrumented class.
      */
-    private static ClassDef instrumentClass(DexFile dexFile, ClassDef classDef, String packageName, Pattern exclusionPattern) {
+    private static ClassDef instrumentClass(DexFile dexFile, ClassDef classDef, String packageName,
+                                            String mainActivityPackage, Pattern exclusionPattern) {
 
         // the class name is part of the method id
         String className = Utility.dottedClassName(classDef.getType());
 
         // if only classes belonging to the app package should be instrumented
-        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
+        if (onlyInstrumentAUTClasses && (!className.startsWith(packageName) && !className.startsWith(mainActivityPackage))) {
             LOGGER.debug("Excluding class: " + className + " from instrumentation!");
             return classDef;
         }

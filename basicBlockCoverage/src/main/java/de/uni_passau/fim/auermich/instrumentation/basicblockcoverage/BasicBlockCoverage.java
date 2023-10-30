@@ -194,6 +194,7 @@ public class BasicBlockCoverage {
      *
      * @param dexFile The dexFile containing the classes and methods.
      * @param packageName The package name of the app.
+     * @param mainActivity The name of the main activity or {@code null} if no main activity is declared in the manifest.
      * @throws IOException Should never happen.
      */
     private static void instrument(final DexFile dexFile, final String packageName, final String mainActivity) throws IOException {
@@ -224,6 +225,7 @@ public class BasicBlockCoverage {
      * @param dexFile The dex file containing the class.
      * @param classDef The class to be instrumented.
      * @param packageName The package name of the app.
+     * @param mainActivityPackage The package name of the main activity.
      * @param exclusionPattern A pattern of classes that should be excluded from the instrumentation process.
      * @return Returns the instrumented class.
      */
