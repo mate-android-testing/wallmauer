@@ -807,7 +807,7 @@
     move v7, v8
 
     :goto_9
-    if-ge v7, v9, :cond_59
+    if-ge v7, v9, :cond_5b
 
     aget-object v1, v2, v7
 
@@ -854,13 +854,15 @@
 
     .line 486
     :cond_2a
-    const-string v10, "->switch->"
+    const-string v10, "->"
 
-    invoke-virtual {p0, v10}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+    invoke-virtual {p0, v10}, Ljava/lang/String;->lastIndexOf(Ljava/lang/String;)I
 
-    move-result-object v10
+    move-result v10
 
-    aget-object v6, v10, v8
+    invoke-virtual {p0, v8, v10}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+
+    move-result-object v6
 
     .line 487
     .local v6, "tracePrefix":Ljava/lang/String;
@@ -872,7 +874,7 @@
 
     move-result-object v10
 
-    const-string v11, "->switch->"
+    const-string v11, "->"
 
     invoke-virtual {v10, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -912,7 +914,7 @@
     .end local v4    # "caseValue":I
     .end local v5    # "traceCase":Ljava/lang/String;
     .end local v6    # "tracePrefix":Ljava/lang/String;
-    :cond_59
+    :cond_5b
     return-void
 .end method
 

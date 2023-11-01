@@ -483,8 +483,8 @@ public class Tracer extends BroadcastReceiver {
                 branchDistance = 0;
             }
 
-            final String tracePrefix = trace.split("->switch->")[0];
-            final String traceCase = tracePrefix + "->switch->" + casePosition + ":" + branchDistance;
+            final String tracePrefix = trace.substring(0, trace.lastIndexOf("->"));
+            final String traceCase = tracePrefix + "->" + casePosition + ":" + branchDistance;
             trace(traceCase);
         }
     }

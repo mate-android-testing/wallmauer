@@ -45,9 +45,9 @@ public final class Instrumentation {
     /**
      * Instruments the given basic block with the tracer functionality.
      *
-     * @param methodInformation    Stores all relevant information about the given method.
+     * @param methodInformation Stores all relevant information about the given method.
      * @param instrumentationPoint Describes the position of the basic block.
-     * @param trace                The trace which which should be logged every time the basic block is executed.
+     * @param trace The trace which which should be logged every time the basic block is executed.
      * @return Returns the instrumented method implementation.
      */
     private static MutableMethodImplementation insertInstrumentationCode(final MethodInformation methodInformation,
@@ -289,7 +289,7 @@ public final class Instrumentation {
     /**
      * Inserts instructions before every if stmt in order to invoke the branch distance computation.
      *
-     * @param methodInformation    Encapsulates the method.
+     * @param methodInformation Encapsulates the method.
      * @param instrumentationPoint Encapsulates information about the if stmt.
      */
     private static void computeBranchDistanceIf(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
@@ -351,7 +351,7 @@ public final class Instrumentation {
     /**
      * Inserts instructions before every switch stmt in order to invoke the branch distance computation.
      *
-     * @param methodInformation    Encapsulates the method.
+     * @param methodInformation Encapsulates the method.
      * @param instrumentationPoint Encapsulates information about the switch stmt.
      */
     private static void computeBranchDistanceSwitch(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
@@ -364,9 +364,7 @@ public final class Instrumentation {
 
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
 
-        // TODO: Unify the branch distance trace between if and switch statements such that we can pick any in case of
-        //  a shared branch/case! That would allow us to pick the minimum of both.
-        final String trace = methodInformation.getMethodID() + "->switch->" + instrumentationPoint.getPosition();
+        final String trace = methodInformation.getMethodID() + "->" + instrumentationPoint.getPosition();
 
         LOGGER.debug("Switch statement: " + trace);
 
@@ -522,10 +520,10 @@ public final class Instrumentation {
      * Inserts code to invoke the branch distance computation for an if statement that has
      * a single primitive argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, int argument)'.
      *
-     * @param methodInformation    Encapsulates a method.
+     * @param methodInformation Encapsulates a method.
      * @param instrumentationPoint Wrapper for if instruction and its index.
-     * @param operation            The operation id, e.g. 0 for if-eqz.
-     * @param registerA            The register id of the argument register.
+     * @param operation The operation id, e.g. 0 for if-eqz.
+     * @param registerA The register id of the argument register.
      */
     private static void handlePrimitiveUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                        int operation, int registerA) {
@@ -628,11 +626,11 @@ public final class Instrumentation {
      * two primitive arguments, e.g. if-eq v0, v1. We simply call '
      * branchDistance(int op_type, int argument1, int argument2)'.
      *
-     * @param methodInformation    Encapsulates a method.
+     * @param methodInformation Encapsulates a method.
      * @param instrumentationPoint Wrapper for if instruction and its index.
-     * @param operation            The operation id, e.g. 0 for if-eq v0, v1.
-     * @param registerA            The register id of the first argument register.
-     * @param registerB            The register id of the second argument register.
+     * @param operation The operation id, e.g. 0 for if-eq v0, v1.
+     * @param registerA The register id of the first argument register.
+     * @param registerB The register id of the second argument register.
      */
     private static void handlePrimitiveBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                         int operation, int registerA, int registerB) {
@@ -744,10 +742,10 @@ public final class Instrumentation {
      * Inserts code to invoke the branch distance computation for an if statement that has
      * a single object argument, e.g. if-eqz v0. We simply call 'branchDistance(int op_type, Object argument)'.
      *
-     * @param methodInformation    Encapsulates a method.
+     * @param methodInformation Encapsulates a method.
      * @param instrumentationPoint Wrapper for if instruction and its index.
-     * @param operation            The operation id, e.g. 0 for if-eqz.
-     * @param registerA            The register id of the argument register.
+     * @param operation The operation id, e.g. 0 for if-eqz.
+     * @param registerA The register id of the argument register.
      */
     private static void handleObjectUnaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                     int operation, int registerA) {
@@ -850,11 +848,11 @@ public final class Instrumentation {
      * two object arguments, e.g. if-eq v0, v1. We simply call '
      * branchDistance(int op_type, Object argument1, Object argument2)'.
      *
-     * @param methodInformation    Encapsulates a method.
+     * @param methodInformation Encapsulates a method.
      * @param instrumentationPoint Wrapper for if instruction and its index.
-     * @param operation            The operation id, e.g. 0 for if-eq v0, v1.
-     * @param registerA            The register id of the first argument register.
-     * @param registerB            The register id of the second argument register.
+     * @param operation The operation id, e.g. 0 for if-eq v0, v1.
+     * @param registerA The register id of the first argument register.
+     * @param registerB The register id of the second argument register.
      */
     private static void handleObjectBinaryComparison(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint,
                                                      int operation, int registerA, int registerB) {
@@ -1168,7 +1166,7 @@ public final class Instrumentation {
      * Adds a basic lifecycle method to the given activity or fragment class. This already includes the instrumentation
      * of the method.
      *
-     * @param method   The lifecycle method name.
+     * @param method The lifecycle method name.
      * @param classDef The activity or fragment class.
      * @param superClasses The super classes of the activity or fragment class.
      * @return Returns the instrumented lifecycle method or {@code null} if the lifecycle method couldn't be instrumented.
@@ -1251,11 +1249,11 @@ public final class Instrumentation {
 
         Utility.writeBasicBlockForLifecycleMethod(trace);
 
-        implementation.addInstruction(0,new BuilderInstruction21c(Opcode.CONST_STRING, 0,
+        implementation.addInstruction(0, new BuilderInstruction21c(Opcode.CONST_STRING, 0,
                 new ImmutableStringReference(trace)));
 
         // invoke-static-range
-        implementation.addInstruction(1,new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
+        implementation.addInstruction(1, new BuilderInstruction3rc(Opcode.INVOKE_STATIC_RANGE,
                 0, 1,
                 new ImmutableMethodReference(TRACER, "trace",
                         Lists.newArrayList("Ljava/lang/String;"), "V")));
