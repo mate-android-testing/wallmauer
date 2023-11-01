@@ -385,11 +385,12 @@ public final class Instrumentation {
         BuilderSwitchPayload switchPayloadInstruction = (BuilderSwitchPayload) instrumentationPoint.getPayloadInstruction();
 
         // get the register where the switch value is residing
-        int registerA = switchInstruction.getRegisterA();
+        int switchValueRegister = switchInstruction.getRegisterA();
 
         // we need to move the content of the switch instruction to the second free register
         // this enables us to use it with the invoke-static range instruction
-        BuilderInstruction32x moveA = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, registerA);
+        BuilderInstruction32x moveSwitchValueRegister
+                = new BuilderInstruction32x(Opcode.MOVE_16, secondFreeRegister, switchValueRegister);
 
         // concatenate the case values and their positions
         final StringBuilder builder = new StringBuilder();
@@ -455,7 +456,7 @@ public final class Instrumentation {
             Label branchLabel = mutableMethodImplementation.newLabelForIndex(instructionIndex + 1);
 
             // insert tracer functionality at label near method end (+1 because we inserted already goto instruction at branch)
-            mutableMethodImplementation.addInstruction(++afterLastInstruction, moveA);
+            mutableMethodImplementation.addInstruction(++afterLastInstruction, moveSwitchValueRegister);
             mutableMethodImplementation.addInstruction(++afterLastInstruction, traceConst);
             mutableMethodImplementation.addInstruction(++afterLastInstruction, casesConst);
 
@@ -485,7 +486,7 @@ public final class Instrumentation {
             // a potential label issue. Otherwise, the instructions would appear before the label attached to the switch.
             int originalIndex = instructionIndex;
 
-            mutableMethodImplementation.addInstruction(++instructionIndex, moveA);
+            mutableMethodImplementation.addInstruction(++instructionIndex, moveSwitchValueRegister);
             mutableMethodImplementation.addInstruction(++instructionIndex, traceConst);
             mutableMethodImplementation.addInstruction(++instructionIndex, casesConst);
 
