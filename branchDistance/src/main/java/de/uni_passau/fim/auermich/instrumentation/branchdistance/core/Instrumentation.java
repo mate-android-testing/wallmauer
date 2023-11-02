@@ -429,8 +429,8 @@ public final class Instrumentation {
             }
         }
 
-        instrumentMethodEntry(methodInformation, dexFile);
-        instrumentMethodExit(methodInformation);
+        // instrumentMethodEntry(methodInformation, dexFile);
+        // instrumentMethodExit(methodInformation);
         // instrumentTryCatchBlocks(methodInformation);
     }
 

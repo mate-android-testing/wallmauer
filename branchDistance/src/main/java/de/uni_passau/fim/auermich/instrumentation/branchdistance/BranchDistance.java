@@ -266,13 +266,13 @@ public class BranchDistance {
          * We add a dummy implementation for missing activity/fragment lifecycle methods in order to get traces for
          * those methods. Otherwise, the graph lacks markings for those lifecycle methods.
          */
-        if (Utility.isActivity(dexFile.getClasses(), classDef)) {
-            Set<String> activityLifeCycleMethods = Utility.getActivityLifeCycleMethods();
-            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, activityLifeCycleMethods));
-        } else if (Utility.isFragment(dexFile.getClasses(), classDef)) {
-            Set<String> fragmentLifeCycleMethods = Utility.getFragmentLifeCycleMethods();
-            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, fragmentLifeCycleMethods));
-        }
+//        if (Utility.isActivity(dexFile.getClasses(), classDef)) {
+//            Set<String> activityLifeCycleMethods = Utility.getActivityLifeCycleMethods();
+//            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, activityLifeCycleMethods));
+//        } else if (Utility.isFragment(dexFile.getClasses(), classDef)) {
+//            Set<String> fragmentLifeCycleMethods = Utility.getFragmentLifeCycleMethods();
+//            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, fragmentLifeCycleMethods));
+//        }
 
         return new ImmutableClassDef(
                 classDef.getType(),
@@ -328,10 +328,10 @@ public class BranchDistance {
             methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
             // determine the method entry points
-            methodInformation.setMethodEntries(Analyzer.trackMethodEntries(methodInformation, dexFile));
+            // methodInformation.setMethodEntries(Analyzer.trackMethodEntries(methodInformation, dexFile));
 
             // determine the method exit points
-            methodInformation.setMethodExits(Analyzer.trackMethodExits(methodInformation));
+            // methodInformation.setMethodExits(Analyzer.trackMethodExits(methodInformation));
 
             // determine the location of try blocks
             methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
