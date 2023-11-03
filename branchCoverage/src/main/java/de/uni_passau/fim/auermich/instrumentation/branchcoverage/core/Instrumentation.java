@@ -1,5 +1,14 @@
 package de.uni_passau.fim.auermich.instrumentation.branchcoverage.core;
 
+import com.android.tools.smali.dexlib2.Opcode;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
+import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
+import com.android.tools.smali.dexlib2.builder.Label;
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
+import com.android.tools.smali.dexlib2.builder.instruction.*;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInformation;
@@ -7,15 +16,6 @@ import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Range;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.RegisterType;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.Label;
-import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
-import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -75,7 +75,7 @@ public final class Instrumentation {
          */
         boolean swapInstructions = instrumentationPoint.isAttachedToLabel();
         if (instrumentationPoint.getInstruction().getOpcode() == Opcode.MOVE_EXCEPTION) {
-            LOGGER.info("Instrumentation point coincides with move-exception instruction!");
+            LOGGER.debug("Instrumentation point coincides with move-exception instruction!");
             index++;
             // reset because we want to directly insert our code after the move exception instruction
             swapInstructions = false;
@@ -140,9 +140,16 @@ public final class Instrumentation {
             * Automated Black-box Android Testing', see section 4.3.
              */
 
-            LOGGER.info("Instrumentation point within try block!");
-            LOGGER.info("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
+            LOGGER.debug("Instrumentation point within try block!");
+            LOGGER.debug("Instrumentation point: " + instrumentationPoint.getInstruction().getOpcode() +
                     "(" + instrumentationPoint.getPosition() + ")");
+
+            /*
+             * There is actually a limit for the branch offset used in if and goto instruction, see:
+             *   https://github.com/JesusFreke/smali/issues/469
+             * We should not be affected by this limitation as we only insert goto instructions within try blocks and
+             * using goto/32 allows to address an branch offset up to 2^32.
+             */
 
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
@@ -394,10 +401,20 @@ public final class Instrumentation {
                      *             conflicted which means the register has to be written to (thus overwriting our 0)
                      *             before it can be read from.
                      */
-                    LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
-                    final BuilderInstruction11n constZero
-                            = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
-                    mutableMethodImplementation.addInstruction(pos, constZero);
+                    LOGGER.debug("Conflicted type: " + sourceRegisters.get(index));
+
+                    if (sourceRegisters.get(index) < 16) {
+                        // CONST_4 is sufficient
+                        final BuilderInstruction11n setZero
+                                = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    } else {
+                        // CONST_4 can only handle v0-v15, thus use regular CONST instruction with support up to v255
+                        final BuilderInstruction31i setZero
+                                = new BuilderInstruction31i(Opcode.CONST, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    }
+
                     pos++;
                 }
 

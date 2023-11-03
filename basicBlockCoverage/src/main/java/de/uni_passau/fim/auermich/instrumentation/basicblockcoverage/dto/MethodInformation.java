@@ -1,13 +1,13 @@
 package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto;
 
+import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Range;
-import org.jf.dexlib2.analysis.*;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
 
 import java.util.*;
 
@@ -61,15 +61,6 @@ public class MethodInformation {
 
     public int getInitialInstructionCount() {
         return initialInstructionCount;
-    }
-
-    public AnalyzedInstruction getInstructionAtIndex(int index) {
-
-        MethodAnalyzer analyzer = new MethodAnalyzer(new ClassPath(Lists.newArrayList(new DexClassProvider(dexFile)),
-                true, ClassPath.NOT_ART), method,
-                null, false);
-
-        return analyzer.getAnalyzedInstructions().get(index);
     }
 
     public List<AnalyzedInstruction> getInstructions() {

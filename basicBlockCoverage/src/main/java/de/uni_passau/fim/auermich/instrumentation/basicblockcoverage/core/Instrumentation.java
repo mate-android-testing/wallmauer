@@ -1,5 +1,14 @@
 package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core;
 
+import com.android.tools.smali.dexlib2.Opcode;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
+import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
+import com.android.tools.smali.dexlib2.builder.Label;
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
+import com.android.tools.smali.dexlib2.builder.instruction.*;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.BasicBlockCoverage;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto.MethodInformation;
@@ -7,15 +16,6 @@ import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Ran
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Utility;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.RegisterType;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.Label;
-import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
-import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -144,6 +144,13 @@ public final class Instrumentation {
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
+            /*
+            * There is actually a limit for the branch offset used in if and goto instructions, see:
+            *   https://github.com/JesusFreke/smali/issues/469
+            * We should not be affected by this limitation as we only insert goto instructions within try blocks and
+            * using goto/32 allows to address an branch offset of up to 2^32.
+             */
+
             // insert goto to jump to method end
             Label tracerLabel = mutableMethodImplementation.newLabelForIndex(afterLastInstruction);
             BuilderInstruction jumpForward = new BuilderInstruction30t(Opcode.GOTO_32, tracerLabel);
@@ -219,7 +226,7 @@ public final class Instrumentation {
 
             if (!opcodes.contains(instruction.getOpcode())) {
                 // valid position for new label after instruction (hence + 1)
-                LOGGER.info("Position of new label: " + instruction.getLocation().getIndex() + 1);
+                LOGGER.debug("Position of new label: " + instruction.getLocation().getIndex() + 1);
                 return instruction.getLocation().getIndex() + 1;
             }
         }
@@ -234,12 +241,12 @@ public final class Instrumentation {
      */
     public static void modifyMethod(MethodInformation methodInformation) {
 
-        LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
         Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
 
-        LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         TreeSet<InstrumentationPoint> instrumentationPoints
                 = (TreeSet<InstrumentationPoint>) methodInformation.getInstrumentationPoints();
@@ -276,7 +283,7 @@ public final class Instrumentation {
         MutableMethodImplementation mutableMethodImplementation = new MutableMethodImplementation(methodImplementation);
 
         Map<Integer, RegisterType> paramRegisterMap = methodInformation.getParamRegisterTypeMap().get();
-        LOGGER.info(paramRegisterMap.toString());
+        LOGGER.debug(paramRegisterMap.toString());
 
         List<Integer> newRegisters = methodInformation.getNewRegisters();
         List<Integer> paramRegisters = methodInformation.getParamRegisters();
@@ -292,10 +299,10 @@ public final class Instrumentation {
         List<Integer> sourceRegisters =
                 paramRegisters.stream().map(elem -> elem + BasicBlockCoverage.ADDITIONAL_REGISTERS).collect(Collectors.toList());
 
-        LOGGER.info("New Registers: " + newRegisters);
-        LOGGER.info("Parameter Registers: " + paramRegisters);
-        LOGGER.info("Destination Registers: " + destinationRegisters);
-        LOGGER.info("Source Registers: " + sourceRegisters);
+        LOGGER.debug("New Registers: " + newRegisters);
+        LOGGER.debug("Parameter Registers: " + paramRegisters);
+        LOGGER.debug("Destination Registers: " + destinationRegisters);
+        LOGGER.debug("Source Registers: " + sourceRegisters);
 
         // we need a separate counter for the insertion location of the instructions,
         // since we skip indices when facing wide types
@@ -313,7 +320,7 @@ public final class Instrumentation {
 
                 Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
 
-                LOGGER.info("Wide type LOW_HALF!");
+                LOGGER.debug("Wide type LOW_HALF!");
 
                 // destination register : {vnew0,vnew1,p0...pn}\{pn-1,pn}
                 int destinationRegisterID = destinationRegisters.get(index);
@@ -321,8 +328,8 @@ public final class Instrumentation {
                 // source register : p0...pN
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
@@ -332,11 +339,11 @@ public final class Instrumentation {
             } else if (registerType == RegisterType.LONG_HI_TYPE
                     || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
-                LOGGER.info("Wide type HIGH_HALF!");
+                LOGGER.debug("Wide type HIGH_HALF!");
 
                 // we reached the upper half of a wide-type, no additional move instruction necessary
-                LOGGER.info("(Skipping) source reg:" + sourceRegisters.get(index));
-                LOGGER.info("(Skipping) destination reg: " + destinationRegisters.get(index));
+                LOGGER.debug("(Skipping) source reg:" + sourceRegisters.get(index));
+                LOGGER.debug("(Skipping) destination reg: " + destinationRegisters.get(index));
                 continue;
             } else if (registerType.category == RegisterType.REFERENCE
                     || registerType.category == RegisterType.NULL
@@ -346,14 +353,13 @@ public final class Instrumentation {
                 // object type
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
 
-
-                LOGGER.info("Object type!");
+                LOGGER.debug("Object type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);
@@ -392,22 +398,33 @@ public final class Instrumentation {
                      *             conflicted which means the register has to be written to (thus overwriting our 0)
                      *             before it can be read from.
                      */
-                    LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
-                    final BuilderInstruction11n setZero = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
-                    mutableMethodImplementation.addInstruction(pos, setZero);
+                    LOGGER.debug("Conflicted type: " + sourceRegisters.get(index));
+
+                    if (sourceRegisters.get(index) < 16) {
+                        // CONST_4 is sufficient
+                        final BuilderInstruction11n setZero
+                                = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    } else {
+                        // CONST_4 can only handle v0-v15, thus use regular CONST instruction with support up to v255
+                        final BuilderInstruction31i setZero
+                                = new BuilderInstruction31i(Opcode.CONST, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    }
+
                     pos++;
                 }
 
                 // primitive type
                 Opcode movePrimitive = Opcode.MOVE_FROM16;
 
-                LOGGER.info("Primitive type!");
+                LOGGER.debug("Primitive type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);

@@ -1,16 +1,19 @@
 package de.uni_passau.fim.auermich.basicblockcoverage_evaluation;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
+
 import java.io.*;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class BasicBlockCoverageEvaluation {
 
-    private static final Logger LOGGER = Logger.getLogger(BasicBlockCoverageEvaluation.class.getName());
+    private static final Logger LOGGER = LogManager.getLogger(BasicBlockCoverageEvaluation.class);
 
     private static Map<String, Integer> totalInstructionsPerClass;
     private static Map<String, Integer> totalBranchesPerClass;
@@ -24,7 +27,8 @@ public class BasicBlockCoverageEvaluation {
      * @throws IOException Should never happen.
      */
     public static void main(String[] args) throws IOException {
-        LOGGER.setLevel(Level.ALL);
+
+        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
         if (args.length != 2) {
             LOGGER.info("Usage: java -jar basicBlockCoverageEvaluation.jar <path-to-blocks.txt> <path-to-traces.txt>");
@@ -35,7 +39,7 @@ public class BasicBlockCoverageEvaluation {
             for (final String key : totalInstructionsPerClass.keySet()) {
                 final float coveredInstructions = coveredInstructionsPerClass.getOrDefault(key, 0);
                 final float totalInstructions = totalInstructionsPerClass.get(key);
-                if(coveredInstructions > 0) {
+                if (coveredInstructions > 0) {
                     LOGGER.info("We have for the class " + key + " a line coverage of: "
                             + coveredInstructions / totalInstructions * 100 + "%");
                 }
@@ -44,7 +48,7 @@ public class BasicBlockCoverageEvaluation {
             for(final String key : totalBranchesPerClass.keySet()) {
                 final float coveredBranches = coveredBranchesPerClass.getOrDefault(key, 0);
                 final float totalBranches = totalBranchesPerClass.get(key);
-                if(coveredBranches > 0) {
+                if (coveredBranches > 0) {
                     LOGGER.info("We have for the class " + key + " a branch coverage of: "
                             + coveredBranches / totalBranches * 100 + "%");
                 }

@@ -1,5 +1,11 @@
 package de.uni_passau.fim.auermich.instrumentation.branchdistance;
 
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis.Analyzer;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.Instrumentation;
@@ -13,12 +19,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.jf.dexlib2.iface.ClassDef;
-import org.jf.dexlib2.iface.DexFile;
-import org.jf.dexlib2.iface.Method;
-import org.jf.dexlib2.iface.MethodImplementation;
-import org.jf.dexlib2.immutable.ImmutableClassDef;
-import org.jf.dexlib2.immutable.ImmutableMethod;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class BranchDistance {
     private static final Logger LOGGER = LogManager.getLogger(BranchDistance.class);
 
     // the path to the APK file
-    public static String apkPath;
+    public static File apkPath;
 
     // the output path of the decoded APK
     public static File decodedAPKPath;
@@ -63,27 +63,41 @@ public class BranchDistance {
     private static final int MAX_TOTAL_REGISTERS = 255;
 
     /**
-     * Processes the command line arguments. The following arguments are supported:
-     * <p>
+     * Verifies the validity of the command line arguments. The following arguments are supported:
+     *
      * 1) The path to the APK file.
      * 2) The flag --only-aut to instrument only classes belonging to the app package (optional).
      *
      * @param args The command line arguments.
+     * @return Returns {@code true} if the command line arguments are valid, otherwise {@code false} is returned.
      */
-    private static void handleArguments(String[] args) {
-        assert args.length >= 1 && args.length <= 2;
+    private static boolean handleArguments(String[] args) {
 
-        apkPath = Objects.requireNonNull(args[0]);
-        LOGGER.info("The path to the APK file is: " + apkPath);
+        if (args.length < 1 || args.length > 2) {
+            LOGGER.error("Wrong number of arguments!");
+            return false;
+        }
+
+        // TODO: Add '--debug' command line argument that turns on debug logs.
+
+        apkPath = new File(args[0]);
+        LOGGER.debug("The path to the APK file is: " + apkPath);
+
+        if (!apkPath.exists() || !apkPath.getName().endsWith(".apk")) {
+            LOGGER.error("The input APK does not exist or the specified path does not refer to an APK file!");
+            return false;
+        }
 
         if (args.length == 2) {
             if (args[1].equals("--only-aut")) {
-                LOGGER.info("Only instrumenting classes belonging to the app package!");
+                LOGGER.debug("Only instrumenting classes belonging to the app package!");
                 onlyInstrumentAUTClasses = true;
             } else {
-                LOGGER.info("Argument " + args[1] + " not recognized!");
+                LOGGER.warn("Argument " + args[1] + " not recognized!");
             }
         }
+
+        return true;
     }
 
     /**
@@ -95,61 +109,60 @@ public class BranchDistance {
      */
     public static void main(String[] args) throws IOException {
 
-        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
+        Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
-        if (args.length < 1 || args.length > 2) {
-            LOGGER.info("Wrong number of arguments!");
-            LOGGER.info("Usage: java -jar branchDistance.jar <path to the APK file> --only-aut (optional)");
+        if (!handleArguments(args)) {
+            LOGGER.info("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
         } else {
 
-            // process command line arguments
-            handleArguments(args);
-
-            // the APK file
-            File apkFile = new File(apkPath);
+            long start = System.currentTimeMillis();
 
             // decode the APK file
-            decodedAPKPath = Utility.decodeAPK(apkFile);
+            decodedAPKPath = Utility.decodeAPK(apkPath);
+
+            if (decodedAPKPath == null) {
+                LOGGER.error("Failed to decode APK file!");
+                return;
+            }
 
             ManifestParser manifest = new ManifestParser(decodedAPKPath + File.separator + "AndroidManifest.xml");
 
             // retrieve package name and main activity
             if (!manifest.parseManifest()) {
-                LOGGER.warn("Couldn't retrieve MainActivity and/or PackageName!");
                 return;
             }
 
             /*
-             * TODO: Directly read from APK file if possible (exception so far). This should be fixed with the next
-             *  release, check the github page of (multi)dexlib2.
+             * TODO: Directly read from APK file if possible (exception so far). This
+             *  should be fixed with the next release, check the github page of (multi)dexlib2.
              *
-             * Multidexlib2 provides a merged dex file. So, you don't have to care about multiple dex files at all.
-             * When writing this merged dex file to a directory, the dex file is split into multiple dex files such
-             * that the method reference constraint is not violated.
+             * Multidexlib2 provides a merged dex file. So, you don't have to care about
+             * multiple dex files at all. When writing this merged dex file to a directory,
+             * the dex file is split into multiple dex files such that the method reference
+             * constraint is not violated.
              */
             DexFile mergedDex = MultiDexIO.readDexFile(true, decodedAPKPath,
                     new BasicDexFileNamer(), null, null);
 
-            // instrument + write merged dex file to directory
-            instrument(mergedDex, manifest.getPackageName());
+            instrument(mergedDex, manifest.getPackageName(), manifest.getMainActivity());
 
             // add broadcast receiver tag into AndroidManifest
             if (!manifest.addBroadcastReceiverTag(
                     "de.uni_passau.fim.auermich.tracer.Tracer",
                     "STORE_TRACES")) {
-                LOGGER.warn("Couldn't insert broadcast receiver tag!");
+                LOGGER.error("Couldn't insert broadcast receiver tag!");
                 return;
             }
 
             // mark app debuggable
-            if (!manifest.addApplicationAttribute("android:debuggable", true)) {
-                LOGGER.warn("Couldn't mark app debuggable!");
+            if (!manifest.addApplicationAttribute("debuggable", true)) {
+                LOGGER.error("Couldn't mark app debuggable!");
                 return;
             }
 
             // only for API 29
-            if (!manifest.addApplicationAttribute("android:requestLegacyExternalStorage", true)) {
-                LOGGER.warn("Couldn't add requestLegacyExternalStorage attribute!");
+            if (!manifest.addApplicationAttribute("requestLegacyExternalStorage", true)) {
+                LOGGER.error("Couldn't add requestLegacyExternalStorage attribute!");
                 return;
             }
 
@@ -157,15 +170,15 @@ public class BranchDistance {
             if (!manifest.addPermissionTag("android.permission.WRITE_EXTERNAL_STORAGE")
                     || !manifest.addPermissionTag("android.permission.READ_EXTERNAL_STORAGE")
                     || !manifest.addPermissionTag("android.permission.MANAGE_EXTERNAL_STORAGE")) {
-                LOGGER.warn("Couldn't add read/write/manage permission for external storage!");
+                LOGGER.error("Couldn't add read/write/manage permission for external storage!");
                 return;
             }
 
-            // the output name of the APK
-            File outputAPKFile = new File(apkPath.replace(".apk", "-instrumented.apk"));
+            // the name of the instrumented APK
+            File outputAPKFile = new File(apkPath.getParentFile(), manifest.getPackageName() + "-instrumented.apk");
 
-            // build the APK to the
-            Utility.buildAPK(decodedAPKPath, outputAPKFile);
+            // build the instrumented APK together
+            boolean builtAPK = Utility.buildAPK(decodedAPKPath, outputAPKFile);
 
             // remove the decoded APK files
             try {
@@ -173,6 +186,14 @@ public class BranchDistance {
             } catch (IOException e) {
                 LOGGER.warn("Couldn't delete directory " + decodedAPKPath + " properly!");
             }
+
+            if (!builtAPK) {
+                LOGGER.error("Failed to build APK file!");
+                return;
+            }
+
+            long end = System.currentTimeMillis();
+            LOGGER.info("Instrumenting the app took: " + ((end - start) / 1000) + "s");
         }
     }
 
@@ -181,19 +202,22 @@ public class BranchDistance {
      *
      * @param dexFile The dexFile containing the classes and methods.
      * @param packageName The package name of the app.
+     * @param mainActivity The name of the main activity or {@code null} if no main activity is declared in the manifest.
      * @throws IOException Should never happen.
      */
-    private static void instrument(final DexFile dexFile, final String packageName) throws IOException {
+    private static void instrument(final DexFile dexFile, final String packageName, final String mainActivity) throws IOException {
 
-        LOGGER.info("Starting Instrumentation of App!");
-        LOGGER.info("Dex version: " + dexFile.getOpcodes().api);
-        LOGGER.info("Package Name: " + packageName);
+        LOGGER.debug("Starting instrumentation of app: " + packageName);
+        LOGGER.debug("Dex version: " + dexFile.getOpcodes().api);
 
         // describes class names we want to exclude from instrumentation
         final Pattern exclusionPattern = Utility.readExcludePatterns();
 
+        final String mainActivityPackage = mainActivity != null
+                ? mainActivity.substring(0, mainActivity.lastIndexOf('.')) : null;
+
         List<ClassDef> instrumentedClasses = dexFile.getClasses().parallelStream()
-                .map(classDef -> instrumentClass(dexFile, classDef, packageName, exclusionPattern))
+                .map(classDef -> instrumentClass(dexFile, classDef, packageName, mainActivityPackage, exclusionPattern))
                 .collect(Collectors.toList());
 
         // insert tracer
@@ -209,18 +233,19 @@ public class BranchDistance {
      * @param dexFile The dex file containing the class.
      * @param classDef The class to be instrumented.
      * @param packageName The package name of the app.
+     * @param mainActivityPackage The package name of the main activity.
      * @param exclusionPattern A pattern of classes that should be excluded from the instrumentation process.
      * @return Returns the instrumented class.
      */
     private static ClassDef instrumentClass(final DexFile dexFile, final ClassDef classDef, final String packageName,
-                                            final Pattern exclusionPattern) {
+                                            final String mainActivityPackage, final Pattern exclusionPattern) {
 
         // the class name is part of the method id
         String className = Utility.dottedClassName(classDef.getType());
 
         // if only classes belonging to the app package should be instrumented
-        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)) {
-            LOGGER.info("Excluding class: " + className + " from instrumentation!");
+        if (onlyInstrumentAUTClasses && (!className.startsWith(packageName) && !className.startsWith(mainActivityPackage))) {
+            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
             return classDef;
         }
 
@@ -228,7 +253,7 @@ public class BranchDistance {
         if ((exclusionPattern != null && exclusionPattern.matcher(className).matches())
                 || Utility.isResourceClass(classDef)
                 || Utility.isBuildConfigClass(classDef)) {
-            LOGGER.info("Excluding class: " + className + " from instrumentation!");
+            LOGGER.debug("Excluding class: " + className + " from instrumentation!");
             return classDef;
         }
 
@@ -241,13 +266,13 @@ public class BranchDistance {
          * We add a dummy implementation for missing activity/fragment lifecycle methods in order to get traces for
          * those methods. Otherwise, the graph lacks markings for those lifecycle methods.
          */
-        if (Utility.isActivity(dexFile.getClasses(), classDef)) {
-            Set<String> activityLifeCycleMethods = Utility.getActivityLifeCycleMethods();
-            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, activityLifeCycleMethods));
-        } else if (Utility.isFragment(dexFile.getClasses(), classDef)) {
-            Set<String> fragmentLifeCycleMethods = Utility.getFragmentLifeCycleMethods();
-            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, fragmentLifeCycleMethods));
-        }
+//        if (Utility.isActivity(dexFile.getClasses(), classDef)) {
+//            Set<String> activityLifeCycleMethods = Utility.getActivityLifeCycleMethods();
+//            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, activityLifeCycleMethods));
+//        } else if (Utility.isFragment(dexFile.getClasses(), classDef)) {
+//            Set<String> fragmentLifeCycleMethods = Utility.getFragmentLifeCycleMethods();
+//            instrumentedMethods.addAll(addMissingLifeCycleMethods(dexFile, classDef, fragmentLifeCycleMethods));
+//        }
 
         return new ImmutableClassDef(
                 classDef.getType(),
@@ -294,7 +319,7 @@ public class BranchDistance {
          */
         if (methImpl != null && methImpl.getRegisterCount() < MAX_TOTAL_REGISTERS) {
 
-            LOGGER.info("Instrumenting method " + method);
+            LOGGER.debug("Instrumenting method " + method);
 
             // determine the new local registers and free register IDs
             Analyzer.computeRegisterStates(methodInformation, ADDITIONAL_REGISTERS);
@@ -303,10 +328,10 @@ public class BranchDistance {
             methodInformation.setInstrumentationPoints(Analyzer.trackInstrumentationPoints(methodInformation));
 
             // determine the method entry points
-            methodInformation.setMethodEntries(Analyzer.trackMethodEntries(methodInformation, dexFile));
+            // methodInformation.setMethodEntries(Analyzer.trackMethodEntries(methodInformation, dexFile));
 
             // determine the method exit points
-            methodInformation.setMethodExits(Analyzer.trackMethodExits(methodInformation));
+            // methodInformation.setMethodExits(Analyzer.trackMethodExits(methodInformation));
 
             // determine the location of try blocks
             methodInformation.setTryBlocks(Analyzer.getTryBlocks(methodInformation));
@@ -343,7 +368,9 @@ public class BranchDistance {
 
         } else {
             // not possible to instrument method -> leave unchanged
-            LOGGER.info("Couldn't instrument method: " + methodSignature);
+            if (methImpl != null && methImpl.getRegisterCount() >= MAX_TOTAL_REGISTERS) {
+                LOGGER.warn("Couldn't instrument method: " + method);
+            }
             return method;
         }
     }
@@ -366,9 +393,9 @@ public class BranchDistance {
             lifeCycleMethods.remove(methodName);
         }
 
-        LOGGER.info("Missing lifecycle methods: " + lifeCycleMethods);
+        LOGGER.debug("Missing lifecycle methods: " + lifeCycleMethods);
         List<ClassDef> superClasses = Utility.getSuperClasses(dexFile, classDef);
-        LOGGER.info("Super classes of class " + classDef + ": " + superClasses);
+        LOGGER.debug("Super classes of class " + classDef + ": " + superClasses);
 
         return lifeCycleMethods.parallelStream()
                 .map(method -> Instrumentation.addLifeCycleMethod(method, classDef, superClasses))

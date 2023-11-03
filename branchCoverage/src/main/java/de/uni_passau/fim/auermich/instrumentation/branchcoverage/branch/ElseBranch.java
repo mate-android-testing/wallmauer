@@ -1,6 +1,6 @@
 package de.uni_passau.fim.auermich.instrumentation.branchcoverage.branch;
 
-import org.jf.dexlib2.builder.Label;
+import com.android.tools.smali.dexlib2.builder.Label;
 
 import java.util.Set;
 

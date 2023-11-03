@@ -13,4 +13,7 @@ findProject(':methodCoverage:tracer')?.name = 'tracer'
 findProject(':branchCoverage:tracer')?.name = 'tracer'
 findProject(':branchDistance:tracer')?.name = 'tracer'
 findProject(':basicBlockCoverage:tracer')?.name = 'tracer'
+include 'basicBlockBranchDistance'
+include 'basicBlockBranchDistance:tracer'
+findProject(':basicBlockBranchDistance:tracer')?.name = 'tracer'
 

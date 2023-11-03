@@ -1,5 +1,20 @@
 package de.uni_passau.fim.auermich.instrumentation.branchdistance.core;
 
+import com.android.tools.smali.dexlib2.AccessFlags;
+import com.android.tools.smali.dexlib2.Format;
+import com.android.tools.smali.dexlib2.Opcode;
+import com.android.tools.smali.dexlib2.analysis.AnalyzedInstruction;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
+import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
+import com.android.tools.smali.dexlib2.builder.BuilderSwitchPayload;
+import com.android.tools.smali.dexlib2.builder.Label;
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
+import com.android.tools.smali.dexlib2.builder.instruction.*;
+import com.android.tools.smali.dexlib2.iface.*;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.BranchDistance;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis.Analyzer;
@@ -10,21 +25,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jf.dexlib2.AccessFlags;
-import org.jf.dexlib2.Format;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.analysis.AnalyzedInstruction;
-import org.jf.dexlib2.analysis.RegisterType;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.BuilderSwitchPayload;
-import org.jf.dexlib2.builder.Label;
-import org.jf.dexlib2.builder.MutableMethodImplementation;
-import org.jf.dexlib2.builder.instruction.*;
-import org.jf.dexlib2.iface.*;
-import org.jf.dexlib2.immutable.ImmutableMethod;
-import org.jf.dexlib2.immutable.ImmutableMethodParameter;
-import org.jf.dexlib2.immutable.reference.ImmutableMethodReference;
-import org.jf.dexlib2.immutable.reference.ImmutableStringReference;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -66,7 +66,7 @@ public final class Instrumentation {
                 if (m.toString().endsWith(method)) {
                     if (Arrays.stream(AccessFlags.getAccessFlagsForMethod(m.getAccessFlags()))
                             .anyMatch(flag -> flag == AccessFlags.FINAL)) {
-                        LOGGER.info("Can't add lifecycle method " + method
+                        LOGGER.debug("Can't add lifecycle method " + method
                                 + " because the method is declared final in the super class " + superClass + "!");
                         return null;
                     }
@@ -293,6 +293,13 @@ public final class Instrumentation {
 
             LOGGER.debug("Instrumentation point within try block!");
 
+            /*
+             * There is actually a limit for the branch offset used in if and goto instruction, see:
+             *   https://github.com/JesusFreke/smali/issues/469
+             * We should not be affected by this limitation as we only insert goto instructions within try blocks and
+             * using goto/32 allows to address an branch offset up to 2^32.
+             */
+
             // the label + tracer functionality comes after the last instruction
             int afterLastInstruction = mutableMethodImplementation.getInstructions().size();
 
@@ -355,12 +362,12 @@ public final class Instrumentation {
      */
     public static void modifyMethod(MethodInformation methodInformation, DexFile dexFile) {
 
-        LOGGER.info("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count before increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // increase the register count of the method, i.e. the .register directive at each method's head
         Utility.increaseMethodRegisterCount(methodInformation, methodInformation.getTotalRegisterCount());
 
-        LOGGER.info("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
+        LOGGER.debug("Register count after increase: " + methodInformation.getMethodImplementation().getRegisterCount());
 
         // instrument the if statements + branches first
         Set<Integer> coveredInstructionPoints = new HashSet<>();
@@ -422,8 +429,8 @@ public final class Instrumentation {
             }
         }
 
-        instrumentMethodEntry(methodInformation, dexFile);
-        instrumentMethodExit(methodInformation);
+        // instrumentMethodEntry(methodInformation, dexFile);
+        // instrumentMethodExit(methodInformation);
         // instrumentTryCatchBlocks(methodInformation);
     }
 
@@ -605,9 +612,6 @@ public final class Instrumentation {
      */
     private static void computeBranchDistance(MethodInformation methodInformation, InstrumentationPoint instrumentationPoint) {
 
-        MutableMethodImplementation mutableImplementation =
-                new MutableMethodImplementation(methodInformation.getMethodImplementation());
-
         // get the if instruction
         int instructionIndex = instrumentationPoint.getInstruction().getLocation().getIndex();
         AnalyzedInstruction instruction = methodInformation.getInstructionAtIndex(instructionIndex);
@@ -622,9 +626,9 @@ public final class Instrumentation {
 
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
 
-            LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
-            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            LOGGER.debug("Method: " + methodInformation.getMethodID());
+            LOGGER.debug("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.debug("RegisterA: " + registerA + "[" + registerTypeA + "]");
 
             // check whether we deal with primitive or object types
             if (registerTypeA.category != RegisterType.REFERENCE && registerTypeA.category != RegisterType.UNINIT_REF) {
@@ -642,10 +646,10 @@ public final class Instrumentation {
             RegisterType registerTypeA = instruction.getPreInstructionRegisterType(registerA);
             RegisterType registerTypeB = instruction.getPreInstructionRegisterType(registerB);
 
-            LOGGER.info("Method: " + methodInformation.getMethodID());
-            LOGGER.info("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
-            LOGGER.info("RegisterA: " + registerA + "[" + registerTypeA + "]");
-            LOGGER.info("RegisterB: " + registerB + "[" + registerTypeB + "]");
+            LOGGER.debug("Method: " + methodInformation.getMethodID());
+            LOGGER.debug("IF-Instruction: " + instruction.getOriginalInstruction().getOpcode() + "[" + instructionIndex + "]");
+            LOGGER.debug("RegisterA: " + registerA + "[" + registerTypeA + "]");
+            LOGGER.debug("RegisterB: " + registerB + "[" + registerTypeB + "]");
 
             Set<Byte> referenceTypes = new HashSet<>() {{
                 add(RegisterType.REFERENCE);
@@ -1316,10 +1320,10 @@ public final class Instrumentation {
         List<Integer> sourceRegisters =
                 paramRegisters.stream().map(elem -> elem + BranchDistance.ADDITIONAL_REGISTERS).collect(Collectors.toList());
 
-        LOGGER.info("New Registers: " + newRegisters);
-        LOGGER.info("Parameter Registers: " + paramRegisters);
-        LOGGER.info("Destination Registers: " + destinationRegisters);
-        LOGGER.info("Source Registers: " + sourceRegisters);
+        LOGGER.debug("New Registers: " + newRegisters);
+        LOGGER.debug("Parameter Registers: " + paramRegisters);
+        LOGGER.debug("Destination Registers: " + destinationRegisters);
+        LOGGER.debug("Source Registers: " + sourceRegisters);
 
         // we need a separate counter for the insertion location of the instructions,
         // since we skip indices when facing wide types
@@ -1337,7 +1341,7 @@ public final class Instrumentation {
 
                 Opcode moveWide = Opcode.MOVE_WIDE_FROM16;
 
-                LOGGER.info("Wide type LOW_HALF!");
+                LOGGER.debug("Wide type LOW_HALF!");
 
                 // destination register : {vnew0,vnew1,p0...pn}\{pn-1,pn}
                 int destinationRegisterID = destinationRegisters.get(index);
@@ -1345,8 +1349,8 @@ public final class Instrumentation {
                 // source register : p0...pN
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 // move wide vNew, vShiftedOut
                 BuilderInstruction22x move = new BuilderInstruction22x(moveWide, destinationRegisterID, sourceRegisterID);
@@ -1356,11 +1360,11 @@ public final class Instrumentation {
             } else if (registerType == RegisterType.LONG_HI_TYPE
                     || registerType == RegisterType.DOUBLE_HI_TYPE) {
 
-                LOGGER.info("Wide type HIGH_HALF!");
+                LOGGER.debug("Wide type HIGH_HALF!");
 
                 // we reached the upper half of a wide-type, no additional move instruction necessary
-                LOGGER.info("(Skipping) source reg:" + sourceRegisters.get(index));
-                LOGGER.info("(Skipping) destination reg: " + destinationRegisters.get(index));
+                LOGGER.debug("(Skipping) source reg:" + sourceRegisters.get(index));
+                LOGGER.debug("(Skipping) destination reg: " + destinationRegisters.get(index));
                 continue;
             } else if (registerType.category == RegisterType.REFERENCE
                     || registerType.category == RegisterType.NULL
@@ -1370,13 +1374,13 @@ public final class Instrumentation {
                 // object type
                 Opcode moveObject = Opcode.MOVE_OBJECT_FROM16;
 
-                LOGGER.info("Object type!");
+                LOGGER.debug("Object type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(moveObject, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);
@@ -1413,23 +1417,33 @@ public final class Instrumentation {
                      *             conflicted which means the register has to be written to (thus overwriting our 0)
                      *             before it can be read from.
                      */
-                    LOGGER.info("Conflicted type: " + sourceRegisters.get(index));
-                    final BuilderInstruction11n constZero
-                            = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
-                    mutableMethodImplementation.addInstruction(pos, constZero);
+                    LOGGER.debug("Conflicted type: " + sourceRegisters.get(index));
+
+                    if (sourceRegisters.get(index) < 16) {
+                        // CONST_4 is sufficient
+                        final BuilderInstruction11n setZero
+                                = new BuilderInstruction11n(Opcode.CONST_4, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    } else {
+                        // CONST_4 can only handle v0-v15, thus use regular CONST instruction with support up to v255
+                        final BuilderInstruction31i setZero
+                                = new BuilderInstruction31i(Opcode.CONST, sourceRegisters.get(index), 0);
+                        mutableMethodImplementation.addInstruction(pos, setZero);
+                    }
+
                     pos++;
                 }
 
                 // primitive type
                 Opcode movePrimitive = Opcode.MOVE_FROM16;
 
-                LOGGER.info("Primitive type!");
+                LOGGER.debug("Primitive type!");
 
                 int destinationRegisterID = destinationRegisters.get(index);
                 int sourceRegisterID = sourceRegisters.get(index);
 
-                LOGGER.info("Destination reg: " + destinationRegisterID);
-                LOGGER.info("Source reg: " + sourceRegisterID);
+                LOGGER.debug("Destination reg: " + destinationRegisterID);
+                LOGGER.debug("Source reg: " + sourceRegisterID);
 
                 BuilderInstruction22x move = new BuilderInstruction22x(movePrimitive, destinationRegisterID, sourceRegisterID);
                 mutableMethodImplementation.addInstruction(pos, move);
