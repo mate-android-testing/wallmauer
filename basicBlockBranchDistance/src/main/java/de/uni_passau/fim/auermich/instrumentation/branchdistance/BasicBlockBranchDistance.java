@@ -238,7 +238,8 @@ public class BasicBlockBranchDistance {
         String className = Utility.dottedClassName(classDef.getType());
 
         // if only classes belonging to the app package should be instrumented
-        if (onlyInstrumentAUTClasses && (!className.startsWith(packageName) && !className.startsWith(mainActivityPackage))) {
+        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)
+                && (mainActivityPackage == null || !className.startsWith(mainActivityPackage))) {
             LOGGER.debug("Excluding class: " + className + " from instrumentation!");
             return classDef;
         }

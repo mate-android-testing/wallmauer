@@ -14,7 +14,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
-import java.util.Objects;
 
 public class ManifestParser {
 
@@ -330,12 +329,10 @@ public class ManifestParser {
     }
 
     public String getPackageName() {
-        Objects.requireNonNull(packageName);
         return packageName;
     }
 
     public String getMainActivity() {
-        Objects.requireNonNull(mainActivity);
         return mainActivity;
     }
 }
