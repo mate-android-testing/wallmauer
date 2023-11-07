@@ -113,10 +113,10 @@ public class ManifestParser {
                             if (mainActivityNode.getNodeType() == Node.ELEMENT_NODE) {
                                 Element main = (Element) mainActivityNode;
                                 if (main.getTagName().equals("activity")) {
-                                    mainActivity = main.getAttribute(NAME_ATTRIBUTE);
+                                    mainActivity = getFullyQualifiedName(main.getAttribute(NAME_ATTRIBUTE));
                                     return true;
                                 } else if (main.getTagName().equals("activity-alias")) {
-                                    mainActivity = main.getAttribute(ALIAS_NAME_ATTRIBUTE);
+                                    mainActivity = getFullyQualifiedName(main.getAttribute(ALIAS_NAME_ATTRIBUTE));
                                     return true;
                                 }
                             }
@@ -130,6 +130,23 @@ public class ManifestParser {
             LOGGER.error("Couldn't parse AndroidManifest.xml: " + e.getMessage());
         }
         return false;
+    }
+
+    /**
+     * Retrieves the fully-qualified name.
+     *
+     * @param name The name of the component, potentially not fully-qualified.
+     * @return Returns the FQN for the given component.
+     */
+    private String getFullyQualifiedName(String name) {
+        if (name.startsWith(".")) {
+            return packageName + name;
+        } else if (!name.contains(".")) {
+            // Sometimes solely the blank activity class name is given.
+            return packageName + "." + name;
+        } else {
+            return name;
+        }
     }
 
     /**
