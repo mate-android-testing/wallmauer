@@ -1,4 +1,0 @@
-/home/auermich/smali/at.linuxtage.companion_1500151.apk
-at.linuxtage.companion
-at.linuxtage.companion.activities.MainActivity
-
