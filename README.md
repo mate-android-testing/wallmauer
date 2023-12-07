@@ -1,22 +1,18 @@
 
-# Instrumentation:
+# WallMauer:
 
-The instrumentation library offers five modules responsible for:
+The instrumentation library offers six modules responsible for:
 
 * BranchCoverage Instrumentation
 * BranchCoverage Evaluation
 * BranchDistance Instrumentation
 * BasicBlockCoverage Instrumentation
 * BasicBlockCoverage Evaluation
+* BasicBlockBranchDistance Instrumentation  
 * MethodCoverage Instrumentation
 
 Note that you can supply to each instrumentation module the optional flag `--only-aut` to only instrument the classes
 belonging to the application package.
-
-# Limitations:
-
-The instrumentation only works for apps that expose a main activity. This is not a limitation of the instrumentation
-tool itself, but rather a pre-condition of our testing framework `MATE`.
 
 # BranchCoverage Instrumentation:
 
@@ -28,8 +24,8 @@ To invoke the instrumentation run the following command: <br >
 `java -jar branchCoverage.jar <path-to-apk>` <br >
 
 This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
-In addition, a file called **branches.txt** will be generated in the current working directory. It contains
-the number of branches per class, which is relevant for the evaluation of the branch coverage.
+In addition, a file called **branches.txt** will be generated in the current working directory. It contains the instrumented
+branches, which is relevant for the evaluation of the branch coverage.
 
 # BranchDistance Instrumentation:
 
@@ -41,8 +37,27 @@ To invoke the instrumentation run the following command: <br >
 `java -jar branchDistance.jar <path-to-apk>` <br >
 
 This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
-In addition, a file called **branches.txt** will be generated in the current working directory. It contains
-the number of branches per class, which is relevant for the evaluation of the branch coverage.
+In addition, a file called **branches.txt** will be generated in the current working directory. It contains the instrumented
+branches, which is relevant for the evaluation of the branch coverage. Another file called **instrumentation-points.txt**
+contains not only the instrumented branches but also the instrumented if and switch instructions that are relevant for
+the branch distance computation.
+The JAR file can be found within the `build/libs/` folder of the respective module.
+
+
+# BasicBlockBranchDistance Instrumentation:
+
+Generate the **basicBlockBranchDistance.jar** using the supplied gradle task `customFatJar` of the **basicBlockBranchDistance module**.
+The JAR file can be found within the `build/libs/` folder of the respective module.
+
+To invoke the instrumentation run the following command: <br >
+
+`java -jar basicBlockBranchDistance.jar <path-to-apk>` <br >
+
+This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
+In addition, a file called **blocks.txt** will be generated in the current working directory. It contains the instrumented
+basic blocks, which is relevant for the evaluation of the basic block coverage. Another file called **instrumentation-points.txt**
+contains not only the instrumented branches but also the instrumented if and switch instructions that are relevant for
+the branch distance computation. Also the **branches.txt** is generated that lists the instrumented branches.
 The JAR file can be found within the `build/libs/` folder of the respective module.
 
 # BasicBlockCoverage Instrumentation:
@@ -54,8 +69,8 @@ To invoke the instrumentation run the following command: <br >
 This will produce an APK where the original APK resided with the name **<original-apk-name>-instrumented.apk**.
 In addition, a file called **blocks.txt** will be generated in the current working directory. It contains
 a list of all basic blocks. For each basic block its class, method, block id (which is only unique within the same method),
-the number of instructions it contains and whether the block is the target of an if/else-Branch is recorded. This information
-can be used to calculate line- and branch-coverage.
+the number of instructions it contains and whether the block is the target of an if/else branch is recorded. This information
+can be used to calculate basic block (actually line) and branch coverage.
 
 # MethodCoverage Instrumentation:
 
@@ -90,6 +105,15 @@ placeholder the package name of the application. You can find this information w
 The second pull command retrieves a file called **info.txt**, which solely contains the number of collected traces.
 This file is present once writing the traces to the file is completed.
 
+# MATE Integration:
+
+This instrumentation library is internally used by the Android Test Generator called 
+[MATE](https://github.com/mate-android-testing/mate) to report coverage. You simply copy the instrumented APK into the
+respective **apps** folder belonging to your local [MATE-Commander](https://github.com/mate-android-testing/mate-commander)
+installation. In addition, you copy the additional artifacts produced by the instrumentation, e.g. the **branches.txt**
+into the respective **apps/<package-name>** folder. Note that [MATE](https://github.com/mate-android-testing/mate) requires
+you to name your APKs according to the app's package name, i.e., `<package-name>.apk`.
+
 # BranchCoverage Evaluation:
 
 Generate the **branchCoverageEvaluation.jar** using the supplied gradle task `customFatJar` of the **branchCoverageEvaluation module**. 
@@ -111,26 +135,3 @@ To invoke the evaluation run the following command: <br >
 `java -jar basicBlockCoverageEvaluation.jar <path-to-blocks.txt> <path-to-traces.txt>` <br >
 
 Have a look at the supplied **BasicBlockCoverageEvaluationTest**.
-
-# Building Issues:
-
-The `android.jar` as well as the `apktool-cli-all.jar` contain both an implementation of the `XmlPullParser` library, 
-which leads to a conflict, if the Android API is selected. In this case the following exception occurs:
-
-INFO: Decoding AndroidManifest.xml with resources... <br>
-Exception in thread "main" java.lang.RuntimeException: Stub! <br>
-	at org.xmlpull.v1.XmlPullParserFactory.newInstance(XmlPullParserFactory.java:117) <br>
-	at org.xmlpull.v1.wrapper.XmlPullWrapperFactory.<init>(XmlPullWrapperFactory.java:52) <br>
-	at org.xmlpull.v1.wrapper.XmlPullWrapperFactory.newInstance(XmlPullWrapperFactory.java:29) <br>
-	at brut.androlib.res.decoder.XmlPullStreamDecoder.decode(XmlPullStreamDecoder.java:50) <br>
-	at brut.androlib.res.decoder.XmlPullStreamDecoder.decodeManifest(XmlPullStreamDecoder.java:154) <br>
-	at brut.androlib.res.decoder.ResFileDecoder.decodeManifest(ResFileDecoder.java:162) <br>
-	at brut.androlib.res.AndrolibResources.decodeManifestWithResources(AndrolibResources.java:204) <br>
-	at brut.androlib.Androlib.decodeManifestWithResources(Androlib.java:136) <br>
-	at brut.androlib.ApkDecoder.decode(ApkDecoder.java:122) <br>
-	at de.uni_passau.fim.Utility.decodeAPK(Utility.java:184) <br>
-	at de.uni_passau.fim.BranchDistance.main(BranchDistance.java:194) <br>
-	
-To fix this issue, one has to manually remove certain class files from the `android.jar`. In the future,
-we should adjust the build.gradle file in order to exclude the `XmlPullParser` library of the `android.jar`.
-See https://docs.gradle.org/current/userguide/dependency_downgrade_and_exclude.html for more details.
