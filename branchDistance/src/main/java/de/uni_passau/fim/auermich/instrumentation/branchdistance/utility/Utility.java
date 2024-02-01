@@ -747,4 +747,25 @@ public final class Utility {
         String method = getMethodName(fullyQualifiedMethodName);
         return ART_METHODS.contains(method);
     }
+
+    /**
+     * Determines whether the given class represents a core application class.
+     *
+     * @param packageName The package name of the app.
+     * @param className The class to be checked.
+     * @return Returns {@code true} if the given class represents an application class, otherwise {@code false}.
+     */
+    public static boolean isApplicationClass(final String packageName, final String className) {
+        if (className.startsWith(packageName)) {
+            return true;
+        } else {
+            // Heuristic: At the least the first two packages must match.
+            final String[] packages = packageName.split("\\.");
+            if (packages.length < 2) {
+                return false;
+            } else {
+                return className.startsWith(packages[0] + "." + packages[1]);
+            }
+        }
+    }
 }

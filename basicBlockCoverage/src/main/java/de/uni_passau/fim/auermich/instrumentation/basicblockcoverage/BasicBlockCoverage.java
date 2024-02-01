@@ -235,8 +235,8 @@ public class BasicBlockCoverage {
         // the class name is part of the method id
         final String className = Utility.dottedClassName(classDef.getType());
 
-        // if only classes belonging to the app package should be instrumented
-        if (onlyInstrumentAUTClasses && !className.startsWith(packageName)
+        // only classes belonging to the app package should be instrumented
+        if (onlyInstrumentAUTClasses && !Utility.isApplicationClass(packageName, className)
                 && (mainActivityPackage == null || !className.startsWith(mainActivityPackage))) {
             LOGGER.debug("Excluding class: " + className + " from instrumentation!");
             return classDef;
