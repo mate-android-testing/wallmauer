@@ -114,6 +114,17 @@ installation. In addition, you copy the additional artifacts produced by the ins
 into the respective **apps/<package-name>** folder. Note that [MATE](https://github.com/mate-android-testing/mate) requires
 you to name your APKs according to the app's package name, i.e., `<package-name>.apk`.
 
+# Local Dependencies: 
+
+This library builds on top of a self-compiled version of 
+**[multidexlib2](https://github.com/DexPatcher/multidexlib2)** using the latest 
+**[dexlib2](https://github.com/google/smali)** dependency. In addition, a local copy of
+`android.jar` and `androidx.jar` is included to build primarily the injected `Tracer` class.
+These two dependencies can be obtained from the Android SDK 
+(see https://stackoverflow.com/questions/29496269/where-is-the-android-jar-library)
+and a dummy Android project (see https://stackoverflow.com/questions/58946536/where-can-i-find-a-jar-aar-version-of-androidx-library).
+
+
 # BranchCoverage Evaluation:
 
 Generate the **branchCoverageEvaluation.jar** using the supplied gradle task `customFatJar` of the **branchCoverageEvaluation module**. 
