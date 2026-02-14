@@ -1,5 +1,6 @@
 package de.uni_passau.fim.auermich.branchcoverage_evaluation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -18,6 +19,7 @@ public class BranchCoverageEvaluationTest {
             .getName());
 
     @Test
+    @SuppressFBWarnings(value = {"DM_DEFAULT_ENCODING", "WMI_WRONG_MAP_ITERATOR"})
     public void testBranchCoverageEvaluation() throws IOException {
 
         // tracks the number of total branches per class <class,#branches>
@@ -31,7 +33,7 @@ public class BranchCoverageEvaluationTest {
         BufferedReader branchesReader = new BufferedReader(new InputStreamReader(branchesInputStream));
 
         String line;
-        while((line = branchesReader.readLine()) != null) {
+        while ((line = branchesReader.readLine()) != null) {
             // each line consists of className: #branches
             String[] tuple = line.split(":");
             branches.put(tuple[0], Integer.parseInt(tuple[1].trim()));
@@ -67,11 +69,11 @@ public class BranchCoverageEvaluationTest {
         tracesReader.close();
 
         // compute branch coverage per class
-        for(String key : branches.keySet()) {
+        for (String key : branches.keySet()) {
 
             float totalBranches = branches.get(key);
             float coveredBranches = visitedBranches.get(key);
-            LOGGER.info("We have for the class " + key + " a branch coverage of: " + coveredBranches/totalBranches*100 + "%");
+            LOGGER.info("We have for the class " + key + " a branch coverage of: " + coveredBranches / totalBranches * 100 + "%");
         }
     }
 }

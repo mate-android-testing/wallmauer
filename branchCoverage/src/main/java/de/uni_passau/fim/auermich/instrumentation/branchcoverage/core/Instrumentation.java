@@ -5,7 +5,12 @@ import com.android.tools.smali.dexlib2.analysis.RegisterType;
 import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
 import com.android.tools.smali.dexlib2.builder.Label;
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
-import com.android.tools.smali.dexlib2.builder.instruction.*;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction11n;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21c;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction22x;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction30t;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction31i;
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction3rc;
 import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
@@ -17,7 +22,14 @@ import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Utility
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 

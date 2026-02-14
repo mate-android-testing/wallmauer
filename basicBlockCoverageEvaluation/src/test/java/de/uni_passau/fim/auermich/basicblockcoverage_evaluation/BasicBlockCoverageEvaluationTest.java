@@ -1,5 +1,6 @@
 package de.uni_passau.fim.auermich.basicblockcoverage_evaluation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,7 @@ public class BasicBlockCoverageEvaluationTest {
 
     @DisplayName("Testing basic block branch coverage evaluation!")
     @Test
+    @SuppressFBWarnings(value="WMI_WRONG_MAP_ITERATOR")
     public void testBasicBlockBranchCoverageEvaluation() throws IOException {
 
         InputStream blocksInputStream = getClass().getClassLoader().getResourceAsStream("blocks.txt");
@@ -45,6 +47,7 @@ public class BasicBlockCoverageEvaluationTest {
 
     @DisplayName("Testing basic block line coverage evaluation!")
     @Test
+    @SuppressFBWarnings(value="WMI_WRONG_MAP_ITERATOR")
     public void testBasicBlockLineCoverageEvaluation() throws IOException {
 
         InputStream blocksInputStream = getClass().getClassLoader().getResourceAsStream("blocks.txt");
@@ -75,6 +78,7 @@ public class BasicBlockCoverageEvaluationTest {
      * @return Returns a mapping of class to covered instruction count.
      * @throws IOException Should never happen.
      */
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     private static Map<String, Integer> coveredInstructionsPerClass(InputStream tracesInputStream) throws IOException {
 
         // stores a mapping of class -> (method -> (basic block -> number of instructions of block))
@@ -122,6 +126,7 @@ public class BasicBlockCoverageEvaluationTest {
      * @return Returns the total number of instructions per class.
      * @throws IOException Should never happen.
      */
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     private static Map<String, Integer> totalInstructionsPerClass(final InputStream blocksInputStream) throws IOException {
 
         final Map<String, Integer> totalInstructionsPerClass = new HashMap<>();
@@ -151,6 +156,7 @@ public class BasicBlockCoverageEvaluationTest {
      * @return Returns the total number of branches per class.
      * @throws IOException Should never happen.
      */
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     private static Map<String, Integer> totalBranchesPerClass(final InputStream blocksInputStream)
             throws IOException {
 
@@ -183,6 +189,7 @@ public class BasicBlockCoverageEvaluationTest {
      * @return Returns a mapping of class to covered branches count.
      * @throws IOException Should never happen.
      */
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     private static Map<String, Integer> coveredBranchesPerClass(InputStream tracesInputStream)
             throws IOException {
 

@@ -2,7 +2,11 @@ package de.uni_passau.fim.auermich.instrumentation.branchdistance.analysis;
 
 
 import com.android.tools.smali.dexlib2.Opcode;
-import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.analysis.AnalyzedInstruction;
+import com.android.tools.smali.dexlib2.analysis.ClassPath;
+import com.android.tools.smali.dexlib2.analysis.DexClassProvider;
+import com.android.tools.smali.dexlib2.analysis.MethodAnalyzer;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
 import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction;
 import com.android.tools.smali.dexlib2.builder.BuilderSwitchPayload;
@@ -20,10 +24,18 @@ import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Range;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Analyzer {
@@ -189,6 +201,7 @@ public final class Analyzer {
      * @param methodInformation Encapsulates a method.
      * @return Returns ranges describing the start and end of try blocks.
      */
+    @SuppressFBWarnings(value="NP_NULL_ON_SOME_PATH")
     public static Set<Range> getTryBlocks(MethodInformation methodInformation) {
 
         LOGGER.debug("Retrieving try blocks of method...");

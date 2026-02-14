@@ -1,6 +1,13 @@
 package de.uni_passau.fim.auermich.branchcoverage_evaluation;
 
-import java.io.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,6 +25,7 @@ public class BranchCoverageEvaluation {
      * @param args The command line arguments, see the description below.
      * @throws IOException Should never happen.
      */
+    @SuppressFBWarnings(value = {"DM_DEFAULT_ENCODING", "WMI_WRONG_MAP_ITERATOR"})
     public static void main(String[] args) throws IOException {
 
         LOGGER.setLevel(Level.ALL);

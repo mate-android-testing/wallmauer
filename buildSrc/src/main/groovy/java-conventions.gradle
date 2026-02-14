@@ -53,8 +53,12 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.14.2")
 
     // Declare here your shared dependencies.
+
+    // https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-annotations
+    implementation group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: '4.9.8'
 
     // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.1'

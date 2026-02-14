@@ -1,7 +1,11 @@
 package de.uni_passau.fim.auermich.instrumentation.methodcoverage.analysis;
 
 
-import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.analysis.AnalyzedInstruction;
+import com.android.tools.smali.dexlib2.analysis.ClassPath;
+import com.android.tools.smali.dexlib2.analysis.DexClassProvider;
+import com.android.tools.smali.dexlib2.analysis.MethodAnalyzer;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
 import com.android.tools.smali.dexlib2.iface.DexFile;
 import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.android.tools.smali.dexlib2.util.MethodUtil;
@@ -10,7 +14,11 @@ import de.uni_passau.fim.auermich.instrumentation.methodcoverage.dto.MethodInfor
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public final class Analyzer {
 

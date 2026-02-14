@@ -1,11 +1,16 @@
 package de.uni_passau.fim.auermich.basicblockcoverage_evaluation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,6 +31,7 @@ public class BasicBlockCoverageEvaluation {
      * @param args The command line arguments, see the description below.
      * @throws IOException Should never happen.
      */
+    @SuppressFBWarnings(value = {"DM_DEFAULT_ENCODING", "WMI_WRONG_MAP_ITERATOR"})
     public static void main(String[] args) throws IOException {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
@@ -66,6 +72,7 @@ public class BasicBlockCoverageEvaluation {
         }
     }
 
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     private static  void totalPerClass(final String filePath) throws IOException {
         totalInstructionsPerClass = new HashMap<>();
         totalBranchesPerClass = new HashMap<>();
@@ -95,7 +102,8 @@ public class BasicBlockCoverageEvaluation {
             }
         }
     }
-    
+
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     private static void coveredPerClass(final String filePath) throws IOException {
         // The same basic blocks can be executed multiple times during a run
         // But for the coverage we only need to count each block once, even if it is executed multiple times

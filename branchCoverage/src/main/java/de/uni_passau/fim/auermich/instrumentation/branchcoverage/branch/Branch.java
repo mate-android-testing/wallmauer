@@ -1,10 +1,13 @@
 package de.uni_passau.fim.auermich.instrumentation.branchcoverage.branch;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public abstract class Branch implements Comparable<Branch> {
 
     private int index;
     private int codeAddress;
-    private String id;
+    @SuppressFBWarnings(value="URF_UNREAD_FIELD")
+    private final String id;
 
     public Branch(int index, int codeAddress, String id) {
         this.index = index;
@@ -39,8 +42,9 @@ public abstract class Branch implements Comparable<Branch> {
     @Override
     public boolean equals(Object other) {
 
-        if (this == other)
+        if (this == other) {
             return true;
+        }
 
         if (other == null || getClass() != other.getClass()) {
             return false;

@@ -1,6 +1,10 @@
 package de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.dto;
 
-import com.android.tools.smali.dexlib2.analysis.*;
+import com.android.tools.smali.dexlib2.analysis.AnalyzedInstruction;
+import com.android.tools.smali.dexlib2.analysis.ClassPath;
+import com.android.tools.smali.dexlib2.analysis.DexClassProvider;
+import com.android.tools.smali.dexlib2.analysis.MethodAnalyzer;
+import com.android.tools.smali.dexlib2.analysis.RegisterType;
 import com.android.tools.smali.dexlib2.iface.ClassDef;
 import com.android.tools.smali.dexlib2.iface.DexFile;
 import com.android.tools.smali.dexlib2.iface.Method;
@@ -9,7 +13,12 @@ import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.basicblockcoverage.utility.Range;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Stores all the relevant information

@@ -45,6 +45,10 @@ public class Range implements Comparable<Range> {
             return true;
         }
 
+        if (o == null) {
+            return false;
+        }
+
         if (this.getClass() != o.getClass()) {
             return false;
         }

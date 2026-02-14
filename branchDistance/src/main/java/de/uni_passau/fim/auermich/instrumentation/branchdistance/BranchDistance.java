@@ -12,6 +12,7 @@ import de.uni_passau.fim.auermich.instrumentation.branchdistance.core.Instrument
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.dto.MethodInformation;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.utility.Utility;
 import de.uni_passau.fim.auermich.instrumentation.branchdistance.xml.ManifestParser;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.MultiDexIO;
 import org.apache.commons.io.FileUtils;
@@ -37,9 +38,11 @@ public class BranchDistance {
     private static final Logger LOGGER = LogManager.getLogger(BranchDistance.class);
 
     // the path to the APK file
+    @SuppressFBWarnings(value="MS_PKGPROTECT", justification="Required by Android Graphs lib.")
     public static File apkPath;
 
     // the output path of the decoded APK
+    @SuppressFBWarnings(value="MS_PKGPROTECT", justification="Required by Android Graphs lib.")
     public static File decodedAPKPath;
 
     // whether only classes belonging to the app package should be instrumented

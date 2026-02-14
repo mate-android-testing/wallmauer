@@ -12,7 +12,12 @@ import com.android.tools.smali.dexlib2.builder.BuilderInstruction;
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation;
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction3rc;
 import com.android.tools.smali.dexlib2.dexbacked.value.DexBackedTypeEncodedValue;
-import com.android.tools.smali.dexlib2.iface.*;
+import com.android.tools.smali.dexlib2.iface.Annotation;
+import com.android.tools.smali.dexlib2.iface.AnnotationElement;
+import com.android.tools.smali.dexlib2.iface.ClassDef;
+import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.Method;
+import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef;
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
 import com.android.tools.smali.smali.SmaliTestUtils;
@@ -20,6 +25,7 @@ import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.dto.MethodInformation;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lanchon.multidexlib2.BasicDexFileNamer;
 import lanchon.multidexlib2.DexIO;
 import lanchon.multidexlib2.MultiDexIO;
@@ -28,9 +34,22 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.NonNull;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.AbstractSet;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -45,7 +64,7 @@ public final class Utility {
     /**
      * It seems that certain resource classes are API dependent, e.g. "R$interpolator" is only available in API 21.
      */
-    private static final Set<String> resourceClasses = new HashSet<String>() {{
+    private static final Set<String> RESOURCE_CLASSES = new HashSet<>() {{
         add("R$anim");
         add("R$attr");
         add("R$bool");
@@ -88,7 +107,7 @@ public final class Utility {
         }
 
         // check for inner R classes
-        for (String resourceClass : resourceClasses) {
+        for (String resourceClass : RESOURCE_CLASSES) {
             if (className.contains(resourceClass)) {
                 return true;
             }
@@ -246,6 +265,7 @@ public final class Utility {
      * @throws FileNotFoundException Should never be thrown.
      */
     @SuppressWarnings("unused")
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     public static void writeBranches(String className, int branchCounter) throws FileNotFoundException {
 
         File file = new File(OUTPUT_BRANCHES_FILE);
@@ -265,6 +285,7 @@ public final class Utility {
      *
      * @param methodInformation Encapsulates a method.
      */
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     public static synchronized void writeBranches(MethodInformation methodInformation) {
 
         File file = new File(OUTPUT_BRANCHES_FILE);
@@ -307,6 +328,7 @@ public final class Utility {
      * @return The pattern representing classes that should not be instrumented.
      * @throws IOException        If the file containing excluded classes is not available.
      */
+    @SuppressFBWarnings(value="DM_DEFAULT_ENCODING")
     public static Pattern readExcludePatterns() throws IOException {
 
         ClassLoader classLoader = ClassLoader.getSystemClassLoader();
@@ -322,10 +344,11 @@ public final class Utility {
         StringBuilder builder = new StringBuilder();
         boolean first = true;
         while ((line = reader.readLine()) != null) {
-            if (first)
+            if (first) {
                 first = false;
-            else
+            } else {
                 builder.append("|");
+            }
             builder.append(line);
         }
         reader.close();
@@ -525,8 +548,9 @@ public final class Utility {
                 try {
                     int value = field.getInt(instruction);
 
-                    if (value >= registerNumber)
+                    if (value >= registerNumber) {
                         field.set(instruction, value + shift);
+                    }
 
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
