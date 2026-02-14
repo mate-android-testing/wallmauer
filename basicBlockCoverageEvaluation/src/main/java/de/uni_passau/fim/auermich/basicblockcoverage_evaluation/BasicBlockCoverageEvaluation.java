@@ -31,7 +31,7 @@ public class BasicBlockCoverageEvaluation {
      * @param args The command line arguments, see the description below.
      * @throws IOException Should never happen.
      */
-    @SuppressFBWarnings(value = {"DM_DEFAULT_ENCODING", "WMI_WRONG_MAP_ITERATOR"})
+    @SuppressFBWarnings(value = {"WMI_WRONG_MAP_ITERATOR"})
     public static void main(String[] args) throws IOException {
 
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);

@@ -6,6 +6,7 @@ import com.android.tools.smali.dexlib2.iface.DexFile;
 import com.android.tools.smali.dexlib2.iface.Method;
 import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.Optional;
  * Stores all the relevant information
  * for a method.
  */
+@SuppressFBWarnings(value = { "EI_EXPOSE_REP"})
 public class MethodInformation {
 
     // a method descriptor (id)

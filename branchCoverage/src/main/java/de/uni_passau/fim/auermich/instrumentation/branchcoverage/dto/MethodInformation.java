@@ -12,6 +12,7 @@ import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.google.common.collect.Lists;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.core.InstrumentationPoint;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.utility.Range;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.TreeSet;
  * Stores all the relevant information
  * for a method.
  */
+@SuppressFBWarnings(value = { "EI_EXPOSE_REP"})
 public class MethodInformation {
 
     // a method descriptor (id)
