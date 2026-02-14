@@ -5,7 +5,6 @@ import brut.androlib.ApkDecoder;
 import brut.androlib.Config;
 import brut.androlib.exceptions.AndrolibException;
 import brut.common.BrutException;
-import brut.directory.DirectoryException;
 import brut.directory.ExtFile;
 import com.android.tools.smali.dexlib2.DexFileFactory;
 import com.android.tools.smali.dexlib2.Opcodes;
@@ -17,7 +16,6 @@ import com.android.tools.smali.dexlib2.iface.*;
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef;
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod;
 import com.android.tools.smali.smali.SmaliTestUtils;
-import com.google.common.base.Charsets;
 import com.google.common.io.ByteSource;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage;
 import de.uni_passau.fim.auermich.instrumentation.branchcoverage.core.InstrumentationPoint;
@@ -28,9 +26,10 @@ import lanchon.multidexlib2.MultiDexIO;
 import org.antlr.runtime.RecognitionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.NonNull;
 
-import javax.annotation.Nonnull;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -161,7 +160,7 @@ public final class Utility {
         };
 
         try {
-            String smaliCode = byteSource.asCharSource(Charsets.UTF_8).read();
+            String smaliCode = byteSource.asCharSource(StandardCharsets.UTF_8).read();
             return SmaliTestUtils.compileSmali(smaliCode, apiLevel);
         } catch (IOException | RecognitionException e) {
             throw new RuntimeException(e);
@@ -179,12 +178,11 @@ public final class Utility {
      */
     public static boolean buildAPK(File decodedAPKPath, File outputFile) {
 
-        final Config config = Config.getDefaultConfig();
-        config.useAapt2 = true;
-        config.verbose = true;
+        final Config config = new Config();
+        config.setVerbose(true);
 
         try {
-            new ApkBuilder(config, new ExtFile(decodedAPKPath)).build(outputFile);
+            new ApkBuilder(new ExtFile(decodedAPKPath), config).build(outputFile);
             return true;
         } catch (BrutException e) {
             e.printStackTrace();
@@ -204,12 +202,12 @@ public final class Utility {
             h.setLevel(Level.SEVERE);
         }
 
-        final Config config = Config.getDefaultConfig();
-        config.forceDelete = true; // overwrites existing dir: -f
+        final Config config = new Config();
+        config.setForced(true);
 
         try {
             // do not decode dex classes to smali: -s
-            config.setDecodeSources(Config.DECODE_SOURCES_NONE);
+            config.setDecodeSources(Config.DecodeSources.NONE);
 
             /*
              * TODO: Right now we need to decode the resources completely although we only need to alter the manifest.
@@ -229,11 +227,12 @@ public final class Utility {
 
             LOGGER.debug("Decoding Output Dir: " + outputDir);
 
-            final ApkDecoder decoder = new ApkDecoder(config, apkPath);
+            final ApkDecoder decoder = new ApkDecoder(new ExtFile(apkPath), config);
             decoder.decode(outputDir);
             return outputDir;
-        } catch (AndrolibException | IOException | DirectoryException e) {
+        } catch (AndrolibException e) {
             e.printStackTrace();
+            LOGGER.error("Failed to decode APK file!");
             return null;
         }
     }
@@ -346,11 +345,11 @@ public final class Utility {
 
         // TODO: directly update merged dex file instance instead of creating new dex file instance here
         DexFile dexFile = new DexFile() {
-            @Nonnull
+            @NonNull
             @Override
             public Set<? extends ClassDef> getClasses() {
                 return new AbstractSet<>() {
-                    @Nonnull
+                    @NonNull
                     @Override
                     public Iterator<ClassDef> iterator() {
                         return classes.iterator();
@@ -363,7 +362,7 @@ public final class Utility {
                 };
             }
 
-            @Nonnull
+            @NonNull
             @Override
             public Opcodes getOpcodes() {
                 // https://android.googlesource.com/platform/dalvik/+/master/dx/src/com/android/dex/DexFormat.java
@@ -387,11 +386,11 @@ public final class Utility {
     public static void writeToDexFile(String filePath, List<ClassDef> classes, int opCode) throws IOException {
 
         DexFileFactory.writeDexFile(filePath, new DexFile() {
-            @Nonnull
+            @NonNull
             @Override
             public Set<? extends ClassDef> getClasses() {
-                return new AbstractSet<ClassDef>() {
-                    @Nonnull
+                return new AbstractSet<>() {
+                    @NonNull
                     @Override
                     public Iterator<ClassDef> iterator() {
                         return classes.iterator();
@@ -404,7 +403,7 @@ public final class Utility {
                 };
             }
 
-            @Nonnull
+            @NonNull
             @Override
             public Opcodes getOpcodes() {
                 return Opcodes.forApi(opCode);

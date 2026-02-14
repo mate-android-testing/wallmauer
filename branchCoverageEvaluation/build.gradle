@@ -7,20 +7,24 @@ application {
     mainClass.set("de.uni_passau.fim.auermich.branchcoverage_evaluation.BranchCoverageEvaluation")
 }
 
-task customFatJar(type: Jar) {
+tasks.register('customFatJar', Jar) {
 
     manifest {
         attributes 'Main-Class': 'de.uni_passau.fim.auermich.branchcoverage_evaluation.BranchCoverageEvaluation'
     }
 
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     archiveFileName.set('branchCoverageEvaluation.jar')
 
     from {
-        (configurations.compile.findAll { !it.path.endsWith(".pom") }).collect {
-            it.isDirectory() ? it : zipTree(it) }
+        (configurations.compileClasspath.findAll { !it.path.endsWith(".pom") }).collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
 
         (configurations.runtimeClasspath.findAll { !it.path.endsWith(".pom") }).collect {
-            it.isDirectory() ? it : zipTree(it) }
+            it.isDirectory() ? it : zipTree(it)
+        }
     }
 
     with jar

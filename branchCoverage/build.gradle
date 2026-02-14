@@ -10,20 +10,24 @@ application {
 // If we really need to include the resource directory from the tracer sub project, check out:
 // https://stackoverflow.com/questions/20136214/gradle-common-resource-dependency-for-multiple-java-projects/43686346
 
-task customFatJar(type: Jar) {
+tasks.register('customFatJar', Jar) {
 
     manifest {
         attributes 'Main-Class': 'de.uni_passau.fim.auermich.instrumentation.branchcoverage.BranchCoverage'
     }
 
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     archiveFileName.set('branchCoverage.jar')
 
     from {
-        (configurations.compile.findAll { !it.path.endsWith(".pom") }).collect {
-            it.isDirectory() ? it : zipTree(it) }
+        (configurations.compileClasspath.findAll { !it.path.endsWith(".pom") }).collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
 
         (configurations.runtimeClasspath.findAll { !it.path.endsWith(".pom") }).collect {
-            it.isDirectory() ? it : zipTree(it) }
+            it.isDirectory() ? it : zipTree(it)
+        }
     }
 
     with jar
@@ -31,7 +35,7 @@ task customFatJar(type: Jar) {
 
 // useful task that shows were dependencies are locally installed
 // https://stackoverflow.com/questions/21417419/how-to-convert-aar-to-jar
-task showMeCache {
-    configurations.compile.findAll() { println it }
-    configurations.runtimeClasspath.findAll() {println it }
+tasks.register('showMeCache') {
+    configurations.compileClasspath.findAll() { println it }
+    configurations.runtimeClasspath.findAll() { println it }
 }

@@ -34,11 +34,11 @@ compileJava {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
 }
 
-tasks.withType(Javadoc) {
+tasks.withType(Javadoc).configureEach {
     options.encoding = "UTF-8"
 }
 
@@ -62,23 +62,23 @@ dependencies {
     // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.14.1'
 
-    // https://mvnrepository.com/artifact/org.smali/dexlib2
-    implementation group: 'com.android.tools.smali', name: 'smali-dexlib2', version: '3.0.3'
+    // https://mvnrepository.com/artifact/com.android.tools.smali/smali-dexlib2/
+    implementation group: 'com.android.tools.smali', name: 'smali-dexlib2', version: '3.0.9'
 
     // https://mvnrepository.com/artifact/com.google.guava/guava
-    implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
+    implementation group: 'com.google.guava', name: 'guava', version: '33.5.0-jre'
 
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
 
-    // https://mvnrepository.com/artifact/org.smali/baksmali
-    implementation group: 'com.android.tools.smali', name: 'smali-baksmali', version: '3.0.3'
+    // https://mvnrepository.com/artifact/com.android.tools.smali/smali-baksmali
+    implementation group: 'com.android.tools.smali', name: 'smali-baksmali', version: '3.0.9'
 
-    // https://mvnrepository.com/artifact/org.smali/smali
-    implementation group: 'com.android.tools.smali', name: 'smali', version: '3.0.3'
+    // https://mvnrepository.com/artifact/com.android.tools.smali/smali
+    implementation group: 'com.android.tools.smali', name: 'smali', version: '3.0.9'
 
     // https://mvnrepository.com/artifact/org.apktool/apktool-lib
-    implementation group: 'org.apktool', name: 'apktool-lib', version: '2.9.0'
+    implementation group: 'org.apktool', name: 'apktool-lib', version: '2.12.1'
 
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'

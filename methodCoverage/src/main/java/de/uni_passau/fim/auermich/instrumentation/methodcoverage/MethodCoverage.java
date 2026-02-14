@@ -102,7 +102,7 @@ public class MethodCoverage {
         Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.INFO);
 
         if (!handleArguments(args)) {
-            LOGGER.info("Usage: java -jar basicBlockCoverage.jar <path to the APK file> --only-aut (optional)");
+            LOGGER.info("Usage: java -jar MethodCoverage.jar <path to the APK file> --only-aut (optional)");
         } else {
 
             long start = System.currentTimeMillis();
