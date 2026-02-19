@@ -88,7 +88,7 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
 
     // use local multidexlib2 dependency generated with the simple 'jar' task (no external dependency included)
-    implementation name: 'multidexlib2'
+    implementation group: 'local', name: 'multidexlib2', version: '1.0'
 
 //    implementation(group: 'com.github.lanchon.dexpatcher', name: 'multidexlib2', version: '2.3.4') {
 //        // mdexlib2 still uses dexlib2 2.3.4 but latest apktool requires 2.5.2

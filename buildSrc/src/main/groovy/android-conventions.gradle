@@ -32,8 +32,8 @@ repositories {
 }
 
 dependencies {
-    implementation name: 'android'
-    implementation name: 'androidx'
+    implementation group: 'local', name: 'android', version: '1.0'
+    implementation group: 'local', name: 'androidx', version: '1.0'
 }
 
 idea {
