@@ -50,6 +50,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-artifacts/*
+          # this is mandatory otherwise the action complains about missing tag
           tag_name: ${{ github.event.inputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
