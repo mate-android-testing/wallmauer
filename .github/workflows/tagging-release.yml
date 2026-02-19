@@ -1,4 +1,4 @@
-name: Release with Gradle
+name: Build Module JARs on tagging a Release
 
 on:
   push:

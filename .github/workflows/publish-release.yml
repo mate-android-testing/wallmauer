@@ -1,0 +1,41 @@
+name: Build and Attach Module JARs on publishing a Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17   # adjust if needed
+          cache: gradle
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Build all fat JARs
+        run: ./gradlew customFatJar
+
+      - name: Collect artifacts (exclude buildSrc)
+        run: |
+          mkdir release-artifacts
+          find . -type f -path "*/build/libs/*.jar" ! -path "./buildSrc/build/libs/conventions.jar" -exec cp {} release-artifacts/ \;
+
+      - name: Upload all module JARs to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
