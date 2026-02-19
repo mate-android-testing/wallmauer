@@ -1,4 +1,4 @@
-name: Build Module JARs on tagging a Release
+name: Build Module JARs on Tagging a Release
 
 on:
   push:

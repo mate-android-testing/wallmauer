@@ -1,0 +1,54 @@
+name: Manually Build and Attach Module JARs for Existing Release
+
+# Trigger manually via GitHub UI
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag for the release'
+        required: true
+        default: ''
+
+permissions:
+  contents: write   # Required to upload release assets
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repo at the specified tag
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # Step 2: Set up JDK (change version if needed)
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # Step 3: Make Gradle executable
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      # Step 4: Build all fat JARs using your custom task
+      - name: Build all fat JARs
+        run: ./gradlew customFatJar
+
+      # Step 5: Collect artifacts while excluding buildSrc/conventions.jar
+      - name: Collect artifacts for release
+        run: |
+          mkdir release-artifacts
+          find . -type f -path "*/build/libs/*.jar" ! -path "./buildSrc/build/libs/conventions.jar" -exec cp {} release-artifacts/ \;
+
+      # Step 6: Upload artifacts to the release
+      - name: Upload JARs to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

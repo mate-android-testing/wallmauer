@@ -1,4 +1,4 @@
-name: Build and Attach Module JARs on publishing a Release
+name: Build and Attach Module JARs on Publishing a Release
 
 on:
   release:
